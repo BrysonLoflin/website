@@ -1,0 +1,51 @@
+---
+pagetitle: "From the Field to the Lab"
+page-layout: full
+---
+
+::: {.full-bleed}
+<section class="hero hero--lab" style="min-height:88svh">
+<div class="hero__img" style="background-image:url('assets/img/bat-release.jpg'); background-position:center 45%"></div>
+<div class="hero__scrim"></div>
+<div class="hero__inner reveal">
+<p class="eyebrow">The study system</p>
+<h1>From the field to the lab.</h1>
+<p class="lead" style="max-width:46ch">I'm not a field biologist by trade. The heart of my work happens in the lab, with wild bats we bring into captivity to watch cooperation up close.</p>
+</div>
+<div class="hero__credit">© Bryson Loflin</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black">
+<div class="inner page-prose reveal">
+<p class="lead">Every bat I study is either wild-caught or donated from a zoo. Once an animal joins one of our captive colonies, the lab becomes its long-term home: we don't release vampire bats back to the wild. So the colony has to be a place where bats can live, roost, and socialize naturally enough that the cooperation I measure is the real thing.</p>
+<p class="muted">That's the whole reason the work is lab-based rather than field-based. Watching who shares a meal with whom, night after night, takes controlled conditions, individually marked animals, and years of careful husbandry, not a headlamp and a mist net. The field is where the animals come from; the lab is where the science gets done.</p>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--purple halftone">
+<div class="inner page-prose reveal">
+<p class="eyebrow">The experiment</p>
+<h2 class="h-md">Fasting trials, one bat at a time</h2>
+<p class="muted">The core method is deceptively simple. A bat that fails to feed for a night gets hungry fast: vampire bats can starve within about 70 hours. When a roost-mate regurgitates part of its own blood meal to a hungry neighbor, that's a costly, measurable act of cooperation. By controlling who goes hungry and tracking who shares with whom, I can watch cooperative relationships form in real time, and test what makes them hold.</p>
+<p class="muted">In my experiments I fix some partners as reliably helpful and others as unhelpful, then measure how a focal bat decides where to invest. The lab has refined these protocols (captive husbandry, fasting trials, individual marking) over more than a decade, which is what makes this kind of manipulation possible at all.</p>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black section-divider">
+<div class="inner page-prose reveal">
+<p class="eyebrow">Why the lab</p>
+<p class="lead">You can model cooperation all you want, but nothing replaces watching two animals decide, night after night, whether to share with each other. Captivity is what makes that visible: controlled, repeatable, and close enough to catch every choice.</p>
+<p class="muted">It also means a responsibility: these are wild animals living out their lives in our care, so good husbandry isn't a side task: it's the foundation the entire research program stands on.</p>
+<div class="btn-row">
+<a class="btnx btnx--solid" href="research.html">The science behind it</a>
+<a class="btnx" href="photography.html">More photography</a>
+</div>
+</div>
+</section>
+:::

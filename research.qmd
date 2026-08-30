@@ -1,0 +1,177 @@
+---
+pagetitle: "Research"
+page-layout: full
+---
+
+::: {.full-bleed}
+<header class="hero hero--net hero--short hero--centered">
+<div id="research-net" class="hero-net-bg" aria-hidden="true"></div>
+<div class="hero__solo">
+<div class="hero__copy reveal">
+<p class="eyebrow">Research</p>
+<h1>How cooperative relationships form, persist, and fall apart.</h1>
+<p class="lead">Broadly, I study the causes and consequences of cooperative social behavior. Vampire bats are my study system because they let me do something rare: manipulate cooperation experimentally and watch relationships change in response.</p>
+<p class="muted" style="margin-top:1.2rem">My questions center on <strong>reciprocity</strong>, <strong>fitness interdependence</strong> (kinship and group size), <strong>partner investment strategies</strong>, and the <strong>social-network structure</strong> of a colony over time.</p>
+</div>
+</div>
+</header>
+:::
+
+::: {.full-bleed}
+<section class="section section--black">
+<div class="inner">
+<div class="reveal">
+<h2 class="h-lg">Ongoing projects</h2>
+</div>
+
+<div class="rlist reveal">
+<div class="ritem" id="strand">
+<div class="ritem__num">01</div>
+<div class="ritem__body">
+<h3>Colony level social relations models</h3>
+<p>Fitting a <a class="klink" href="https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2656.14021">STRAND social-relations model</a> across all of our long-term data, separating reciprocity, kinship, and individual generosity in grooming and food sharing, and watching how bonds change over time.</p>
+<div class="ritem__tags"><span class="tag">STRAND</span><span class="tag">Bayesian networks</span><span class="tag">Reciprocity</span><span class="tag">R / Stan</span></div>
+<div class="pviz">
+<img src="assets/img/strand-net.svg" alt="A directed social network: a dense crimson core of focal bats receiving and giving help, surrounded by peripheral individuals with fewer, thinner connections" style="width:100%; height:auto">
+<p class="pviz__cap">A colony as a directed network — who gives to whom, and how much. Modelled with <a class="klink" href="https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2656.14021">STRAND (Ross, McElreath &amp; Redhead 2024)</a>.</p>
+</div>
+</div>
+<div class="ritem__meta">Ongoing<br>Analysis</div>
+</div>
+
+<div class="ritem" id="batid">
+<div class="ritem__num">02</div>
+<div class="ritem__body">
+<h3>Automatic bat ID with machine learning</h3>
+<p>Building a computer-vision pipeline to re-identify individual bats from video, testing whether 21 individuals are visually separable on held-out days, so we can study behavior without hand labelling days of footage.</p>
+<div class="ritem__tags"><span class="tag">Computer vision</span><span class="tag">Re-identification</span><span class="tag">Python</span><span class="tag">Automation</span></div>
+<div class="pviz">
+<video src="assets/video/bat-reid.mp4" muted loop autoplay playsinline preload="metadata" style="width:100%; height:auto; display:block"></video>
+</div>
+</div>
+<div class="ritem__meta">Ongoing<br>Method dev</div>
+</div>
+
+<div class="ritem" id="defection">
+<div class="ritem__num">03</div>
+<div class="ritem__body">
+<h3>Defection &amp; partner choice</h3>
+<p>Experimentally manipulating whether a new bat in the colony is helpful or defective, then measuring how bats differentially invest in them: a direct causal test of reciprocity and partner-choice.</p>
+<div class="ritem__tags"><span class="tag">Captive experiment</span><span class="tag">Partner choice</span><span class="tag">Fasting trials</span></div>
+<div class="pviz">
+<div class="dyad-legend" aria-hidden="true">
+<span class="dyad-key"><i class="dyad-dot dyad-dot--groom"></i>Grooming</span>
+<span class="dyad-key"><i class="dyad-dot dyad-dot--share"></i>Food shared</span>
+<span class="dyad-key"><i class="dyad-dot dyad-dot--bond"></i>Bond strength</span>
+</div>
+<div class="dyad__card">
+<div class="dyad__viz" id="choice-viz" aria-hidden="true"></div>
+<p class="dyad__status" id="status-choice">Two strangers join the colony</p>
+</div>
+</div>
+</div>
+<div class="ritem__meta">Ongoing</div>
+</div>
+
+<div class="ritem" id="interdependence">
+<div class="ritem__num">04</div>
+<div class="ritem__body">
+<h3>Defection &amp; interdependence</h3>
+<p>How does response to defection change when bats are also siblings? Or what if they have been long term friends? Or what if the defective bat is their only option? These are all examples of what we might label as "interdependence", and we want to understand how bats respond to defection differently in these scenarios. The prediction, animated below: after the same defection, an <strong>unrelated</strong> bat withdraws its investment, while between <strong>kin</strong> interdependence buffers the response and the focal bat keeps giving.</p>
+<div class="ritem__tags"><span class="tag">Kinship</span><span class="tag">Interdependence</span><span class="tag">Captive experiment</span></div>
+<div class="pviz">
+<div class="dyad-legend" aria-hidden="true">
+<span class="dyad-key"><i class="dyad-dot dyad-dot--share"></i>Food shared</span>
+<span class="dyad-key"><i class="dyad-dot dyad-dot--defect"></i>Defection</span>
+<span class="dyad-key"><i class="dyad-dot dyad-dot--bond"></i>Bond strength</span>
+</div>
+<div class="dyad-grid">
+<figure class="dyad">
+<div class="dyad__card">
+<p class="dyad__label">Unrelated pair</p>
+<div class="dyad__viz" id="dyad-nonkin" aria-hidden="true"></div>
+<p class="dyad__status" id="status-nonkin">Reciprocal food sharing</p>
+</div>
+</figure>
+<figure class="dyad">
+<div class="dyad__card">
+<p class="dyad__label">Kin pair &middot; siblings</p>
+<div class="dyad__viz" id="dyad-kin" aria-hidden="true"></div>
+<p class="dyad__status" id="status-kin">Reciprocal food sharing</p>
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="ritem__meta">Ongoing</div>
+</div>
+</div>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black">
+<div class="inner">
+<div class="band reveal">
+<div class="band__media"><img src="assets/img/hero-alt.jpg" alt="Lowland tropical rainforest, Gamboa, Panamá"></div>
+<div class="band__text">
+<div class="frame">
+<p class="eyebrow">From the field to the lab</p>
+<p class="h-md" style="color:var(--heading)">The bats I study are wild-caught or donated from zoos. The science happens in the lab.</p>
+<p class="muted" style="margin-top:1rem">I work with captive colonies of vampire bats: running fasting trials, tracking who shares food with whom, and testing what makes a cooperative bond form and hold. Once the animals are with us, the lab is where they stay. We make sure they are happy and engaged in their new home though! They are well cared for, and often are in better condition than those in the field.</p>
+<p class="muted" style="margin-top:1rem">We don't release vampire bats back to the wild, so the colony has to be a place where bats can live, roost, and socialize naturally enough that the cooperation I measure is the real thing. Good husbandry isn't a side task: it's the foundation the entire research program stands on.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black section-divider">
+<div class="inner">
+<p class="eyebrow reveal">Context</p>
+<div class="cardgrid reveal">
+<div class="cardx">
+<h3>Study system</h3>
+<p>Common vampire bats (<em>Desmodus rotundus</em>), studied in captive colonies (animals that are wild-caught or donated from zoos).</p>
+</div>
+<div class="cardx">
+<h3>Methods</h3>
+<p>Bayesian social-relations models (STRAND / Stan), longitudinal network analysis in R, RFID tracking, machine-learning re-ID, and manipulative fasting-trial experiments.</p>
+</div>
+<div class="cardx">
+<h3>People &amp; support</h3>
+<p>Advised by Dr. Gerry Carter (<a class="klink" href="https://socialbat.org/">Carter Lab</a>), studying cooperation in captive colonies of vampire bats. Earlier training with the <a class="klink" href="https://pfenniglab.web.unc.edu/">Pfennig Lab</a> (UNC) and <a class="klink" href="https://sheehanlab.weebly.com/">Sheehan Lab</a> (Cornell).</p>
+</div>
+</div>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--panel section-divider">
+<div class="inner reveal">
+<p class="eyebrow">Five quick answers</p>
+<h2 class="h-md" style="margin-bottom:1.8rem">The questions I actually get asked</h2>
+
+<details class="faqx"><summary>Do vampire bats really share blood?</summary>
+<div class="faqx-body">Yes. A bat that fed regurgitates part of its meal to a roost-mate that didn't, and it's often not a relative. It's one of the clearest cases of reciprocal cooperation in any animal: bats keep track of who has helped them and preferentially help those partners back (<a class="klink" href="https://doi.org/10.1038/308181a0">Wilkinson 1984</a>, <a class="klink" href="https://doi.org/10.1098/rspb.2012.2573">Carter &amp; Wilkinson 2013</a>). That bookkeeping is what my research is about.</div></details>
+
+<details class="faqx"><summary>Will a vampire bat attack me?</summary>
+<div class="faqx-body">No. Common vampire bats mostly feed on sleeping livestock, take about a tablespoon of blood, and the animal usually never notices. They're shy, only weigh ~40&nbsp;g, and far more interested in cow blood than mine!</div></details>
+
+<details class="faqx"><summary>How do you tell individual bats apart in the dark?</summary>
+<div class="faqx-body">Three ways: tiny RFID tags logged at feeders, forearm bands readable on infrared video, and (the part I'm actively building) computer-vision models that learn to re-identify individuals and score their interactions automatically.</div></details>
+
+<details class="faqx"><summary>Are the odds in <a class="klink" href="play.html">the game</a> real?</summary>
+<div class="faqx-body">Every probability is taken from published field and lab studies: Wilkinson's classic starvation and food-sharing data, reciprocity experiments from the Carter Lab, Bshary's cleaner-fish work, Ratnieks's worker-policing counts. Sources and simplifications are listed under "model notes" on the <a class="klink" href="play.html">Play page</a> and on each game's science page: <a class="klink" href="learn-bat.html">vampire bat</a>, <a class="klink" href="learn-fish.html">cleaner fish</a>, <a class="klink" href="learn-bee.html">honeybee</a>.</div></details>
+
+<details class="faqx"><summary>Can you give a talk, or can I collaborate?</summary>
+<div class="faqx-body">Probably, I love outreach! If you or anyone you know is interested in hearing about vampire bat friendships I'm happy to talk all day about it. <a class="klink" href="mailto:bryson.loflin@princeton.edu">Email me</a>, I will reply within two days.</div></details>
+
+<div class="btn-row" style="margin-top:2.4rem"><a class="btnx btnx--solid" href="publications.html">Publications</a><a class="btnx" href="play.html">Feel the dilemma, play the game</a></div>
+</div>
+</section>
+:::

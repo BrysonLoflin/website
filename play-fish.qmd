@@ -1,0 +1,321 @@
+---
+pagetitle: "You are a cleaner fish"
+description: "A service game with real odds from the reef: clean honestly, massage your regulars, or cheat while the whole reef watches."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-fish">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play.html">← All games</a></p>
+<p class="g-kicker">A service game · real odds from the reef</p>
+<h1>You are a cleaner fish.</h1>
+<p class="g-lede">Your station on the reef serves <strong>thousands of clients a day</strong>.
+You could eat their parasites (honest, modest calories), or bite the delicious mucus you
+actually prefer, and pay for it. <strong>Regulars remember. Bystanders watch. Predators are
+clients too.</strong> Massage the ones who matter, and serve until dusk.</p>
+<div class="g-cta">
+<button class="g-start" id="wyd-start">🐟 Open the station</button>
+<a class="g-learnlink" href="learn-fish.html">Learn the real science →</a>
+</div>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+
+<div id="wyd-play" style="display:none">
+<div class="wyd-hud" id="wyd-hud"></div>
+<div class="wyd-scene" id="wyd-scene"></div>
+<div class="wyd-log" id="wyd-log" aria-live="polite"></div>
+</div>
+
+<div id="wyd-end" style="display:none">
+<div class="wyd-endcard">
+<p class="wyd-endkicker" id="wyd-e-species"></p>
+<div class="wyd-bigscore" id="wyd-e-score"></div>
+<p class="wyd-verdict" id="wyd-e-verdict"></p>
+<div class="wyd-postrow">
+<input id="wyd-e-name" maxlength="24" placeholder="Your name" aria-label="Your name for the leaderboard">
+<button class="btnx btnx--solid" id="wyd-e-post">Post to leaderboard</button>
+<button class="btnx" id="wyd-e-again">Play again</button>
+</div>
+<p class="wyd-notice" id="wyd-e-notice"></p>
+</div>
+</div>
+
+<div class="wyd-lbwrap">
+<p class="wyd-lbhead">Best cleaners on the reef</p>
+<div class="wyd-tablewrap"><table class="wyd-board">
+<thead><tr><th>#</th><th>Player</th><th>Species</th><th style="text-align:right">Score</th><th>Survived</th><th>When</th></tr></thead>
+<tbody id="wyd-lb-body"><tr><td colspan="6">Loading scores…</td></tr></tbody>
+</table></div>
+</div>
+
+<details class="wyd-model">
+<summary>How the odds work</summary>
+<div class="wyd-model-body">
+<p>Every core number is drawn from published studies. A day is 24 clients: ~55% are your six
+named residents (weighted by relationship), 37% visitors, 8% predators. A bystander turns out
+to have been watching with P = 0.5 — <strong>rolled only after you act</strong>, the way a real
+audience works — and each reputation strike makes the next client swim off with +20%
+probability. Honest cleaning pays +2 (+3 from residents whose relationship &gt; 0.6, rel
++0.05); a massage pays 0 food but +0.12 relationship (more when reconciling after a cheat) and
+calms predators; cheating pays +6 and costs relationship and reputation, or, on a predator,
+your life. At dusk your score is food ×8, plus your resident relationships and your remaining
+clean reputation (the fixed day length and score weights are the game's own tuning). Full
+sources and the natural history live on the <a href="learn-fish.html">Learn&nbsp;more page</a>.</p>
+</div>
+</details>
+
+</div>
+</section>
+</div>
+```
+:::
+
+<script>window.WYD_SPECIES = "fish";</script>
+<script src="assets/js/wyd-core.js"></script>
+<script>
+/* ── cleaner fish engine ── */
+/* pass-1 rebalance (full redesign blueprint: ../design/fish-redesign.md):
+   fixed 24-client day (comparable scores), bystanders rolled AFTER you choose
+   (cheating is always a gamble now), dusk bonus = food x8 + relationships + clean rep */
+const FISH = { pPredator:0.08, pVisitor:0.37, dayLen:24, repAvoid:0.2, pBystander:0.5,
+  honestGain:2, bonusGain:3, bonusRel:0.6, cheatGain:6, chaseCost:3,
+  relHonest:0.05, relMassage:0.12, relReconcile:0.06, relCheat:0.25,
+  foodPts:8, relPts:40, repPts:30 };
+const RESIDENT_FISH = [
+  {name:"Domino", kind:"damselfish"}, {name:"Indigo", kind:"surgeonfish"},
+  {name:"Pip", kind:"parrotfish"}, {name:"Coral", kind:"butterflyfish"},
+  {name:"Loop", kind:"goatfish"}, {name:"Momo", kind:"rabbitfish"}];
+let G = null;
+
+function wydStart(){
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  G = {round:0, score:0, rep:0, alive:true, cause:"",
+       residents: RESIDENT_FISH.map((f,i)=>({id:i, ...f, rel:0.25+0.2*roll(), angry:false}))};
+  log("Morning on the reef. Your cleaning station opens. Clients are queueing.");
+  clientPhase();
+}
+function wydHud(){
+  const h = $("#wyd-hud"); if(!h || !G) return;
+  const skulls = [0,1,2].map(k=>`<i class="${k < G.rep ? "on":""}"></i>`).join("");
+  const avg = (G.residents.reduce((a,p)=>a+p.rel,0)/G.residents.length).toFixed(2);
+  h.innerHTML = `<div class="wyd-ghud">
+    <div class="gstat"><span class="gl">Client</span><span class="gv">${G.round}</span></div>
+    <div class="gstat"><span class="gl">Food 🍽</span><span class="gv">${G.score}</span></div>
+    <div class="gstat"><span class="gl">Rep strikes ⚠</span><div class="wyd-pips bad">${skulls}</div></div>
+    <div class="gstat"><span class="gl">Avg. relationship</span><span class="gv">${avg}</span></div>
+  </div>`;
+}
+function pickClient(){
+  const r = roll();
+  if(r < FISH.pPredator) return {type:"predator"};
+  if(r < FISH.pPredator + FISH.pVisitor) return {type:"visitor"};
+  const w = G.residents.map(p=>0.2 + p.rel);
+  let t = roll() * w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<w.length;i++){ t -= w[i]; if(t<=0) return {type:"resident", p:G.residents[i]}; }
+  return {type:"resident", p:G.residents[0]};
+}
+function fishNetSvg(cur){
+  const cx=200, cy=150, rx=150, ry=100;
+  let edges="", nodes="";
+  G.residents.forEach((p,i)=>{
+    const a = -Math.PI/2 + i*(2*Math.PI/6);
+    const x = cx + rx*Math.cos(a), y = cy + ry*Math.sin(a);
+    edges += `<line class="edge" x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}"
+      stroke-width="${(0.6 + p.rel*6).toFixed(1)}" opacity="${(0.2 + p.rel*0.65).toFixed(2)}"/>`;
+    const here = cur && cur.type==="resident" && cur.p.id===p.id;
+    nodes += `<g class="node${p.angry?" hungry":""}${here?" sel":""}">
+      <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="15"/>
+      <text x="${x.toFixed(0)}" y="${(y+29).toFixed(0)}">${esc(p.name)}</text>
+      ${here ? `<text class="beg" x="${x.toFixed(0)}" y="${(y-22).toFixed(0)}">AT THE STATION</text>`
+        : p.angry ? `<text class="beg" x="${x.toFixed(0)}" y="${(y-22).toFixed(0)}">ANGRY</text>`:""}
+    </g>`;
+  });
+  return `<svg class="wyd-net" viewBox="0 0 400 300" role="img"
+    aria-label="Your regular clients: line thickness shows service relationship">
+    ${edges}
+    <g class="node you"><circle cx="${cx}" cy="${cy}" r="17"/><text x="${cx}" y="${cy+4}">YOU</text></g>
+    ${nodes}</svg>`;
+}
+function clientPhase(){
+  G.round++;
+  wydSaveRun(G);  // autosave before each client; Exit + Resume pick up here
+  presentClient();
+}
+function wydResumeRun(g){
+  G = g;
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  log(`Resumed at client ${G.round}.`);
+  presentClient();
+}
+function presentClient(){
+  const cur = pickClient();
+  if(cur.type!=="predator" && G.rep>0 && roll() < FISH.repAvoid*G.rep){
+    log(`Client ${G.round}: swam off, they've seen you cheat (P=${fmtP(FISH.repAvoid*G.rep)}).`, "bad");
+    scene(`<div class="wyd-round">Client ${G.round} · reputation</div>
+      <h3>The next fish takes one look and leaves.</h3>`+ outcomeBlock(
+      `Each reputation strike adds a ${fmtP(FISH.repAvoid)} chance that the next client avoids you.
+       With ${G.rep} strike${G.rep>1?"s":""}, the odds were <strong>${fmtP(FISH.repAvoid*G.rep)}</strong>. This one left.`,
+      `Word gets around a reef. No inspection, no food.`,
+      "In real life",
+      `Clients eavesdrop: in choice tests they preferentially visit cleaners they observed
+       cooperating and avoid ones they saw cheat.`,
+      "Bshary & Grutter 2006 Nature"));
+    $("#wyd-next").onclick = duskCheck;
+    return;
+  }
+  G.cur = cur; G.curBystander = null;  // rolled AFTER you choose — you never know who's watching
+  let title, sub, story;
+  if(cur.type==="predator"){
+    title = "A grouper slides in, big enough to eat you.";
+    sub = "predator client";
+    story = `It hangs in the water, mouth open, waiting to be cleaned. Predators are clients too:
+      the calmer you keep them, the safer everyone at your station is. Biting THIS client's mucus
+      would be the last thing you ever do.`;
+  } else if(cur.type==="visitor"){
+    title = "A visitor from another reef, with options.";
+    sub = "visitor · will leave if cheated";
+    story = `You'll probably never see this fish again; it has other cleaning stations to choose from.`;
+  } else {
+    const p = cur.p;
+    title = `${esc(p.name)} the ${p.kind} settles in${p.angry ? ", still twitchy from last time":""}.`;
+    sub = `resident · relationship ${p.rel.toFixed(2)}`;
+    story = p.rel > FISH.bonusRel
+      ? `A regular who trusts you: ${esc(p.name)} poses longer and lets you work thoroughly, so
+         honest cleaning pays <strong>+${FISH.bonusGain}</strong> instead of +${FISH.honestGain}.`
+      : `A regular. Residents can't leave the reef, but they remember how you treat them,
+         and how often they visit tracks the relationship.`;
+  }
+  const canBonus = cur.type==="resident" && cur.p.rel > FISH.bonusRel;
+  const em = cur.type==="predator" ? "🦈" : cur.type==="visitor" ? "🐠" : "🐟";
+  scene(`<div class="wyd-round">Client ${G.round} · ${sub}</div>
+    <h3><span class="wyd-swimmer" aria-hidden="true">${em}</span>${title}</h3>
+    <p class="wyd-story">${story} Shapes hang in the blue beyond the station — <strong>you can
+      never be sure who's watching</strong>.</p>
+    <div class="wyd-roost">
+      <div>${fishNetSvg(cur)}</div>
+      <div id="wyd-fishcol">
+        <div class="wyd-pacts">
+          <button class="btnx btnx--solid" id="wyd-clean">Eat parasites <span class="sub">+${canBonus?FISH.bonusGain:FISH.honestGain} food · honest${cur.type==="resident"? " · rel +"+FISH.relHonest.toFixed(2):""}</span></button>
+          <button class="btnx" id="wyd-massage">Massage with your fins <span class="sub">+0 food · ${cur.type==="resident"? "rel +"+FISH.relMassage.toFixed(2)+(cur.p.angry? " · reconciles":"") : "calms the client"}</span></button>
+          <button class="btnx wyd-clay" id="wyd-cheat">Bite mucus <span class="sub">+${FISH.cheatGain} food · ${cur.type==="predator"?"…it's a PREDATOR":"client jolts"}</span></button>
+        </div>
+      </div>
+    </div>`);
+  $("#wyd-clean").onclick = ()=>resolveFish("clean");
+  $("#wyd-massage").onclick = ()=>resolveFish("massage");
+  $("#wyd-cheat").onclick = ()=>resolveFish("cheat");
+}
+function resolveFish(act){
+  const cur = G.cur;
+  const bystander = roll() < FISH.pBystander;   // the audience reveals itself only afterward
+  const isRes = cur.type==="resident";
+  let rollTxt="", story="", rl="", cite="";
+  if(act==="clean"){
+    const gain = isRes && cur.p.rel > FISH.bonusRel ? FISH.bonusGain : FISH.honestGain;
+    G.score += gain;
+    if(isRes){ cur.p.rel = Math.min(1, cur.p.rel + FISH.relHonest); cur.p.angry = false; }
+    if(bystander && G.rep>0) G.rep--;
+    log(`Client ${G.round} (${cur.type}): honest. +${gain}.`, "good");
+    rollTxt = `+${gain} food.${bystander? " A bystander saw you cooperate, and your reputation improves.":""}`;
+    story = `The client shimmers off, cleaned.${isRes? ` Relationship with ${esc(cur.p.name)}: ${cur.p.rel.toFixed(2)}.`:""}`;
+    rl = `Cleaners really do earn a living one tiny ectoparasite at a time. Honest service keeps
+      clients posing, returning, and advertising you to the audience.`;
+    cite = "Grutter 1996 MEPS · Bshary & Grutter 2006 Nature";
+  } else if(act==="massage"){
+    if(isRes){
+      const rec = cur.p.angry ? FISH.relReconcile : 0;
+      cur.p.rel = Math.min(1, cur.p.rel + FISH.relMassage + rec);
+      cur.p.angry = false;
+      log(`Client ${G.round}: massaged ${cur.p.name}. Rel ${cur.p.rel.toFixed(2)}.`, "good");
+      rollTxt = `+0 food · relationship with ${esc(cur.p.name)}: ${cur.p.rel.toFixed(2)} (+${(FISH.relMassage+rec).toFixed(2)}${rec? " incl. reconciliation":""})`;
+      story = `You drum your pelvic fins along ${esc(cur.p.name)}'s flank. No calories in it, but this
+        client will be back, and will pose longer next time.`;
+    } else {
+      log(`Client ${G.round}: massaged a ${cur.type}. +0.`, "good");
+      rollTxt = `+0 food · the ${cur.type} leaves calm${cur.type==="predator"? ", and leaves you uneaten":""}.`;
+      story = cur.type==="predator"
+        ? `You give the grouper a long tactile working-over. It drifts off placid. Cleaners literally
+           massage the predators that could eat them.`
+        : `The visitor melts under your fins and will speak well of this reef.`;
+    }
+    rl = `Tactile stimulation is a real service: cleaners "massage" clients with their pelvic fins to
+      build relationships, calm predators, and reconcile after conflicts, paying a food cost now
+      for partner value later.`;
+    cite = "Bshary & Würth 2001 Proc B · Grutter 2004 Curr Biol";
+  } else {
+    if(cur.type==="predator"){
+      G.alive = false; G.cause = "eaten"; G.score = Math.max(0, G.score-10);
+      log(`Client ${G.round}: bit a PREDATOR. Eaten. ☠`, "bad");
+      scene(`<div class="wyd-round">Client ${G.round} · predator</div>
+        <h3>The worst bite of your life.</h3>`+ outcomeBlock(
+        `You bit a predator. There is no roll for this one.`,
+        `The grouper's jolt is the last thing you see.`,
+        "In real life",
+        `Real cleaners essentially never cheat predatory clients. The punishment isn't a chase,
+         it's digestion. Partner leverage shapes honesty.`,
+        "Bshary & Grutter 2002 Anim Behav"));
+      $("#wyd-next").onclick = fishEnd;
+      return;
+    }
+    G.score += FISH.cheatGain;
+    let extra = "";
+    if(cur.type==="visitor"){ extra = "The visitor bolts for a rival cleaning station."; }
+    else {
+      G.score = Math.max(0, G.score - FISH.chaseCost);
+      cur.p.rel = Math.max(0.02, cur.p.rel - FISH.relCheat); cur.p.angry = true;
+      extra = `${esc(cur.p.name)} chases you around the coral (the punishment costs you ${FISH.chaseCost} food
+        of foraging time), then stays, angry. Relationship: ${cur.p.rel.toFixed(2)}.`;
+    }
+    if(bystander) G.rep = Math.min(3, G.rep+1);
+    log(`Client ${G.round} (${cur.type}): CHEATED. +${FISH.cheatGain}${cur.type==="resident"?" −"+FISH.chaseCost+" (chased)":""}${bystander?" · witnessed":""}.`, "bad");
+    rollTxt = `+${FISH.cheatGain} food. ${bystander? "A bystander watched: reputation strike ("+G.rep+"/3).":"No witnesses."}`;
+    story = `The client jolts violently. ${extra}`;
+    rl = `Mucus really is what cleaners prefer; cooperation is them resisting temptation. Visitors
+      respond to cheats by leaving; residents punish with chases; audiences remember.`;
+    cite = "Grutter & Bshary 2003 · Bshary & Grutter 2002";
+  }
+  // append the outcome beside the network (in the actions column) so the scene
+  // stays one screen tall on desktop; falls below the buttons on mobile
+  ($("#wyd-fishcol") || $("#wyd-scene")).insertAdjacentHTML("beforeend",
+    outcomeBlock(rollTxt, story, "In real life", rl, cite));
+  $$("#wyd-scene .wyd-pacts .btnx").forEach(b=>b.disabled=true);
+  wydScroll($("#wyd-scene .wyd-outcome"), "nearest");  // safety net on short screens
+  $("#wyd-next").onclick = duskCheck; wydHud();
+}
+function duskCheck(){
+  if(G.round >= FISH.dayLen){
+    G.cause = "dusk";
+    log(`Client ${G.round}: the light goes and the station closes for the night.`, "good");
+    fishEnd();
+    return;
+  }
+  clientPhase();
+}
+function fishEnd(){
+  const relSum = G.residents.reduce((a,p)=>a+p.rel,0);
+  const avg = (relSum/G.residents.length).toFixed(2);
+  let score = G.score * FISH.foodPts;
+  let verdict;
+  if(G.alive){
+    score += Math.round(relSum * FISH.relPts) + (3 - G.rep) * FISH.repPts;
+    verdict = `Dusk after a full day of ${G.round} clients: ${G.score} food banked (x${FISH.foodPts}),
+       ${G.rep} reputation strike${G.rep===1?"":"s"}, average resident relationship ${avg} — your
+       regulars and your clean name are folded into the score. Real cleaners land near the honest
+       end, because the audience and the regulars make cheating expensive.`;
+  } else {
+    verdict = `Eaten on client ${G.round}. The food you'd banked still counts, but the day is over.
+       Real cleaners never cheat a predator; now you know why. Massage them instead.`;
+  }
+  wydEnd({score, verdict, nights: G.round});
+}
+</script>

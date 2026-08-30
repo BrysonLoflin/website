@@ -1,0 +1,82 @@
+---
+pagetitle: "The real cleaner fish"
+description: "Everything the game is built on: the natural history of the cleaner-wrasse mutualism (cheating, punishment, reputation, and massage), with sources."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-fish-light">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play-fish.html">← Back to the game</a></p>
+<p class="g-kicker">The real science · cleaner wrasse</p>
+<h1>A service economy on a coral reef.</h1>
+<p class="g-lede">The cleaner-wrasse mutualism is one of the best-studied cooperation systems
+in nature: a marketplace with clients, cheating, punishment, and reputation.
+Here's the science behind each mechanic.</p>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+<div class="g-prose">
+
+<h2>Two thousand clients a day</h2>
+<p>The bluestreak cleaner wrasse (<em>Labroides dimidiatus</em>) holds a small territory, a
+"cleaning station," where other fish come to have their ectoparasites picked off. A single
+cleaner inspects on the order of <strong>2,300 clients per day</strong> and eats over a
+thousand parasites doing it<sup><a href="#ref-1">1</a></sup>. Clients queue, pose with fins
+spread, and hold still for a stranger's mouth. Both sides profit, as long as both sides
+behave.</p>
+
+<h2>The temptation</h2>
+<p>Here's the catch that makes it a cooperation problem: given the choice, cleaners
+<strong>prefer client mucus over parasites</strong><sup><a href="#ref-2">2</a></sup>. Every
+honest inspection is a small act of self-restraint. Cheating (biting mucus) makes the client
+visibly jolt, which is what makes the system measurable in the field.</p>
+
+<h2>Partner control</h2>
+<p>What keeps cleaners honest is that clients have options. <strong>Resident</strong> clients
+with small home ranges are stuck with their local cleaner, and they respond to cheats by
+punishing (chasing the cleaner around the coral, which costs it foraging time).
+<strong>Visitors</strong> with large ranges simply leave and take their custom to a rival
+station<sup><a href="#ref-3">3</a></sup>. Cleaners essentially never cheat
+<strong>predatory clients</strong>, where the "punishment" would be getting eaten.</p>
+
+<h2>Reputation</h2>
+<p>Bystander clients observe ongoing interactions and use what they see. In experiments,
+clients preferentially approached cleaners they had watched cooperating and avoided ones they
+had seen cheat<sup><a href="#ref-4">4</a></sup>. A cleaner's honesty toward the client in
+front of it is simultaneously an advertisement to everyone in line, which is why, in the game,
+cheating with a bystander present costs future customers.</p>
+
+<h2>The massage</h2>
+<p>A cleaner can also hover above a client and drum its pelvic fins along the client's back, a
+"massage" that provides no food. Experiments show cleaners use it strategically to entice new
+partners, calm predators, and <strong>reconcile with clients they've just cheated</strong>
+<sup><a href="#ref-5">5</a></sup>. The touch itself is a genuine service because it measurably
+lowers client stress hormones<sup><a href="#ref-6">6</a></sup>.</p>
+
+<p><a class="g-learnlink" href="play-fish.html">← Play the game</a></p>
+
+<div class="g-refs">
+<h2>References</h2>
+<ol>
+<li id="ref-1">Grutter, A.S. (1996). Parasite removal rates by the cleaner wrasse <em>Labroides dimidiatus</em>. <em>Marine Ecology Progress Series</em> 130, 61–70. <a href="https://doi.org/10.3354/meps130061">doi:10.3354/meps130061</a></li>
+<li id="ref-2">Grutter, A.S. &amp; Bshary, R. (2003). Cleaner wrasse prefer client mucus: support for partner control mechanisms in cleaning interactions. <em>Proceedings of the Royal Society B</em> 270 (Suppl.), S242–S244. <a href="https://doi.org/10.1098/rsbl.2003.0077">doi:10.1098/rsbl.2003.0077</a></li>
+<li id="ref-3">Bshary, R. &amp; Grutter, A.S. (2002). Asymmetric cheating opportunities and partner control in a cleaner fish mutualism. <em>Animal Behaviour</em> 63, 547–555. <a href="https://doi.org/10.1006/anbe.2001.1937">doi:10.1006/anbe.2001.1937</a></li>
+<li id="ref-4">Bshary, R. &amp; Grutter, A.S. (2006). Image scoring and cooperation in a cleaner fish mutualism. <em>Nature</em> 441, 975–978. <a href="https://doi.org/10.1038/nature04755">doi:10.1038/nature04755</a></li>
+<li id="ref-5">Bshary, R. &amp; Würth, M. (2001). Cleaner fish <em>Labroides dimidiatus</em> manipulate client reef fish by providing tactile stimulation. <em>Proceedings of the Royal Society B</em> 268, 1495–1501. <a href="https://doi.org/10.1098/rspb.2001.1495">doi:10.1098/rspb.2001.1495</a></li>
+<li id="ref-6">Soares, M.C., Oliveira, R.F., Ros, A.F.H., Grutter, A.S. &amp; Bshary, R. (2011). Tactile stimulation lowers stress in fish. <em>Nature Communications</em> 2, 534. <a href="https://doi.org/10.1038/ncomms1547">doi:10.1038/ncomms1547</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</section>
+</div>
+```
+:::

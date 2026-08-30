@@ -1,0 +1,567 @@
+/* ============================================================
+   "What would you do?" — game pages stylesheet.
+   Every component reads --g-* tokens; a theme class on .gpage
+   (theme-bat / theme-fish / theme-bee / theme-paper and the
+   *-light learn variants) defines the palette.
+   ============================================================ */
+
+/* ---------- themes ---------- */
+.gpage{
+  background:var(--g-bg); color:var(--g-ink);
+  --g-radius:2px;
+}
+.theme-bat{
+  --g-bg:#0d1114; --g-bg2:#131a1e; --g-card:#171f25; --g-card2:#1c262d;
+  --g-ink:#f2f6f8; --g-muted:#bcc9d1; --g-dim:#8b9ca6; --g-line:#243039; --g-line2:#3a4c58;
+  --g-accent:#c6303c; --g-accent-ink:#ef7b85; --g-warm:#e8ad64; --g-good:#67c09b;
+  --g-glow:rgba(198,48,60,.35);
+}
+.theme-fish{
+  --g-bg:#04303d; --g-bg2:#063a4a; --g-card:#0a4456; --g-card2:#0e4f63;
+  --g-ink:#f2fffd; --g-muted:#bfe2e6; --g-dim:#84b6bd; --g-line:#0f566b; --g-line2:#1d819a;
+  --g-accent:#ff8a5c; --g-accent-ink:#ffb090; --g-warm:#ffd166; --g-good:#57e0ad;
+  --g-glow:rgba(255,138,92,.30);
+}
+.theme-bee{
+  --g-bg:#1c1303; --g-bg2:#241906; --g-card:#2c1f08; --g-card2:#35260b;
+  --g-ink:#fcf4e2; --g-muted:#e0cda2; --g-dim:#b29c6d; --g-line:#40300f; --g-line2:#65501c;
+  --g-accent:#f2a71b; --g-accent-ink:#ffc95e; --g-warm:#ec8340; --g-good:#b1d167;
+  --g-glow:rgba(242,167,27,.30);
+}
+/* dark arcade neutral for the hub */
+.theme-arcade{
+  --g-bg:#0f130f; --g-bg2:#151a14; --g-card:#1a211a; --g-card2:#202920;
+  --g-ink:#eef3e9; --g-muted:#bac6b2; --g-dim:#87947e; --g-line:#26301f; --g-line2:#3b4a33;
+  --g-accent:#d98a4a; --g-accent-ink:#eda86a; --g-warm:#e8ad64; --g-good:#67b58d;
+  --g-glow:rgba(217,138,74,.3);
+}
+/* the page body behind each themed page goes dark/light with it */
+body:has(.theme-bat){ background:#0d1114; }
+body:has(.theme-fish){ background:#04303d; }
+body:has(.theme-bee){ background:#1c1303; }
+body:has(.theme-arcade){ background:#0f130f; }
+body:has(.theme-bat-light){ background:#eef0f2; }
+body:has(.theme-fish-light){ background:#e8f6f7; }
+body:has(.theme-bee-light){ background:#faf3e0; }
+/* site-styled elements that appear inside a dark game wrapper */
+.theme-arcade .eyebrow{ color:var(--g-warm); }
+.theme-arcade .h-xl, .theme-arcade .h-md{ color:var(--g-ink); }
+.theme-arcade .lead{ color:var(--g-muted); }
+.theme-arcade .muted{ color:var(--g-dim); }
+.theme-arcade .klink{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+.theme-arcade .klink:hover{ background:var(--g-accent-ink); color:var(--g-bg); }
+/* learn pages: light variants of the same worlds */
+.theme-bat-light{
+  --g-bg:#eef0f2; --g-bg2:#e5e9ec; --g-card:#f8fafb; --g-card2:#eef2f4;
+  --g-ink:#1c2429; --g-muted:#4d5c66; --g-dim:#7d8b94; --g-line:#d3dade; --g-line2:#b9c4cb;
+  --g-accent:#a5252f; --g-accent-ink:#a5252f; --g-warm:#a56a25; --g-good:#2e7a62;
+  --g-glow:rgba(165,37,47,.15);
+}
+.theme-fish-light{
+  --g-bg:#e8f6f7; --g-bg2:#dceff1; --g-card:#f7fdfd; --g-card2:#e9f6f7;
+  --g-ink:#0b3b46; --g-muted:#3c6b74; --g-dim:#6d979e; --g-line:#c8e2e5; --g-line2:#a7cfd4;
+  --g-accent:#d4592f; --g-accent-ink:#c24e27; --g-warm:#b98514; --g-good:#1d8a66;
+  --g-glow:rgba(212,89,47,.15);
+}
+.theme-bee-light{
+  --g-bg:#faf3e0; --g-bg2:#f4ead0; --g-card:#fffaf0; --g-card2:#f6eeda;
+  --g-ink:#33250a; --g-muted:#6b5a33; --g-dim:#98876030; --g-dim:#93815a; --g-line:#e5d9bc; --g-line2:#d2c19a;
+  --g-accent:#b97708; --g-accent-ink:#9c6406; --g-warm:#c25a1d; --g-good:#5d7d2b;
+  --g-glow:rgba(185,119,8,.18);
+}
+/* hub sections sit on the site's cream */
+.theme-paper{
+  --g-bg:transparent; --g-bg2:rgba(63,107,75,.04); --g-card:rgba(250,247,238,.9); --g-card2:#f3f0e8;
+  --g-ink:#27211b; --g-muted:#5c6553; --g-dim:#7c8473; --g-line:rgba(31,44,27,.13); --g-line2:rgba(47,74,55,.3);
+  --g-accent:#3f6b4b; --g-accent-ink:#3f6b4b; --g-warm:#bf6e46; --g-good:#2e7a62;
+  --g-glow:rgba(63,107,75,.2);
+}
+
+/* ---------- page scaffolding ---------- */
+.gpage.theme-bat, .gpage.theme-fish, .gpage.theme-bee, .gpage.theme-arcade{ min-height:100vh; }
+.g-inner{ max-width:1260px; margin:0 auto; padding:0 clamp(1.2rem,4vw,2.4rem); }
+.g-main{ padding:clamp(1.6rem,4vh,3rem) 0 clamp(4rem,8vh,6rem); }
+
+/* bootstrap paints .table backgrounds — neutralize inside game pages */
+.gpage table.wyd-board,
+.gpage table.wyd-board > :not(caption) > * > *{
+  background:transparent !important; --bs-table-bg:transparent; box-shadow:none; color:inherit;
+}
+
+/* hero: the second-person cold open */
+.g-hero{ position:relative; padding:clamp(5.5rem,13vh,8.5rem) 0 clamp(2.6rem,6vh,4rem); overflow:hidden; }
+.g-hero .g-inner{ position:relative; z-index:2; }
+.g-kicker{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.74rem;
+  letter-spacing:.3em; text-transform:uppercase; color:var(--g-warm); margin:0 0 1.1rem; }
+.g-hero h1{ font-size:clamp(2.6rem,6.5vw,4.6rem); font-weight:900; line-height:1.0;
+  color:var(--g-ink); margin:0; letter-spacing:-.02em; text-wrap:balance; }
+.g-lede{ margin:1.4rem 0 0; max-width:56ch; font-size:clamp(1.02rem,1.5vw,1.2rem);
+  line-height:1.65; color:var(--g-muted); }
+.g-lede strong{ color:var(--g-ink); }
+.g-cta{ display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-top:2rem; }
+.g-start{
+  font:inherit; font-weight:800; font-size:1rem; letter-spacing:.12em; text-transform:uppercase;
+  cursor:pointer; padding:1.05rem 2.2rem; border:none; border-radius:var(--g-radius);
+  background:var(--g-accent); color:#fff;
+  box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 12px 34px -10px var(--g-glow), 0 4px 0 rgba(0,0,0,.35);
+  transition:transform .12s ease, filter .2s;
+}
+.g-start:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+.g-start:active{ transform:translateY(2px); box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 6px 18px -8px var(--g-glow); }
+.g-learnlink{ color:var(--g-muted); font-weight:600; border-bottom:1px solid var(--g-line2); padding-bottom:2px; }
+.g-learnlink:hover{ color:var(--g-ink); border-color:var(--g-ink); }
+.g-backlink{ font-family:"Archivo Narrow",sans-serif; font-size:.78rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--g-dim); }
+.g-backlink:hover{ color:var(--g-ink); }
+
+/* themed hero backdrops */
+.theme-bat .g-hero{
+  background:
+    radial-gradient(1.4px 1.4px at 8% 22%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 22% 9%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.2px 1.2px at 37% 28%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1px 1px at 52% 12%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.5px 1.5px at 66% 24%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 78% 8%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.2px 1.2px at 90% 30%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 45% 44%, rgba(255,255,255,.3), transparent),
+    radial-gradient(340px 340px at 84% 6%, rgba(224,199,158,.16), transparent 70%),
+    linear-gradient(180deg, #0a0d10 0%, #0d1114 70%, #12181c 100%);
+}
+.theme-fish .g-hero{
+  background:
+    radial-gradient(3px 3px at 12% 30%, rgba(255,255,255,.16), transparent),
+    radial-gradient(2px 2px at 26% 60%, rgba(255,255,255,.12), transparent),
+    radial-gradient(4px 4px at 71% 26%, rgba(255,255,255,.14), transparent),
+    radial-gradient(2.5px 2.5px at 88% 55%, rgba(255,255,255,.12), transparent),
+    radial-gradient(70% 60% at 50% -10%, rgba(148,255,239,.14), transparent 65%),
+    linear-gradient(180deg, #02222c 0%, #04303d 65%, #06394a 100%);
+}
+.theme-bee .g-hero{
+  background:
+    repeating-linear-gradient(60deg, rgba(242,167,27,.05) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(-60deg, rgba(242,167,27,.05) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(0deg, rgba(242,167,27,.04) 0 2px, transparent 2px 26px),
+    radial-gradient(60% 50% at 80% 0%, rgba(242,167,27,.16), transparent 70%),
+    linear-gradient(180deg, #170f02 0%, #1c1303 70%, #221807 100%);
+}
+
+/* ---------- HUD ---------- */
+.wyd-hud{ margin-bottom:1rem; }
+.wyd-ghud{ display:flex; gap:clamp(.8rem,2.5vw,2rem); flex-wrap:wrap; align-items:center;
+  background:var(--g-card); color:var(--g-ink); padding:.9rem 1.2rem;
+  border:1px solid var(--g-line2); border-radius:var(--g-radius);
+  box-shadow:0 14px 34px -22px rgba(0,0,0,.8); }
+.wyd-ghud .gstat{ display:flex; flex-direction:column; gap:.3rem; min-width:96px; }
+.wyd-ghud .gl{ font-size:.58rem; text-transform:uppercase; letter-spacing:.18em; font-weight:700; color:var(--g-dim); }
+.wyd-ghud .gv{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:1.35rem;
+  line-height:1; color:var(--g-ink); font-variant-numeric:tabular-nums; }
+.wyd-bloodbar{ display:flex; gap:3px; }
+.wyd-bloodbar i{ width:26px; height:12px; background:var(--g-bg2); border:1px solid var(--g-line);
+  overflow:hidden; position:relative; }
+.wyd-bloodbar i b{ position:absolute; inset:0; background:var(--g-accent); display:block; transform-origin:left; }
+.wyd-bloodbar.wyd-hyg i{ width:82px; }
+.wyd-bloodbar.wyd-hyg i b{ background:var(--g-good); }
+.wyd-bloodbar.wyd-hyg.bad i b{ background:var(--g-accent); }
+.wyd-pips{ display:flex; gap:4px; }
+.wyd-pips i{ width:12px; height:12px; background:var(--g-bg2); border:1px solid var(--g-line); transform:rotate(45deg); }
+.wyd-pips i.on{ background:var(--g-warm); border-color:var(--g-warm); box-shadow:0 0 8px var(--g-glow); }
+.wyd-pips.bad i.on{ background:var(--g-accent); border-color:var(--g-accent); }
+
+/* compact HUD on phones: three tight columns instead of a tall wrap */
+@media (max-width:600px){
+  .wyd-ghud{ display:grid; grid-template-columns:repeat(3,1fr); gap:.55rem .8rem;
+    padding:.65rem .85rem; }
+  .wyd-ghud .gstat{ min-width:0; gap:.18rem; }
+  .wyd-ghud .gv{ font-size:1.05rem; }
+  .wyd-ghud .gl{ font-size:.54rem; letter-spacing:.12em; white-space:nowrap; }
+  .wyd-bloodbar i{ width:18px; height:10px; }
+  .wyd-bloodbar.wyd-hyg i{ width:56px; }
+}
+
+/* ---------- scene ---------- */
+.wyd-scene{ background:var(--g-card); border:1px solid var(--g-line2); border-radius:var(--g-radius);
+  padding:clamp(1.3rem,3vw,2rem); box-shadow:0 24px 60px -30px rgba(0,0,0,.75);
+  transition:background .8s ease, border-color .8s ease; }
+/* scroll targets must clear the fixed 57px navbar */
+#wyd-play, #wyd-end, .wyd-lbwrap, .wyd-outcome{ scroll-margin-top:76px; }
+.wyd-round{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.74rem;
+  text-transform:uppercase; letter-spacing:.16em; color:var(--g-warm); }
+.wyd-scene h3{ font-size:clamp(1.35rem,2.6vw,1.9rem); font-weight:800; margin:.6rem 0 .8rem; color:var(--g-ink); }
+.wyd-story{ color:var(--g-muted); max-width:62ch; line-height:1.65; }
+.wyd-story strong{ color:var(--g-ink); }
+.wyd-choices{ display:flex; gap:.9rem; margin-top:1.5rem; flex-wrap:wrap; }
+.wyd-choices .btnx{ flex:1; min-width:200px; justify-content:center; }
+
+/* buttons inside the game (engine emits .btnx classes) */
+.gpage .btnx{
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem; cursor:pointer;
+  font:inherit; font-weight:700; font-size:.76rem; letter-spacing:.14em; text-transform:uppercase;
+  padding:.9rem 1.4rem; border-radius:var(--g-radius); transition:.15s ease;
+  border:1px solid var(--g-line2); background:var(--g-card2); color:var(--g-ink);
+  flex-direction:column;
+}
+.gpage .btnx:hover{ border-color:var(--g-dim); filter:brightness(1.08); }
+.gpage .btnx--solid{ background:var(--g-good); border-color:var(--g-good); color:#fff;
+  box-shadow:0 8px 24px -12px var(--g-glow); }
+.gpage .btnx--solid:hover{ filter:brightness(1.1); }
+.gpage .wyd-clay{ background:transparent; border-color:var(--g-accent); color:var(--g-accent-ink); }
+.gpage .wyd-clay:hover{ background:var(--g-accent); color:#fff; }
+.gpage .btnx:disabled{ opacity:.4; cursor:default; pointer-events:none; }
+.gpage .btnx .sub{ display:block; font-weight:500; font-size:.62rem; letter-spacing:.06em;
+  text-transform:none; opacity:.85; }
+
+/* ---------- outcome / real-life callout ---------- */
+.wyd-outcome{ margin-top:1.3rem; border-top:1px dashed var(--g-line2); padding-top:1.1rem; }
+.wyd-roll{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.8rem;
+  letter-spacing:.05em; color:var(--g-dim); }
+.wyd-roll strong{ color:var(--g-ink); }
+.wyd-reallife{ margin-top:1rem; border-left:3px solid var(--g-good); background:var(--g-bg2);
+  border-radius:0 var(--g-radius) var(--g-radius) 0;
+  padding:.8rem 1.1rem; font-size:.92rem; color:var(--g-muted); max-width:64ch; }
+.wyd-reallife .rl-k{ display:block; font-size:.62rem; text-transform:uppercase; letter-spacing:.16em;
+  font-weight:700; color:var(--g-good); margin-bottom:.3rem; }
+.wyd-reallife .cite{ display:block; margin-top:.4rem; font-family:"Archivo Narrow",sans-serif;
+  font-size:.74rem; letter-spacing:.04em; color:var(--g-dim); }
+
+/* ---------- log ---------- */
+.wyd-log{ margin-top:1rem; font-family:"Archivo Narrow",sans-serif; font-size:.8rem; letter-spacing:.03em;
+  color:var(--g-dim); max-height:130px; overflow-y:auto; border:1px solid var(--g-line);
+  border-radius:var(--g-radius); background:var(--g-bg2); padding:.7rem .9rem; }
+.wyd-log div{ padding:.05rem 0; }
+.wyd-log .good{ color:var(--g-good); } .wyd-log .bad{ color:var(--g-accent-ink); }
+
+/* ---------- bat scene day/night ---------- */
+.theme-bat .wyd-night{
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 32% 8%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.4px 1.4px at 55% 14%, rgba(255,255,255,.65), transparent),
+    radial-gradient(1px 1px at 71% 6%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.2px 1.2px at 86% 20%, rgba(255,255,255,.6), transparent),
+    linear-gradient(180deg, #07090b 0%, #0d1114 60%, #131a1e 100%);
+}
+.theme-bat .wyd-day{
+  background:
+    radial-gradient(60% 45% at 85% 0%, rgba(224,163,92,.16), transparent),
+    linear-gradient(180deg, #1a2026 0%, #171f25 100%);
+}
+
+/* ---------- network view ---------- */
+.wyd-roost{ display:grid; grid-template-columns:1.4fr 1fr; gap:clamp(1.4rem,3vw,2.4rem); align-items:start; margin-top:1.2rem; }
+@media (max-width:760px){ .wyd-roost{ grid-template-columns:1fr; } }
+.wyd-net{ width:100%; height:auto; display:block; background:var(--g-bg2);
+  border:1px solid var(--g-line); border-radius:var(--g-radius); }
+.wyd-net .edge{ stroke:var(--g-good); }
+.wyd-net .node circle{ fill:var(--g-card2); stroke:var(--g-good); stroke-width:2; cursor:pointer; }
+.wyd-net .node.hungry circle{ stroke:var(--g-accent); animation:wydpulse 1.6s ease-in-out infinite; }
+.wyd-net .node.sel circle{ stroke-width:4; fill:var(--g-card); }
+.wyd-net .node text{ font-family:"Archivo Narrow",sans-serif; font-size:11px; font-weight:700;
+  fill:var(--g-ink); text-anchor:middle; pointer-events:none; }
+.wyd-net .node .beg{ font-size:9px; fill:var(--g-accent-ink); letter-spacing:.08em; }
+.wyd-net .you circle{ fill:var(--g-good); stroke:var(--g-ink); }
+.wyd-net .you text{ fill:#fff; font-size:10px; }
+@keyframes wydpulse{ 0%,100%{ stroke-width:2; } 50%{ stroke-width:5; } }
+/* a starving bat: urgent red pulse, filled darker */
+.wyd-net .node.starving circle{ stroke:var(--g-accent); fill:rgba(198,48,60,.18);
+  animation:wydstarve .9s ease-in-out infinite; }
+.wyd-net .node .beg.starv{ fill:var(--g-accent); font-weight:900; }
+@keyframes wydstarve{ 0%,100%{ stroke-width:2.5; } 50%{ stroke-width:6.5; } }
+/* a dead roost-mate: a faded ghost of the node, non-interactive */
+.wyd-net .node.gone circle{ stroke:var(--g-dim); fill:transparent; opacity:.22;
+  animation:none; cursor:default; stroke-dasharray:3 4; }
+.wyd-net .node.gone text{ opacity:.3; text-decoration:line-through; }
+.wyd-net .node[role="button"]:focus-visible{ outline:none; }
+.wyd-net .node[role="button"]:focus-visible > circle:first-of-type{
+  stroke:var(--g-warm); stroke-width:2; fill:rgba(232,173,100,.08); }
+/* selection ring: pulsing warm halo */
+.wyd-net .selring{ fill:none; stroke:var(--g-warm); stroke-width:2.5;
+  animation:wydsel 1.15s ease-in-out infinite; pointer-events:none; }
+@keyframes wydsel{ 0%,100%{ opacity:.95; stroke-width:2; } 50%{ opacity:.35; stroke-width:7; } }
+/* groom/share particles travelling along an edge (durations set inline per dot) */
+.wyd-fxdot{ transition:transform 1.2s cubic-bezier(.25,.6,.35,1), opacity 1.3s ease; opacity:.95; }
+
+/* ---------- the hunt: staged flight sequence ----------
+   Class order matters: f-fed / f-fail rules sit BEFORE f-home / f-rest so the
+   later stages win once their classes are added (classes accumulate). */
+.wyd-flight{ position:relative; height:150px; overflow:hidden; margin-top:1rem; }
+/* the home cave: rocky hill with a dark mouth at the left edge; the bat leaves
+   from it at dusk and dissolves back into it at dawn */
+.wyd-flight .fcave{ position:absolute; left:-10px; bottom:6px; width:96px; height:100px;
+  background:
+    radial-gradient(72px 88px at 10% 100%, rgba(0,0,0,.92) 44%, transparent 46%),
+    linear-gradient(205deg, var(--g-card2), var(--g-bg2) 70%);
+  border-radius:58% 42% 0 0 / 88% 52% 0 0;
+  border:1px solid var(--g-line); border-bottom:none; }
+.wyd-flight .fbat{ position:absolute; left:2%; top:52%; z-index:2;
+  transition:left 3.2s ease-in-out, top 3.2s ease-in-out; }
+.wyd-flight .fbat .fbatin{ display:inline-block; font-size:2rem; animation:wydbob .55s ease-in-out infinite; }
+.wyd-flight.f-out .fbat{ left:71%; top:36%; }
+.wyd-flight .fcow{ position:absolute; right:5%; top:38%; font-size:2.3rem; }
+.wyd-flight .fmoon{ position:absolute; right:16%; top:5%; font-size:1.3rem; opacity:.85; }
+.wyd-flight .fground{ position:absolute; bottom:8px; left:0; right:0;
+  border-bottom:2px dashed var(--g-line2); }
+.wyd-flight .fsus{ position:absolute; right:13%; top:14%; font-size:1.1rem; opacity:0; transition:opacity .4s; }
+.wyd-flight.f-sus .fsus{ opacity:.9; animation:wydsus 1s ease-in-out infinite; }
+.wyd-flight.f-reveal .fsus{ opacity:0; animation:none; }
+/* landing: the bat drops out of the air and perches ON the cow's back, wings folded */
+.wyd-flight.f-sus .fbat{ transition:left .7s ease-out, top .7s ease-out; left:calc(95% - 3rem); top:24%; }
+.wyd-flight.f-sus .fbat .fbatin{ animation:none; transform:rotate(12deg); }
+/* success: latched on and drinking; blood beads drip from the bite */
+.wyd-flight.f-fed .fbat .fbatin{ animation:wyddrink 1.1s ease-in-out infinite; }
+.wyd-flight .fdrip{ position:absolute; right:7.5%; top:54%; font-size:.9rem; opacity:0; z-index:1; }
+.wyd-flight.f-fed .fdrip{ animation:wyddrip 2.7s ease-in infinite; }  /* steady drip while drinking */
+.wyd-flight.f-fed .fdrip.d2{ animation-delay:.9s; }
+.wyd-flight.f-fed .fdrip.d3{ animation-delay:1.8s; }
+@keyframes wyddrink{ 0%,100%{ transform:translateY(0) rotate(14deg) scale(.96); }
+  50%{ transform:translateY(2px) rotate(10deg) scale(1); } }
+@keyframes wyddrip{ 0%{ opacity:0; transform:translateY(0) scale(.5); } 8%{ opacity:.95; }
+  38%{ opacity:0; transform:translateY(42px) scale(1.05); } 100%{ opacity:0; transform:translateY(42px); } }
+/* failure: the cow jolts awake and kicks; the bat is flung tumbling to the grass */
+.wyd-flight.f-fail .fcow{ animation:wydkick .55s ease-in-out 1; transform-origin:65% 85%; }
+.wyd-flight.f-fail .fbat{ animation:wydflung 1.3s cubic-bezier(.3,.5,.4,1) forwards; }
+@keyframes wydkick{ 0%{ transform:rotate(0); } 30%{ transform:rotate(-16deg) translateY(-5px); }
+  60%{ transform:rotate(7deg); } 100%{ transform:rotate(0); } }
+@keyframes wydflung{ 0%{ transform:translate(0,0) rotate(0); }
+  45%{ transform:translate(-90px,-42px) rotate(-210deg); }
+  100%{ transform:translate(-130px,34px) rotate(-350deg); } }
+/* home + settle: these override the fed/fail states above. The bat flies back
+   to the cave mouth, then dims as it slips inside. */
+.wyd-flight.f-home .fbat{ transition:left 2.6s ease-out, top 2.6s ease-out, transform .4s ease-out;
+  left:2%; top:52%; transform:scaleX(-1); animation:none; }
+.wyd-flight.f-home .fbat .fbatin{ animation:wydbob .55s ease-in-out infinite; }
+.wyd-flight.f-home .fdrip{ animation:none; opacity:0; }
+.wyd-flight.f-rest .fbat{ transition:left 2.6s ease-out, top 2.6s ease-out, opacity 1.5s ease;
+  opacity:.22; }  /* into the dark of the cave */
+.wyd-flight.f-rest .fbat .fbatin{ animation-duration:1.5s; }  /* wingbeat slows to a settle */
+/* night-condition variants for the flight scene */
+.wyd-flight .frain{ display:none; }
+.wyd-flight.f-storm .frain{ display:block; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(105deg, transparent 0 9px, rgba(190,215,235,.14) 9px 10px);
+  animation:wydrain .5s linear infinite; }
+.wyd-flight.f-storm .fmoon{ opacity:.35; }
+@keyframes wydrain{ 0%{ background-position:0 0; } 100%{ background-position:-14px 40px; } }
+.wyd-flight.f-moonbright .fmoon{ font-size:2rem; opacity:1;
+  text-shadow:0 0 22px rgba(240,240,220,.85), 0 0 60px rgba(240,240,220,.4); }
+@keyframes wydsus{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+@keyframes wydbob{ 0%,100%{ transform:translateY(0) rotate(6deg); } 50%{ transform:translateY(-14px) rotate(-7deg); } }
+.wyd-swimmer{ display:inline-block; font-size:1.6em; margin-right:.35rem; vertical-align:-4px;
+  animation:wydswim 1.1s cubic-bezier(.2,.7,.3,1); }
+@keyframes wydswim{ 0%{ transform:translateX(-150px); opacity:0; } 45%{ opacity:1; }
+  70%{ transform:translateX(12px); } 100%{ transform:translateX(0); } }
+.wyd-buzzy{ display:inline-block; font-size:1.4em; margin-right:.3rem; vertical-align:-3px;
+  animation:wydbuzz 1.5s ease-in-out; }
+@keyframes wydbuzz{ 0%{ transform:translate(-70px,14px) rotate(-14deg); opacity:0; }
+  35%{ transform:translate(14px,-8px) rotate(8deg); opacity:1; }
+  65%{ transform:translate(-6px,5px) rotate(-5deg); } 100%{ transform:translate(0,0) rotate(0); } }
+@media (prefers-reduced-motion:reduce){
+  .wyd-net .node.hungry circle{ animation:none; stroke-width:4; }
+  .wyd-net .node.starving circle{ animation:none; stroke-width:5; }
+  .wyd-flight.f-storm .frain{ animation:none; }
+  .wyd-net .selring{ animation:none; opacity:.9; }
+  .wyd-flight .fbat, .wyd-flight .fbat .fbatin, .wyd-flight .fsus,
+  .wyd-flight .fcow, .wyd-flight .fdrip,
+  .wyd-swimmer, .wyd-buzzy{ animation:none; transition:none; }
+  .wyd-fxdot{ transition:none; }
+}
+
+
+/* ---------- partner / action panel ---------- */
+.wyd-partner{ border:1px solid var(--g-line); background:var(--g-bg2); border-radius:var(--g-radius);
+  padding:1.1rem 1.2rem; }
+.wyd-partner h4{ font-size:1.15rem; font-weight:800; color:var(--g-ink); margin:0 0 .5rem; }
+.wyd-partner .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em;
+  color:var(--g-dim); font-weight:700; }
+.wyd-bondbar{ height:8px; background:var(--g-bg); border:1px solid var(--g-line); margin:.4rem 0 .7rem; }
+.wyd-bondbar b{ display:block; height:100%; background:var(--g-good); transition:width .3s; }
+.wyd-ptags{ display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.9rem; }
+.wyd-ptag{ font-size:.6rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700;
+  border:1px solid var(--g-line2); color:var(--g-muted); padding:.22rem .5rem; }
+.wyd-ptag.hot{ border-color:var(--g-accent); color:var(--g-accent-ink); }
+.wyd-ptag.good{ border-color:var(--g-good); color:var(--g-good); }
+.wyd-ptag.wyd-ptrait{ border-style:dashed; color:var(--g-warm); border-color:var(--g-warm); }
+.wyd-pacts{ display:flex; flex-direction:column; gap:.6rem; }
+.wyd-pacts .btnx{ width:100%; }
+.wyd-sleeprow{ margin-top:1.2rem; }
+.wyd-sleeprow .btnx{ width:100%; }
+.wyd-sleepwarn{ margin-top:.5rem; font-size:.78rem; color:var(--g-accent-ink); text-align:center; min-height:1.1em; }
+.wyd-feedback{ font-size:.86rem; margin-top:.8rem; color:var(--g-muted); }
+/* dusk hunt options: no default pick — both neutral, outlines pulse softly for attention */
+.gpage .btnx.wyd-huntopt{ background:var(--g-card2); border-color:var(--g-line2);
+  animation:wydhuntpulse 2.4s ease-in-out infinite; }
+.gpage .btnx.wyd-huntopt:hover,
+.gpage .btnx.wyd-huntopt:focus-visible{ animation:none; border-color:var(--g-warm);
+  box-shadow:0 0 12px -2px var(--g-glow); }
+@keyframes wydhuntpulse{
+  0%,100%{ border-color:var(--g-line2); box-shadow:0 0 0 0 rgba(0,0,0,0); }
+  50%{ border-color:var(--g-warm); box-shadow:0 0 12px -3px var(--g-glow); } }
+@media (prefers-reduced-motion:reduce){
+  .gpage .btnx.wyd-huntopt{ animation:none; border-color:var(--g-line2); }
+}
+
+/* dawn event banner + grief note + inline warning ink */
+.wyd-event{ border-left:3px solid var(--g-warm); background:var(--g-bg2);
+  padding:.6rem .9rem; border-radius:0 var(--g-radius) var(--g-radius) 0; font-size:.92rem; }
+.wyd-grief{ border-left:3px solid var(--g-accent); background:var(--g-bg2);
+  padding:.6rem .9rem; border-radius:0 var(--g-radius) var(--g-radius) 0; font-size:.92rem; }
+.wyd-warnink{ color:var(--g-accent-ink); }
+.gpage .btnx.wyd-savebtn:not(:disabled){ border-color:var(--g-accent);
+  box-shadow:0 0 14px -4px var(--g-glow); }
+/* HUD "of season" suffix */
+.wyd-ghud .gv .wyd-of{ font-size:.7em; color:var(--g-dim); font-weight:500; }
+
+/* ---------- end screen ---------- */
+.wyd-endcard{ text-align:center; background:var(--g-card); border:1px solid var(--g-line2);
+  border-radius:var(--g-radius); padding:clamp(1.6rem,4vw,2.6rem);
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.75); }
+.wyd-endkicker{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.78rem;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--g-warm); }
+.wyd-bigscore{ font-size:clamp(3rem,7vw,4.6rem); font-weight:900; color:var(--g-ink); line-height:1; margin:.4rem 0 .9rem; }
+.wyd-verdict{ color:var(--g-muted); max-width:56ch; margin:0 auto 1.6rem; line-height:1.6; }
+.wyd-postrow{ display:flex; gap:.8rem; justify-content:center; flex-wrap:wrap; }
+.wyd-postrow input{ font:inherit; padding:.8rem 1rem; border-radius:var(--g-radius);
+  border:1px solid var(--g-line2); background:var(--g-bg2); color:var(--g-ink); width:210px; }
+.wyd-postrow input:focus{ outline:2px solid var(--g-warm); outline-offset:1px; }
+.wyd-notice{ margin-top:.9rem; font-size:.86rem; color:var(--g-warm); min-height:1.2em; }
+
+/* ---------- leaderboard ---------- */
+.wyd-lbwrap{ margin-top:clamp(2.2rem,5vh,3.4rem); }
+.wyd-lbhead{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.78rem;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--g-warm); margin-bottom:.9rem; }
+.wyd-lbtabs{ display:flex; gap:.5rem; flex-wrap:wrap; margin:0 0 1rem; }
+.wyd-lbtabs button{ font:inherit; font-size:.78rem; font-weight:600; letter-spacing:.06em; cursor:pointer;
+  border:1px solid var(--g-line2); background:transparent; color:var(--g-muted);
+  border-radius:var(--g-radius); padding:.35rem 1rem; }
+.wyd-lbtabs button[aria-pressed="true"]{ background:var(--g-good); border-color:var(--g-good); color:#fff; }
+.wyd-tablewrap{ overflow-x:auto; }
+table.wyd-board{ width:100%; border-collapse:collapse; font-size:.94rem; color:var(--g-ink); }
+table.wyd-board th{ font-size:.62rem; text-transform:uppercase; letter-spacing:.14em; font-weight:700;
+  color:var(--g-dim); text-align:left; padding:.4rem .7rem; border-bottom:1px solid var(--g-line2); }
+table.wyd-board td{ padding:.55rem .7rem; border-bottom:1px solid var(--g-line); color:var(--g-muted); }
+table.wyd-board td.num{ font-family:"Archivo Narrow",sans-serif; font-weight:700;
+  font-variant-numeric:tabular-nums; color:var(--g-ink); }
+table.wyd-board tr.me td{ color:var(--g-warm); font-weight:600; }
+
+/* ---------- notes / references ---------- */
+.wyd-model{ margin-top:2rem; border:1px dashed var(--g-line2); border-radius:var(--g-radius); background:var(--g-bg2); }
+.wyd-model summary{ cursor:pointer; padding:.9rem 1.2rem; font-weight:700; font-size:.84rem;
+  letter-spacing:.04em; color:var(--g-muted); list-style:none; }
+.wyd-model summary::-webkit-details-marker{ display:none; }
+.wyd-model summary::after{ content:"+"; float:right; color:var(--g-dim); }
+.wyd-model[open] summary::after{ content:"–"; }
+.wyd-model-body{ padding:0 1.2rem 1.2rem; }
+.wyd-model-body p{ color:var(--g-muted); font-size:.92rem; max-width:78ch; }
+.wyd-model-body a{ color:var(--g-accent-ink); }
+.wyd-caveat{ font-size:.8rem !important; color:var(--g-dim) !important; border-top:1px solid var(--g-line); padding-top:.9rem; }
+.wyd-refs summary{ font-size:.78rem; }
+.wyd-reflist{ font-size:.76rem; color:var(--g-dim); padding-left:1.2rem; line-height:1.55; }
+.wyd-reflist li{ margin-bottom:.4rem; }
+.wyd-reflist a{ color:var(--g-dim); border-bottom:1px dotted var(--g-dim); }
+.wyd-reflist a:hover{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+
+/* ---------- hub posters ---------- */
+.poster-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.2rem; margin-top:2.4rem; }
+.poster{ position:relative; display:flex; flex-direction:column; gap:.5rem; min-height:340px;
+  padding:1.8rem 1.6rem; border-radius:3px; overflow:hidden; border:1px solid rgba(0,0,0,.25);
+  transition:transform .18s ease, box-shadow .18s ease; box-shadow:0 18px 44px -24px rgba(31,44,27,.55); }
+.poster:hover{ transform:translateY(-5px); box-shadow:0 30px 60px -26px rgba(31,44,27,.6); }
+.poster .p-em{ font-size:2.2rem; }
+.poster h3{ font-size:1.5rem; font-weight:900; margin:.4rem 0 0; color:#fff; }
+.poster p{ margin:.4rem 0 0; font-size:.92rem; line-height:1.55; color:rgba(255,255,255,.82); }
+.poster .p-tag{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.68rem;
+  letter-spacing:.2em; text-transform:uppercase; }
+.poster .p-cta{ margin-top:auto; padding-top:1.2rem; font-weight:800; font-size:.8rem;
+  letter-spacing:.18em; text-transform:uppercase; color:#fff; }
+.poster .p-cta::after{ content:" →"; }
+.poster-bat{ background:
+  radial-gradient(1.2px 1.2px at 18% 16%, rgba(255,255,255,.8), transparent),
+  radial-gradient(1px 1px at 44% 8%, rgba(255,255,255,.5), transparent),
+  radial-gradient(1.3px 1.3px at 72% 20%, rgba(255,255,255,.65), transparent),
+  radial-gradient(1px 1px at 88% 10%, rgba(255,255,255,.4), transparent),
+  radial-gradient(200px 200px at 88% 4%, rgba(224,199,158,.22), transparent 70%),
+  linear-gradient(165deg, #0a0d10 0%, #131a1e 80%); }
+.poster-bat .p-tag{ color:#e46974; }
+.poster-fish{ background:
+  radial-gradient(3px 3px at 20% 34%, rgba(255,255,255,.18), transparent),
+  radial-gradient(2px 2px at 68% 22%, rgba(255,255,255,.15), transparent),
+  radial-gradient(2.6px 2.6px at 84% 58%, rgba(255,255,255,.13), transparent),
+  radial-gradient(70% 60% at 50% -10%, rgba(148,255,239,.2), transparent 65%),
+  linear-gradient(165deg, #02222c 0%, #075065 90%); }
+.poster-fish .p-tag{ color:#ffa583; }
+.poster-bee{ background:
+  repeating-linear-gradient(60deg, rgba(242,167,27,.07) 0 2px, transparent 2px 24px),
+  repeating-linear-gradient(-60deg, rgba(242,167,27,.07) 0 2px, transparent 2px 24px),
+  radial-gradient(60% 50% at 80% 0%, rgba(242,167,27,.25), transparent 70%),
+  linear-gradient(165deg, #170f02 0%, #2a1d06 90%); }
+.poster-bee .p-tag{ color:#ffc14d; }
+
+/* ---------- learn pages prose ---------- */
+.g-prose{ max-width:70ch; }
+.g-prose h2{ font-size:clamp(1.5rem,3vw,2.1rem); font-weight:900; color:var(--g-ink);
+  margin:2.6rem 0 .9rem; letter-spacing:-.01em; }
+.g-prose p{ color:var(--g-muted); line-height:1.75; margin:0 0 1.1rem; }
+.g-prose strong{ color:var(--g-ink); }
+.g-prose a{ color:var(--g-accent-ink); border-bottom:1px solid transparent; }
+.g-prose a:hover{ border-color:var(--g-accent-ink); }
+.g-prose sup a{ font-family:"Archivo Narrow",sans-serif; font-size:.72em; color:var(--g-accent-ink); border:none; }
+.g-refs{ margin-top:3rem; border-top:1px solid var(--g-line2); padding-top:1.4rem; }
+.g-refs h2{ font-size:1rem; letter-spacing:.2em; text-transform:uppercase;
+  font-family:"Archivo Narrow",sans-serif; color:var(--g-dim); margin:0 0 .9rem; }
+.g-refs ol{ font-size:.8rem; color:var(--g-dim); padding-left:1.2rem; line-height:1.6; max-width:80ch; }
+.g-refs li{ margin-bottom:.45rem; }
+.g-refs a{ color:var(--g-dim); border-bottom:1px dotted var(--g-dim); }
+.g-refs a:hover{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+
+/* ---------- fullscreen play mode ----------
+   While a run is live the game takes over the page: hero, leaderboard, and
+   model notes disappear (no scrolling back up to the start screen), a top bar
+   carries the exit button, and the site footer is hidden. The leaderboard
+   returns on the end screen (.wyd-ended). */
+.gpage.wyd-playing .g-hero{ display:none; }
+.gpage.wyd-playing .wyd-lbwrap, .gpage.wyd-playing .wyd-model{ display:none; }
+.gpage.wyd-playing.wyd-ended .wyd-lbwrap{ display:block; }
+.gpage.wyd-playing .g-main{ padding-top:.9rem; padding-bottom:1.2rem; }
+body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
+#wyd-topbar{ display:flex; justify-content:space-between; align-items:center; gap:1rem;
+  margin-bottom:.7rem; }
+#wyd-topbar .wyd-tb-title{ font-family:"Archivo Narrow",sans-serif; font-weight:700;
+  font-size:.78rem; letter-spacing:.22em; text-transform:uppercase; color:var(--g-warm); }
+#wyd-topbar .wyd-tb-note{ font-size:.72rem; color:var(--g-dim); margin-left:auto; }
+#wyd-topbar .btnx{ padding:.4rem .9rem; flex-direction:row; }
+.g-resume{ background:var(--g-good); }
+
+/* ---------- compact desktop play mode ----------
+   On a PC screen the whole play column (HUD + scene + log) should fit in one
+   viewport — no scrolling during play. Mobile keeps the roomier spacing.
+   KEEP THIS BLOCK LAST: it must override the base component rules above. */
+@media (min-width:900px){
+  .wyd-hud{ margin-bottom:.6rem; }
+  .wyd-ghud{ padding:.55rem 1.1rem; gap:1.3rem; }
+  .wyd-ghud .gstat{ min-width:78px; gap:.2rem; }
+  .wyd-ghud .gv{ font-size:1.12rem; }
+  .wyd-scene{ padding:1rem 1.3rem; }
+  .wyd-scene h3{ font-size:1.28rem; margin:.35rem 0 .45rem; }
+  .wyd-story{ font-size:.92rem; line-height:1.5; }
+  .wyd-choices{ margin-top:.9rem; }
+  .gpage .btnx{ padding:.55rem 1rem; }
+  .wyd-roost{ margin-top:.8rem; gap:1.2rem; grid-template-columns:1.1fr 1fr; }
+  .wyd-net{ max-height:max(46vh, 240px); }
+  .theme-fish .wyd-net{ max-height:max(32vh, 220px); }
+  .wyd-partner{ padding:.8rem .9rem; }
+  .wyd-partner h4{ font-size:1.02rem; margin-bottom:.35rem; }
+  .wyd-ptags{ margin-bottom:.6rem; }
+  /* action buttons two-up so the panel stays shorter than the network */
+  .wyd-pacts{ display:grid; grid-template-columns:1fr 1fr; gap:.45rem; }
+  .wyd-pacts .btnx{ width:auto; }
+  .wyd-sleeprow{ margin-top:.6rem; }
+  .wyd-sleepwarn{ margin-top:.35rem; }
+  .wyd-feedback{ margin-top:.5rem; font-size:.82rem; }
+  .wyd-flight{ height:132px; }
+  .wyd-outcome{ margin-top:.8rem; padding-top:.7rem; }
+  .wyd-reallife{ margin-top:.6rem; padding:.6rem .95rem; font-size:.87rem; }
+  .wyd-log{ margin-top:.6rem; max-height:76px; font-size:.74rem; padding:.5rem .8rem; }
+}
+/* short desktop screens (small laptops): drop the log to keep play on one screen */
+@media (min-width:900px) and (max-height:820px){
+  .wyd-log{ display:none; }
+}

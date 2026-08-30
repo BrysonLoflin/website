@@ -1,0 +1,36 @@
+---
+pagetitle: "Contact"
+page-layout: full
+---
+
+::: {.full-bleed}
+<section class="section section--purple halftone" style="padding-top:clamp(6rem,14vh,9rem)">
+<div class="inner reveal">
+<p class="eyebrow">Contact</p>
+<h1 class="h-xl" style="max-width:16ch">Reach out.</h1>
+<p class="lead measure" style="margin-top:1.4rem">I'm always happy to talk about cooperation and social behavior, the vampire-bat system, working with animals in the lab, or wildlife photography, and to hear from prospective collaborators and students.</p>
+<p class="muted" style="margin-top:1rem; font-size:.9rem">I reply to email within two days. Usually one.</p>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black">
+<div class="inner">
+```{=html}
+<div class="cardgrid reveal">
+<a class="cardx" href="mailto:bryson.loflin@princeton.edu">
+<h3>Email</h3>
+<p class="cyan">bryson.loflin@princeton.edu</p>
+</a>
+<a class="cardx" href="https://github.com/BrysonLoflin">
+<h3>GitHub</h3>
+<p class="cyan">github.com/BrysonLoflin</p>
+</a>
+<!-- Scholar / ORCID / iNaturalist / Bluesky cards removed until real URLs exist.
+     Re-add each as: <a class="cardx" href="REAL_URL"><h3>Name</h3><p class="cyan">label</p></a> -->
+</div>
+```
+</div>
+</section>
+:::

@@ -1,0 +1,52 @@
+---
+pagetitle: "What would you do?"
+description: "Three cooperation games with real odds from published field studies: survive as a vampire bat, run a cleaner-fish station, or live a honeybee worker's life."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-paper">
+
+<section class="g-main section--purple halftone" style="padding-top:clamp(2.2rem,5vh,3.5rem)">
+<div class="g-inner">
+<div style="display:flex; align-items:flex-end; justify-content:space-between; gap:2rem; flex-wrap:wrap">
+<div>
+<p class="eyebrow" style="margin-bottom:.6rem">The Game</p>
+<h1 style="font-size:clamp(2rem,4.5vw,3.2rem); font-weight:900; color:var(--heading); margin:0; letter-spacing:-.02em">What would you do?</h1>
+</div>
+<p class="muted" style="max-width:46ch; margin:0; font-size:.98rem; line-height:1.6">My research is about animals making cooperative decisions with real stakes. Every probability in these games comes from a published study, sourced on each game's <strong>Learn&nbsp;more</strong> page. What would you do if you were in their shoes?</p>
+</div>
+
+<div class="poster-grid" style="margin-top:1.6rem">
+<a class="poster poster-bat" href="play-bat.html"><span class="p-em" aria-hidden="true">🦇</span><span class="p-tag">Survival · endless nights</span><h3>You are a vampire bat.</h3><p>Three nights without blood will kill you. Groom, share, and build the bonds that decide whether anyone saves you when your luck runs out.</p><span class="p-cta">Play</span></a>
+<a class="poster poster-fish" href="play-fish.html"><span class="p-em" aria-hidden="true">🐟</span><span class="p-tag">Service · endless clients</span><h3>You are a cleaner fish.</h3><p>Eat parasites and massage your regulars, or bite the tasty mucus while the whole reef watches. Regulars remember. Predators are clients too.</p><span class="p-cta">Play</span></a>
+<a class="poster poster-bee" href="play-bee.html"><span class="p-em" aria-hidden="true">🐝</span><span class="p-tag">A lifetime · ~2–5 weeks</span><h3>You are a honeybee worker.</h3><p>Nurse safely, forage dangerously, or gamble your eggs past the police that eat 98% of them. You get one short life. Spend it well.</p><span class="p-cta">Play</span></a>
+</div>
+
+<div class="wyd-lbwrap">
+<p class="wyd-lbhead">Global leaderboard · every visitor plays against everyone else</p>
+<div class="wyd-lbtabs" id="wyd-lbtabs">
+<button data-f="all" aria-pressed="true">All</button>
+<button data-f="bat" aria-pressed="false">🦇 Bat</button>
+<button data-f="fish" aria-pressed="false">🐟 Fish</button>
+<button data-f="bee" aria-pressed="false">🐝 Bee</button>
+</div>
+<div class="wyd-tablewrap"><table class="wyd-board">
+<thead><tr><th>#</th><th>Player</th><th>Species</th><th style="text-align:right">Score</th><th>Survived</th><th>When</th></tr></thead>
+<tbody id="wyd-lb-body"><tr><td colspan="6">Loading scores…</td></tr></tbody>
+</table></div>
+<p class="muted" style="margin-top:1.4rem; font-size:.84rem">Compare within a species; a bat-night and a fish-client aren't the same currency. Sources:
+<a class="klink" href="learn-bat.html">vampire bat</a> ·
+<a class="klink" href="learn-fish.html">cleaner fish</a> ·
+<a class="klink" href="learn-bee.html">honeybee</a>.</p>
+</div>
+
+</div>
+</section>
+</div>
+```
+:::
+
+<script src="assets/js/wyd-core.js"></script>

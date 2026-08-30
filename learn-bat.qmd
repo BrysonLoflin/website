@@ -1,0 +1,108 @@
+---
+pagetitle: "The real vampire bat"
+description: "Everything the game is built on: the natural history of food sharing, grooming, and friendship in vampire bats, with sources."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-bat-light">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play-bat.html">← Back to the game</a></p>
+<p class="g-kicker">The real science · vampire bat</p>
+<h1>Blood, friendship, and bookkeeping.</h1>
+<p class="g-lede">Everything in the game comes from real studies of real bats. Here's the
+natural history behind each mechanic, and where the science is still open.</p>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+<div class="g-prose">
+
+<h2>The diet</h2>
+<p>The common vampire bat (<em>Desmodus rotundus</em>) feeds only on blood, mostly from
+sleeping livestock, taking a few teaspoons in a 20-minute meal. The part that makes it really
+tough on the bats? Blood is nearly all water and protein, so bats can't store much energy.
+Gerald Wilkinson's foundational field study in Costa Rica found that adult bats come home
+hungry on about <strong>7% of nights</strong> (young bats fail far more, on up to a third of
+nights), and a bat that goes roughly <strong>3 nights without a meal starves to
+death</strong><sup><a href="#ref-1">1</a></sup>. Every bat in a colony lives two bad nights
+away from risking death.</p>
+
+<h2>The bonds</h2>
+<p>Wilkinson's 1984 <em>Nature</em> paper reported something remarkable: bats that fed
+regurgitate part of their blood meal to roost-mates that didn't. The donation costs the donor
+but can buy the recipient about another 12 hours of life<sup><a href="#ref-1">1</a></sup>.
+Crucially, sharing wasn't limited to mothers and pups or close kin. Unrelated adults shared
+too, and they shared preferentially with the individuals who had shared with them before. It
+became one of the textbook cases of reciprocity in animals.</p>
+
+<h2>The ones who invested are the ones who get rescued</h2>
+<p>Thirty years later, Gerry Carter and Wilkinson tested the reciprocity claim with controlled
+fasting experiments in a captive colony. They withheld food from one bat at a time and watched
+who fed it. The best predictor of receiving food was not relatedness, but the amount of food
+and grooming that bat had <em>previously given</em> to its potential donors
+<sup><a href="#ref-2">2</a></sup>. In the game, your rescue probability is built from your
+bonds (P = 0.02 + 0.60 × bond, counted over each roost-mate that fed that night). Help comes
+back from the relationships you've built, and only a bat with blood can give any away.</p>
+
+<h2>Grooming</h2>
+<p>Vampire bats groom each other far more than the hygienic baseline other species
+show<sup><a href="#ref-4">4</a></sup>. Grooming removes ectoparasites like bat flies and
+mites<sup><a href="#ref-5">5</a></sup> (the game's mite mechanic), but it's also a social cue.
+When Carter introduced strangers to each other in captivity, new relationships developed by
+<strong>escalation</strong>. Bats began with low-cost grooming, "testing the water," and only
+later graduated to food sharing if that bat groomed them
+back<sup><a href="#ref-3">3</a></sup>. That's what the game rewards when grooming builds the
+bond that later makes sharing (and rescue) likely.</p>
+
+<h2>Nights with a bright moon</h2>
+<p>Vampire bats are creatures of the dark in a strict sense. Field observations in México
+found that <em>Desmodus</em> forages far less on bright moonlit nights, concentrating activity
+into the darkest hours<sup><a href="#ref-6">6</a></sup>. This is a pattern called lunar
+phobia, seen across many Neotropical bats, most plausibly as predator avoidance. The game's
+moon cycle comes from that finding. The <em>direction</em> of the effect is sourced; the size
+of the penalty on a bright night is the game's own tuning, and the storm nights that close
+each season are dramatized. In reality, there is no "end" for feeding at the end of the
+season, these parts just make the game more fun from a user perspective.</p>
+
+<h2>How much to give?</h2>
+<p>Donations aren't all-or-nothing. Donors regurgitate for varying durations, and the amount
+transferred varies with the relationship and the donor's own condition
+<sup><a href="#ref-1">1</a>,<a href="#ref-2">2</a></sup>. The sip / meal / full-crop choice in
+the game reflects the bat's choice in generosity. Bigger gifts build bonds faster but cost
+more of your own safety margin, so are more of a gamble!</p>
+
+<h2>What we still don't know</h2>
+<p>The open questions are the fun ones. Should a bat concentrate on a few strong bonds or
+spread across many weak ones? How do reciprocity and <em>fitness interdependence</em> (having
+a genuine stake in a partner's survival) interact? What happens to a relationship after a
+partner defects? These are live research questions, and they're the ones
+<a href="research.html">my own work</a> tackles with long-term colony data, social-network
+models, and manipulative experiments. The game's dilemmas are the real dilemmas. The optimal
+strategy is genuinely unsolved.</p>
+
+<p><a class="g-learnlink" href="play-bat.html">← Play the game</a></p>
+
+<div class="g-refs">
+<h2>References</h2>
+<ol>
+<li id="ref-1">Wilkinson, G.S. (1984). Reciprocal food sharing in the vampire bat. <em>Nature</em> 308, 181–184. <a href="https://doi.org/10.1038/308181a0">doi:10.1038/308181a0</a></li>
+<li id="ref-2">Carter, G.G. &amp; Wilkinson, G.S. (2013). Food sharing in vampire bats: reciprocal help predicts donations more than relatedness or harassment. <em>Proceedings of the Royal Society B</em> 280, 20122573. <a href="https://doi.org/10.1098/rspb.2012.2573">doi:10.1098/rspb.2012.2573</a></li>
+<li id="ref-3">Carter, G.G., Farine, D.R., Crisp, R.J., Vrtilek, J.K., Ripperger, S.P. &amp; Page, R.A. (2020). Development of new food-sharing relationships in vampire bats. <em>Current Biology</em> 30, 1275–1279. <a href="https://doi.org/10.1016/j.cub.2020.01.055">doi:10.1016/j.cub.2020.01.055</a></li>
+<li id="ref-4">Carter, G.G. &amp; Leffer, L. (2015). Social grooming in bats: are vampire bats exceptional? <em>PLoS ONE</em> 10, e0138430. <a href="https://doi.org/10.1371/journal.pone.0138430">doi:10.1371/journal.pone.0138430</a></li>
+<li id="ref-5">Wilkinson, G.S. (1986). Social grooming in the common vampire bat, <em>Desmodus rotundus</em>. <em>Animal Behaviour</em> 34, 1880–1889. <a href="https://doi.org/10.1016/S0003-3472(86)80274-3">doi:10.1016/S0003-3472(86)80274-3</a></li>
+<li id="ref-6">Crespo, R.F., Linhart, S.B., Burns, R.J. &amp; Mitchell, G.C. (1972). Foraging behavior of the common vampire bat related to moonlight. <em>Journal of Mammalogy</em> 53, 366–368. <a href="https://doi.org/10.2307/1379175">doi:10.2307/1379175</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</section>
+</div>
+```
+:::

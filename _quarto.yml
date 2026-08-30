@@ -1,0 +1,83 @@
+project:
+  type: website
+  output-dir: _site
+  # render only real pages — keeps HANDOFF.md / README.md out of the public site
+  render:
+    - "*.qmd"
+    - "posts/**"
+    # fieldwork page retired (Bryson, 2026-08-30) — field-to-lab now lives as a
+    # section on research.qmd; remove this line to bring the page back
+    - "!fieldwork.qmd"
+  resources:
+    - assets/img/**
+    - assets/photos/**
+    - assets/video/**
+    - assets/cv/**
+    - assets/photos.json
+    - assets/css/wyd.css
+    - assets/js/**
+    - robots.txt
+    - CNAME
+
+website:
+  title: "Bryson Loflin"
+  description: "Bryson Loflin — PhD student in Ecology & Evolutionary Biology studying cooperative social behavior in vampire bats. Behavioral ecology, social-network analysis, and wildlife photography."
+  site-url: "https://brysonloflin.com"
+  favicon: assets/img/favicon.png
+  open-graph: true
+  twitter-card: true
+  # Analytics: create a GA4 property at analytics.google.com, then uncomment
+  # and paste the measurement ID:
+  # google-analytics: "G-XXXXXXXXXX"
+  navbar:
+    background: "#120f0d"
+    pinned: true
+    collapse-below: lg
+    title: "Bryson&nbsp;Loflin"
+    left:
+      - text: "About"
+        href: about.qmd
+      - text: "Research"
+        href: research.qmd
+      - text: "Play"
+        href: play.qmd
+      - text: "Publications"
+        href: publications.qmd
+      - text: "CV"
+        href: cv.qmd
+      - text: "Photography"
+        href: photography.qmd
+      # Field Notes hidden from the nav for now (Bryson, 2026-08-30) —
+      # blog.qmd still renders at /blog.html; restore this entry to bring it back
+      # - text: "Field Notes"
+      #   href: blog.qmd
+      - text: "Contact"
+        href: contact.qmd
+  page-footer:
+    background: "#0e0b09"
+    left: |
+      &copy; 2026 Bryson Loflin
+    center: |
+      All photographs &copy; Bryson Loflin
+    right: |
+      Built with [Quarto](https://quarto.org)
+
+format:
+  html:
+    theme:
+      - cosmo
+      - theme.scss
+    css: assets/css/site.css
+    include-in-header:
+      - text: |
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@600;700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+    include-after-body:
+      - assets/html/site-js.html
+    toc: false
+    page-layout: full
+    grid:
+      body-width: 1180px
+    link-external-newwindow: true
+    anchor-sections: false

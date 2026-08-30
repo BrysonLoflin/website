@@ -1,0 +1,99 @@
+---
+pagetitle: "CV"
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<section class="section section--purple halftone" style="padding-top:clamp(6rem,14vh,9rem); padding-bottom:clamp(2.5rem,6vh,4rem)">
+<div class="inner reveal">
+<p class="eyebrow">Curriculum Vitae</p>
+<h1 class="visually-hidden">Bryson Loflin — CV</h1>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1.2rem">
+<p class="h-xl" style="margin:0">Bryson Loflin</p>
+<a class="btnx btnx--solid" href="assets/cv/BrysonLoflin_CV.pdf" download>Download PDF ↓</a>
+</div>
+<p class="muted" style="margin-top:1rem; font-size:.86rem">The downloadable PDF predates my PhD. The web CV below is the current one.</p>
+</div>
+</section>
+```
+:::
+
+::: {.full-bleed}
+<section class="section section--black" style="padding-top:clamp(2.5rem,6vh,4rem)">
+<div class="inner">
+<div class="cv reveal">
+
+<div class="cv-block">
+<h3>Current position</h3>
+<div class="cv-entry">
+<div><span class="role">PhD Student, Ecology &amp; Evolutionary Biology</span><br><span class="place">Carter Lab · advised by Dr. Gerry Carter</span></div>
+<div class="when">2025 – present</div>
+</div>
+</div>
+
+<div class="cv-block">
+<h3>Education</h3>
+<div class="cv-entry">
+<div><span class="role">B.S., Biology</span><br><span class="place">University of North Carolina at Chapel Hill · Highest Honors</span></div>
+<div class="when">2021 – 2025</div>
+</div>
+</div>
+
+<div class="cv-block">
+<h3>Research interests</h3>
+<p class="muted">Causes and consequences of cooperative social behavior · reciprocity and fitness interdependence · partner investment strategies · social-network analysis · behavioral ecology of vampire bats · combining controlled experiments and analysis to test behavioral theory.</p>
+</div>
+
+<div class="cv-block">
+<h3>Research experience</h3>
+<div class="cv-entry">
+<div><span class="role">Graduate Researcher, Carter Lab</span><br><span class="place">Cooperation in vampire bats: social-relations modeling, ML bat re-ID, defection experiments. Captive colonies at Princeton and in Gamboa, Panamá</span></div>
+<div class="when">2025 – present</div>
+</div>
+<div class="cv-entry">
+<div><span class="role">Undergraduate Researcher, Sheehan Lab, Cornell University</span><br><span class="place">Behavioral impacts of mouse rewilding; territory &amp; anxiety-related behavior (with Dr. Matthew Zipple)</span></div>
+<div class="when">Summer 2024</div>
+</div>
+<div class="cv-entry">
+<div><span class="role">Undergraduate Researcher, Pfennig Lab, UNC Chapel Hill</span><br><span class="place">Behavioral syndrome &amp; range expansion in <em>Spea bombifrons</em>; genotyping &amp; hybridization</span>
+<ul><li>Established exploratory-behavior assays still used in the lab</li><li>Compared behavior across populations from Arizona to Kansas</li></ul>
+</div>
+<div class="when">2020 – 2025</div>
+</div>
+</div>
+
+<div class="cv-block">
+<h3>Selected publications</h3>
+<p class="muted">Zipple MN, <b style="color:var(--heading)">Loflin B</b>, et al. Transfer to a naturalistic setting restructures fear responses in laboratory mice. <em>Current Biology</em> (2025).</p>
+<p class="muted">Ryan S, Kelly P, <b style="color:var(--heading)">Loflin B</b>, Pfennig K. Experimentally testing the hypothesis that hybrid fitness can increase evolutionarily. <em>Ecology and Evolution</em> (2025).</p>
+<p class="muted" style="margin-top:.6rem"><a class="klink" href="publications.html">Full publication list →</a></p>
+</div>
+
+<div class="cv-block">
+<h3>Teaching</h3>
+<div class="cv-entry"><div><span class="role">Teaching Assistant</span><br><span class="place">Seafood Forensics · UNC Biology</span></div><div class="when">Fall 2023</div></div>
+<div class="cv-entry"><div><span class="role">Teaching Assistant</span><br><span class="place">Investigating the Biodiversity Crisis · UNC Biology</span></div><div class="when">Spring 2024</div></div>
+</div>
+
+<div class="cv-block">
+<h3>Honors &amp; awards</h3>
+<div class="cv-entry"><div><span class="role">Robert Coker Award</span><br><span class="place">UNC Biology, for excellence in organismal biology &amp; ecology research</span></div><div class="when">2025</div></div>
+<div class="cv-entry"><div><span class="role">Highest Honors, B.S. Biology</span><br><span class="place">UNC Chapel Hill</span></div><div class="when">2025</div></div>
+</div>
+
+<div class="cv-block">
+<h3>Outreach &amp; service</h3>
+<p class="muted">Out in STEM (oSTEM) · undergraduate research mentoring.</p>
+</div>
+
+<div class="cv-block">
+<h3>Skills</h3>
+<p class="muted">R (tidyverse, Bayesian modeling with STRAND / Stan / brms, social-network analysis) · Python (computer vision, data pipelines) · experimental design for behavioral assays · captive-colony husbandry · RFID tracking · wildlife photography.</p>
+</div>
+
+</div>
+
+</div>
+</section>
+:::

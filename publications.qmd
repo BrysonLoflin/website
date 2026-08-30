@@ -1,0 +1,47 @@
+---
+pagetitle: "Publications"
+page-layout: full
+---
+
+::: {.full-bleed}
+<section class="section section--purple halftone" style="padding-top:clamp(6rem,14vh,9rem)">
+<div class="inner reveal">
+<p class="eyebrow">Publications</p>
+<h1 class="h-xl" style="max-width:14ch">Papers &amp; preprints</h1>
+<p class="lead measure" style="margin-top:1.4rem">Peer-reviewed work and manuscripts in review. Author name in <strong>bold</strong>.</p>
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black">
+<div class="inner">
+
+<p class="eyebrow reveal">Published</p>
+<div class="reveal">
+<div class="pub">
+<div class="pub__status">2025</div>
+<div>
+<p class="authors">Zipple MN, <b>Loflin B</b>, Chang Kuo D, Tan E, Sheehan MJ.</p>
+<p><a class="klink" href="https://www.cell.com/current-biology/abstract/S0960-9822(25)01397-1">Transfer to a naturalistic setting restructures fear responses in laboratory mice.</a> <span class="venue">Current Biology.</span></p>
+</div>
+</div>
+<div class="pub">
+<div class="pub__status">2025</div>
+<div>
+<p class="authors">Ryan S, Kelly P, <b>Loflin B</b>, Pfennig K.</p>
+<p><a class="klink" href="https://onlinelibrary.wiley.com/doi/10.1002/ece3.72531">Experimentally testing the hypothesis that hybrid fitness can increase evolutionarily: an example in spadefoot toads.</a> <span class="venue">Ecology and Evolution.</span></p>
+</div>
+</div>
+<div class="pub">
+<div class="pub__status">2025</div>
+<div>
+<p class="authors">Ryburn SJ, Yu T, Ong KJ, … <b>Loflin B</b>, … Bruno JF.</p>
+<p><a class="klink" href="https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1604454/full">Sale of critically endangered sharks in the United States.</a> <span class="venue">Frontiers in Marine Science.</span></p>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+:::

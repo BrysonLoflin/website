@@ -1,0 +1,798 @@
+---
+pagetitle: "You are a vampire bat"
+description: "A survival game with real odds from the field: feed, groom, share blood, and build the bonds that keep vampire bats alive."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-bat">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play.html">← All games</a></p>
+<p class="g-kicker">A survival game · real odds from the field</p>
+<h1>You are a vampire bat.</h1>
+<p class="g-lede">You are a young bat, still learning to hunt, and you feed on the blood of
+sleeping cattle. <strong>Three nights without a meal will kill you</strong> — and you strike
+out far more often than the adults roosting around you. When your luck fails, only your
+friends can save you: vampire bats share blood with the partners who have groomed and fed
+them before. Fifteen nights stand between you and the wet season. The last of them are
+storms. Build the bonds that will carry you through.</p>
+<div class="g-cta">
+<button class="g-start" id="wyd-start">🦇 Begin the first night</button>
+<a class="g-learnlink" href="learn-bat.html">Learn the real science →</a>
+</div>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+
+<div id="wyd-play" style="display:none">
+<div class="wyd-hud" id="wyd-hud"></div>
+<div class="wyd-scene" id="wyd-scene"></div>
+<div class="wyd-log" id="wyd-log" aria-live="polite"></div>
+</div>
+
+<div id="wyd-end" style="display:none">
+<div class="wyd-endcard">
+<p class="wyd-endkicker" id="wyd-e-species"></p>
+<div class="wyd-bigscore" id="wyd-e-score"></div>
+<p class="wyd-verdict" id="wyd-e-verdict"></p>
+<div class="wyd-postrow">
+<input id="wyd-e-name" maxlength="24" placeholder="Your name" aria-label="Your name for the leaderboard">
+<button class="btnx btnx--solid" id="wyd-e-post">Post to leaderboard</button>
+<button class="btnx" id="wyd-e-again">Play again</button>
+</div>
+<p class="wyd-notice" id="wyd-e-notice"></p>
+</div>
+</div>
+
+<div class="wyd-lbwrap">
+<p class="wyd-lbhead">Longest-lived bats</p>
+<div class="wyd-tablewrap"><table class="wyd-board">
+<thead><tr><th>#</th><th>Player</th><th>Species</th><th style="text-align:right">Score</th><th>Survived</th><th>When</th></tr></thead>
+<tbody id="wyd-lb-body"><tr><td colspan="6">Loading scores…</td></tr></tbody>
+</table></div>
+</div>
+
+<details class="wyd-model">
+<summary>How the odds work</summary>
+<div class="wyd-model-body">
+<p><strong>Sourced numbers</strong> (see the <a href="learn-bat.html">Learn&nbsp;more page</a>
+for full citations): adult bats fail to feed on ~7% of nights, young bats on up to a third of
+theirs, and you start young — your hidden hunting skill is drawn around a 28% fail rate and
+improves with every successful night, the way real juveniles learn. ~70 fasting hours is
+fatal (≈3 nights of reserve). When your reserve hits zero, each roost-mate <em>who fed that
+night</em> rescues you with P&nbsp;=&nbsp;0.02&nbsp;+&nbsp;0.60&nbsp;×&nbsp;bond — real
+rescues track prior grooming and giving, not kinship. Donations are graded (a sip to a full
+crop) and build bonds in proportion; grooming escalates into sharing; grooming also keeps
+the mites off (below 0.5 hygiene they move in and drain −0.5&nbsp;🩸 a night). Bright
+moonlight suppresses vampire bat foraging (Crespo et al. 1972) — on bright nights every
+bat's odds worsen.</p>
+<p><strong>Plausible, for play</strong> (invented for the game, flagged so you know):
+the exact size of the moonlight penalty (+15%), storm and squall modifiers (+15–18% fail,
+misses burn 1.5&nbsp;🩸), the learning rate (fail ×0.93 per success), bond decay
+(−0.02/night), roost-mates' hidden personalities (big-hearted, tight-furred, far-ranger,
+thin), and roost-mates rescuing each other through their own friendships. Roost-mates can
+genuinely starve: a begging bat that no one feeds — including you — dies, and its
+friendships die with it.</p>
+<p>Score is a fitness ledger: nights survived, donations (scaled by size and need), lives
+saved, grooming given, and your final bond portfolio. Death keeps the ledger you earned.
+Balance targets and results are recorded in <code>sim/batsim2.py</code> (20,000-run Monte
+Carlo per strategy).</p>
+</div>
+</details>
+
+</div>
+</section>
+</div>
+```
+:::
+
+<script>window.WYD_SPECIES = "bat";</script>
+<script src="assets/js/wyd-core.js"></script>
+<script>
+/* ── vampire bat engine v2 ──
+   One 15-night season: moon cycle + squalls modulate everyone's hunting, the last
+   three nights are the wet-season storm finale. You start a juvenile and learn to
+   hunt; roost-mates are mortal and have hidden personalities. Score = fitness ledger.
+   Balance targets + Monte Carlo results: ../sim/batsim2.py (20k runs/strategy):
+   loner 54% survive/median 306 · masher 689 · old two-friends line 632 ·
+   sip-widely 825 · portfolio 792 (p90 994, max ~1460). Deaths concentrate in the
+   finale; <2.5% of runs die before night 4. Cap 2000 untouched. */
+const PARTNER_NAMES = ["Quinoa","Fig","Juniper","Mango","Sage","Pepper","Hazel","Clover"];
+const STRANGER_NAMES = ["Basil","Rowan","Ivy","Cinder","Moss","Fern"];
+const BAT = {
+  nights:15, stormStart:13,
+  playerFail:0.28, playerLo:0.14, playerHi:0.45, learnRate:0.93, learnFloor:0.08,
+  adultFail:0.07, adultLo:0.02, adultHi:0.18,
+  decay:0.02, refuseCost:0.15, refuseOweCost:0.30,
+  rescueBase:0.02, rescueSlope:0.60, rescueCap:0.9,
+  staminaPerNight:3,
+  moonBright:0.15, moonDim:0.07, squallP:0.07, squallMod:0.18, stormMod:0.15, stormBurn:1.5,
+  richP:0.08, richMod:-0.05, richBonus:0.25,
+  farFail:0.08, farBonus:0.5, farFrom:3,
+  partnerCap:2.0,
+  hygieneDecay:0.10, hygieneStormDecay:0.20, infestBelow:0.5, parasiteDrain:0.5, cureAbove:0.5, groomBackHyg:0.15,
+  groomQuick:{cost:1, gain:0.07, recip:0.25}, groomLong:{cost:2, gain:0.16, recip:0.5},
+  dimReturns:0.45,
+  shares:[ {key:"sip",  label:"a sip",       blood:0.15, gain:0.08, ptsStarv:12, ptsHun:6},
+           {key:"meal", label:"a meal",      blood:0.30, gain:0.15, ptsStarv:22, ptsHun:11},
+           {key:"gen",  label:"a full crop", blood:0.50, gain:0.25, ptsStarv:38, ptsHun:19} ],
+  pts:{night:15, fed:8, rescued:15, groomQ:2, groomL:3, save:38,
+       endSurvive:120, endBond:45, endRoost:90} };
+const TRAITS = {
+  generous:{tag:"big-hearted",  hint:"grooms you back before you've even finished", recipMult:1.3},
+  stingy:  {tag:"tight-furred", hint:"takes your grooming and gives little back",   recipMult:0.6},
+  wanderer:{tag:"far-ranger",   hint:"hunts the far valleys — comes home heavy or not at all", failMult:1.6, feast:1.5},
+  frail:   {tag:"thin",         hint:"older and slower than the rest; misses more nights", failAdd:0.06},
+  plain:   {tag:"",             hint:"", } };
+const TRAIT_DECK = ["generous","generous","stingy","stingy","wanderer","frail","plain","plain"];
+let G = null;
+
+const drawSkill = (base, spread, lo, hi)=> Math.min(hi, Math.max(lo,
+  base * Math.pow(2, (roll() - 0.5) * spread)));
+const reduceMotion = ()=> matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function wydStart(){
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  const deck = TRAIT_DECK.slice();
+  for(let i=deck.length-1; i>0; i--){ const j=Math.floor(roll()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+  G = {v:2, night:0, score:0, energy:2.5, stamina:3, alive:true, fedTonight:false,
+       cause:"", selected:null, lastAct:"", fx:null, far:false, cond:null,
+       moonOff: roll()*BAT.nights, pFail: drawSkill(BAT.playerFail, 1.5, BAT.playerLo, BAT.playerHi),
+       hygiene:0.7, parasites:false, successes:0, event:null, lastEvent:"", deaths:[],
+       ledger:{don:0, saves:0, rescued:0, grooms:0},
+       partners: PARTNER_NAMES.map((n,i)=>{
+         const t = deck[i], td = TRAITS[t];
+         let pf = drawSkill(BAT.adultFail, 2.0, BAT.adultLo, BAT.adultHi);
+         if(td.failMult) pf = Math.min(0.30, pf*td.failMult);
+         if(td.failAdd)  pf = Math.min(0.30, pf+td.failAdd);
+         return {id:i, name:n, trait:t, seen:false, pFail:pf, trust:0.35,
+                 energy:1.2+0.8*roll(), alive:true, fedYou:false, youSaved:false,
+                 fed:false, hungry:false, starving:false, groomed:false, shared:false};
+       })};
+  const close = [];
+  while(close.length<2){ const k = Math.floor(roll()*8); if(!close.includes(k)) close.push(k); }
+  G.partners.forEach((p,i)=>{ p.trust = close.includes(i) ? 0.55+0.2*roll() : 0.12+0.26*roll(); });
+  G.pp = [];
+  for(let i=0;i<8;i++){ G.pp[i]=[];
+    for(let j=0;j<8;j++){ G.pp[i][j] = j<i ? G.pp[j][i] : (i===j ? 0 : (roll()<0.35 ? 0.3+0.55*roll() : 0.1*roll())); } }
+  const friends = close.map(k=>G.partners[k].name).join(" and ");
+  log(`Dusk. You hang among 8 roost-mates. ${friends} are old friends; the rest barely know you.`);
+  duskPhase();
+}
+
+function wydHud(){
+  const h = $("#wyd-hud"); if(!h || !G) return;
+  const cells = [0,1,2].map(k=>{
+    const f = Math.max(0, Math.min(1, G.energy - k));
+    return `<i><b style="transform:scaleX(${f})"></b></i>`;
+  }).join("");
+  const pips = [0,1,2].map(k=>`<i class="${k < G.stamina ? "on":""}"></i>`).join("");
+  const hygPct = Math.round((G.hygiene||0)*100);
+  const aliveN = G.partners.filter(p=>p.alive).length;
+  h.innerHTML = `<div class="wyd-ghud">
+    <div class="gstat"><span class="gl">Night ${G.cond ? G.cond.icon : ""}</span><span class="gv">${G.night}<span class="wyd-of">/${BAT.nights}</span></span></div>
+    <div class="gstat"><span class="gl">Blood 🩸 ${G.energy.toFixed(1)}</span><div class="wyd-bloodbar">${cells}</div></div>
+    <div class="gstat"><span class="gl">Stamina ⚡</span><div class="wyd-pips">${pips}</div></div>
+    <div class="gstat"><span class="gl">${G.parasites ? "🕷 Mites!" : "Groomed"}</span><div class="wyd-bloodbar wyd-hyg${G.parasites?" bad":""}"><i><b style="transform:scaleX(${(G.hygiene||0).toFixed(2)})"></b></i></div><span style="font-size:.58rem; color:var(--g-dim)">${hygPct}%</span></div>
+    <div class="gstat"><span class="gl">Roost</span><span class="gv">${aliveN}<span class="wyd-of">/8</span></span></div>
+    <div class="gstat"><span class="gl">Score</span><span class="gv">${Math.round(G.score)}</span></div>
+  </div>`;
+}
+
+/* ── conditions: moon cycle, squalls, storms, rich nights ── */
+/* one full lunar cycle per season (compressed; the real cycle is 29.5 d): every run
+   sees a comparable dose of bright nights, but at different, unpredictable times */
+function moonMod(night){
+  const b = 0.5*(1+Math.cos(2*Math.PI*((night+G.moonOff)/BAT.nights)));
+  if(b >= 0.75) return {mod:BAT.moonBright, moon:"bright"};
+  if(b >= 0.55) return {mod:BAT.moonDim, moon:"dim"};
+  return {mod:0, moon:"dark"};
+}
+function rollConditions(night){
+  const m = moonMod(night);
+  if(night >= BAT.stormStart)
+    return {mod:m.mod+BAT.stormMod, stormy:true, rich:false, moon:m.moon, icon:"⛈", key:"storm",
+      head:"The wet season is here.",
+      text:`Storm after storm now. Rain floods the pastures, the herds huddle, and <strong>every
+        bat's hunting suffers</strong> — a miss on a night this cold burns −${BAT.stormBurn} 🩸.
+        ${night===BAT.nights ? "One more night. Just one." : "The colony moves roosts when it ends. Hold on."}`};
+  if(roll() < BAT.squallP)
+    return {mod:m.mod+BAT.squallMod, stormy:true, rich:false, moon:m.moon, icon:"🌧", key:"squall",
+      head:"A squall blows in from the coast.",
+      text:`Rain lashes the cave mouth. Hunting through it is miserable work — <strong>every bat's
+        odds are worse tonight</strong>, and a miss in this cold burns −${BAT.stormBurn} 🩸.`};
+  if(m.mod===0 && roll() < BAT.richP)
+    return {mod:BAT.richMod, stormy:false, rich:true, moon:m.moon, icon:"✨", key:"rich",
+      head:"The herd has moved into the near valley.",
+      text:`A black, kind night — and the cattle are practically under the cave. <strong>Easy
+        pickings for everyone</strong>, and full crops for the lucky.`};
+  if(m.moon==="bright")
+    return {mod:m.mod, stormy:false, rich:false, moon:m.moon, icon:"🌕", key:"bright",
+      head:"A bright moon silvers the pastures.",
+      text:`Every bat in the roost hesitates at the cave mouth. Vampire bats hate hunting under
+        a full moon — in this light, the cattle see you coming, and so does everything that
+        eats bats. <strong>Everyone's odds are worse tonight.</strong>`};
+  if(m.moon==="dim")
+    return {mod:m.mod, stormy:false, rich:false, moon:m.moon, icon:"🌗", key:"dim",
+      head:"A half-lit night.",
+      text:`Moonlight comes and goes behind the clouds. Not ideal hunting light, but workable.`};
+  return {mod:0, stormy:false, rich:false, moon:m.moon, icon:"🌑", key:"dark",
+    head:"A black, kind night.",
+    text:`No moon to speak of. The kind of dark a vampire bat is built for.`};
+}
+
+/* ── dusk: conditions + pasture choice ── */
+function duskPhase(){
+  G.night++;
+  G.cond = rollConditions(G.night);
+  G.far = false;
+  // roost-mates hunt tonight (resolved now, revealed at dawn)
+  G.partners.forEach(p=>{
+    if(!p.alive) return;
+    p.trust = Math.max(0.02, p.trust - BAT.decay);
+    p.groomed = false; p.shared = false;
+    const pf = Math.min(0.9, Math.max(0.01, p.pFail + G.cond.mod));
+    p.fed = roll() > pf;
+    const feast = (p.trait==="wanderer" && p.fed) ? TRAITS.wanderer.feast : 1.0;
+    p.energy = p.fed ? Math.min(BAT.partnerCap, p.energy + feast)
+                     : p.energy - (G.cond.stormy ? BAT.stormBurn : 1);
+    p.hungry = !p.fed;
+    p.starving = p.energy <= 0;
+    if(p.trait==="wanderer" && p.fed && feast>1 && !p.seen){ p.seen = true;
+      log(`${p.name} comes home heavy with blood — a far-ranger.`); }
+  });
+  const grief = G.deaths.length && G.deathsFresh
+    ? `<p class="wyd-story wyd-grief">The roost is quieter. <strong>${esc(G.deathsFresh)}</strong> didn't
+       wake at dusk — starved, huddled at the edge of the colony. No one had enough to give.</p>` : "";
+  G.deathsFresh = "";
+  const stormNear = G.night===BAT.stormStart-2 ? `<p class="wyd-story"><strong>You can smell rain
+    on the wind.</strong> The storms are two nights away. Whatever bonds you mean to build,
+    build them now.</p>` : "";
+  const canFar = G.night >= BAT.farFrom;
+  const choices = canFar
+    ? `<button class="btnx wyd-huntopt" id="wyd-hunt-near">Hunt the near pastures <span class="sub">the usual odds</span></button>
+       <button class="btnx wyd-huntopt" id="wyd-hunt-far">Push to the far valley <span class="sub">riskier (+${Math.round(BAT.farFail*100)}% fail) · richer (+${BAT.farBonus} 🩸)</span></button>`
+    : `<button class="btnx btnx--solid" id="wyd-hunt-near">Follow the colony out <span class="sub">${G.night===1 ? "stay close; you're still learning":"the near pastures"}</span></button>`;
+  scene(`<div class="wyd-round">${G.cond.icon} Night ${G.night} of ${BAT.nights} · dusk</div>
+    <h3>${G.cond.head}</h3>
+    <p class="wyd-story">${G.cond.text}</p>
+    ${grief}${stormNear}
+    <div class="wyd-choices">${choices}</div>`, "night");
+  $("#wyd-hunt-near").onclick = ()=>{ G.far=false; flightScene(resolveNight); };
+  const farBtn = $("#wyd-hunt-far");
+  if(farBtn) farBtn.onclick = ()=>{ G.far=true; flightScene(resolveNight); };
+}
+
+/* ── the hunt (flight scene): full cinematic night 1, compressed after ── */
+function flightScene(cb){
+  const pf = Math.min(0.95, Math.max(0.02, G.pFail + G.cond.mod + (G.far ? BAT.farFail : 0)));
+  G.fedTonight = roll() > pf;
+  if(reduceMotion()){ cb(); return; }
+  const first = G.night === 1;
+  const condCls = G.cond.stormy ? " f-storm" : G.cond.moon==="bright" ? " f-moonbright" : "";
+  const moonEm = G.cond.stormy ? "🌧" : G.cond.moon==="bright" ? "🌕" : G.cond.moon==="dim" ? "🌗" : "🌘";
+  scene(`<div class="wyd-round">${G.cond.icon} Night ${G.night} of ${BAT.nights} · the hunt</div>
+    <div class="wyd-flight${condCls}"><span class="fmoon">${moonEm}</span>
+      <span class="fcave" aria-hidden="true"></span>
+      <span class="frain" aria-hidden="true"></span>
+      <span class="fbat"><span class="fbatin">🦇</span></span>
+      <span class="fcow">🐄</span>
+      <span class="fsus">💤</span>
+      <span class="fdrip d1">🩸</span><span class="fdrip d2">🩸</span><span class="fdrip d3">🩸</span>
+      <div class="fground"></div></div>
+    <p class="wyd-story" id="wyd-flightstory">${
+      G.far ? "You skip the near pastures and beat upwind toward the far valley, where the herds are fat and unbothered…"
+      : G.cond.stormy ? "You push out into the rain with the colony, wings heavy before you've cleared the cave…"
+      : "You pour out of the cave with the colony and ride the dark toward the pastures. Somewhere below, a herd is sleeping…"}</p>
+    <div class="wyd-choices"><button class="btnx" id="wyd-skip">Skip →</button></div>`, "night");
+  const box = document.querySelector("#wyd-scene .wyd-flight");
+  const story = $("#wyd-flightstory");
+  let done = false;
+  const timers = [];
+  const go = ()=>{ if(done) return; done = true; timers.forEach(clearTimeout); cb(); };
+  const at = (ms, fn)=>timers.push(setTimeout(fn, ms));
+  $("#wyd-skip").onclick = go;
+  const T = first ? [60, 5000, 10000, 15000, 17800, 20500] : [50, 2400, 4600, 6600, 7600, 8600];
+  at(T[0], ()=>box.classList.add("f-out"));
+  at(T[1], ()=>{
+    box.classList.add("f-sus");
+    story.innerHTML = G.cond.stormy
+      ? "You find the herd hunched against the rain, drop through a gust onto a cow's back, and cling on to make the cut…"
+      : G.cond.moon==="bright"
+      ? "Too bright. You circle twice, waiting on a cloud, then drop to the cow's back and make the cut…"
+      : "You slow, circle once, and settle onto the cow's back. It sleeps on. You pick your spot and make the cut…";
+  });
+  at(T[2], ()=>{
+    box.classList.add("f-reveal", G.fedTonight ? "f-fed" : "f-fail");
+    story.innerHTML = G.fedTonight
+      ? "<strong>You latch on and drink.</strong> The cow never wakes. Twenty quiet minutes, and you're heavy with blood."
+      : "<strong>The cow jolts awake and kicks.</strong> A hoof catches you, and you tumble into the grass. No meal tonight.";
+  });
+  at(T[3], ()=>{
+    box.classList.remove("f-out");
+    box.classList.add("f-home");
+    story.innerHTML = G.fedTonight
+      ? "You lift off heavy and slow, turn for home, and fold into the dark of the cave among the warm bodies."
+      : "You shake off the grass and fly home empty, tucking into the dark of the cave among the warm bodies.";
+  });
+  at(T[4], ()=>box.classList.add("f-rest"));
+  at(T[5], go);
+}
+
+/* ── resolve the night: blood, learning, mites, rescue ── */
+function resolveNight(){
+  const burn = G.cond.stormy ? BAT.stormBurn : 1;
+  let paraNote = "";
+  G.hygiene = Math.max(0, G.hygiene - (G.cond.stormy ? BAT.hygieneStormDecay : BAT.hygieneDecay));
+  if(G.fedTonight){
+    G.successes++;
+    const learned = G.pFail > BAT.learnFloor + 0.001;
+    G.pFail = Math.max(BAT.learnFloor, G.pFail * BAT.learnRate);
+    G.energy = Math.min(3, G.energy + 1 + (G.far ? BAT.farBonus : 0) + (G.cond.rich ? BAT.richBonus : 0));
+    G.score += BAT.pts.fed;
+    if(G.parasites){ G.energy = Math.max(0, G.energy - BAT.parasiteDrain);
+      paraNote = ` The <strong>mites</strong> cost you an extra −${BAT.parasiteDrain} 🩸 tonight.`; }
+    else paraNote = miteCheck();
+    const learnNote = learned && (G.successes===3 || G.successes===7)
+      ? ` <em>The cuts come easier now — you're getting good at this.</em>` : "";
+    const beg = G.partners.filter(p=>p.alive && p.hungry);
+    const starv = beg.filter(p=>p.starving);
+    log(`Night ${G.night}: fed${G.far?" (far valley)":""}. +${BAT.pts.fed}.`, "good");
+    showNightSummary("A good night.",
+      `You found a host and fed for twenty minutes${G.far ? " — and the far valley paid: a full, heavy crop":""}.${
+        G.night===1 ? ` (Adult bats strike out on about ${fmtP(BAT.adultFail)} of nights; young bats
+        like you, far more often. Tonight the luck held.)` : ""}${learnNote}
+       ${starv.length ? `<strong>${starv.length===1 ? esc(starv[0].name)+" is starving" : starv.length+" roost-mates are starving"}</strong> — a bat with an empty reserve doesn't see a second dawn unless someone feeds it.`
+        : beg.length ? `<strong>${beg.length} roost-mate${beg.length>1?"s":""} came home empty</strong>. Back at the roost, you could share.`
+        : "Everyone else fed too, so no one is begging tonight."}${paraNote}`);
+    return;
+  }
+  G.energy -= burn;
+  G.hygiene = Math.max(0, G.hygiene - 0.05);   // tumbled in the grass
+  if(G.parasites) G.energy = Math.max(-0.1, G.energy - BAT.parasiteDrain);
+  else paraNote = miteCheck();
+  log(`Night ${G.night}: failed to feed${G.cond.stormy ? " (storm, −"+burn+" 🩸)":""}.`, "bad");
+  if(G.energy > 0){
+    G.score += BAT.pts.night - 10;  // small consolation tick; the +night comes at dawn
+    showNightSummary("You struck out.",
+      `${G.cond.stormy ? "A miserable, rain-blind hunt, and a cow that wouldn't settle." :
+        G.cond.moon==="bright" ? "Too much light. The cow saw you drop and was on its feet before you landed." :
+        "A restless cow, a kick you didn't dodge, no meal tonight."}${G.night===1
+        ? ` (Adults strike out on about ${fmtP(BAT.adultFail)} of nights; young bats like you, far more often.)` : ""}
+       Reserve: <strong>${Math.max(0,G.energy).toFixed(1)} night${G.energy===1?"":"s"}</strong>. You can't share tonight,
+       but you can still groom.${paraNote} ${G.energy<=1 ? "<strong>One more bad night and you'll be begging for your life.</strong>":""}`);
+    return;
+  }
+  begResolution();
+}
+function miteCheck(){
+  if(!G.parasites && G.hygiene < BAT.infestBelow && roll() < (BAT.infestBelow - G.hygiene)){
+    G.parasites = true;
+    log(`Night ${G.night}: infested with mites (hygiene ${G.hygiene.toFixed(2)}).`, "bad");
+    return ` No one has groomed you in too long: <strong>bat mites have moved in</strong>.
+      They'll drain −${BAT.parasiteDrain} 🩸 every night until roost-mates groom them off you.`;
+  }
+  return "";
+}
+
+function showNightSummary(head, story){
+  scene(`<div class="wyd-round">${G.cond.icon} Night ${G.night} of ${BAT.nights} · foraging</div>
+    <h3>${head}</h3>
+    <p class="wyd-story">${story}</p>
+    <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-next">Fly home at dawn →</button></div>`, "night");
+  $("#wyd-next").onclick = roostPhase;
+}
+
+function begResolution(){
+  const helpers = G.partners.filter(p=>p.alive && p.fed)
+    .map(p=>({p, pr: Math.min(BAT.rescueCap, BAT.rescueBase + BAT.rescueSlope*p.trust)}));
+  const pAny = 1 - helpers.reduce((a,h)=>a*(1-h.pr), 1);
+  const savior = helpers.find(h=>roll() < h.pr);
+  if(savior){
+    savior.p.fedYou = true; savior.p.trust = Math.min(1, savior.p.trust + 0.1);
+    G.energy = 1; G.score += BAT.pts.rescued; G.ledger.rescued++;
+    log(`Night ${G.night}: rescued by ${savior.p.name}.`, "good");
+    scene(`<div class="wyd-round">${G.cond.icon} Night ${G.night} of ${BAT.nights} · no meal, reserve empty</div>
+      <h3>Saved.</h3>`+ outcomeBlock(
+      `Given your bonds, the chance that a roost-mate who fed tonight would save you was <strong>${fmtP(pAny)}</strong>, and ${esc(savior.p.name)} came through.`,
+      `You beg, licking at roost-mates' mouths. <strong>${esc(savior.p.name)}</strong> regurgitates part of
+       tonight's meal to you. You'll see another dawn, and you owe them.`,
+      "In real life",
+      `Rescue isn't charity: bats with stronger giving and grooming histories have more donors when
+       their luck fails. Your investment just paid out.`,
+      "Wilkinson 1984 · Carter & Wilkinson 2013"), "night");
+    $("#wyd-next").onclick = roostPhase;
+    return;
+  }
+  G.alive = false; G.cause = "starved";
+  log(`Night ${G.night}: starved. ☠`, "bad");
+  scene(`<div class="wyd-round">${G.cond.icon} Night ${G.night} of ${BAT.nights} · no meal, reserve empty</div>
+    <h3>No one came.</h3>`+ outcomeBlock(
+    `Given your bonds, the chance that a roost-mate who fed tonight would save you was <strong>${fmtP(pAny)}</strong>. No one did.`,
+    `You fasted past ~70 hours. In the morning the roost is one bat smaller.`,
+    "In real life",
+    `Starvation is the vampire bat's constant threat, and weak social bonds are the risk factor.
+     Bats that invest in partners survive their unlucky streaks; loners often don't.`,
+    "Wilkinson 1984 Nature"), "night");
+  $("#wyd-next").onclick = batEnd;
+}
+
+/* ── dawn events ── */
+function rollDawnEvent(){
+  G.event = null;
+  const alive = G.partners.filter(p=>p.alive);
+  // a stranger claims an empty spot (takes priority over random events)
+  const deadSlot = G.partners.find(p=>!p.alive && !p.replaced);
+  const graceOver = G.night > (G.lastDeathNight||0) + 1;   // let a death breathe for a night
+  if(deadSlot && graceOver && STRANGER_NAMES.length && roll() < 0.5){
+    const name = STRANGER_NAMES.shift();
+    deadSlot.replaced = true;
+    const t = ["generous","stingy","wanderer","frail","plain","plain"][Math.floor(roll()*6)];
+    const td = TRAITS[t];
+    let pf = drawSkill(BAT.adultFail, 2.0, BAT.adultLo, BAT.adultHi);
+    if(td.failMult) pf = Math.min(0.30, pf*td.failMult);
+    if(td.failAdd)  pf = Math.min(0.30, pf+td.failAdd);
+    const s = {id:deadSlot.id, name, trait:t, seen:false, pFail:pf, trust:0.08+0.12*roll(),
+               energy:1.5, alive:true, fedYou:false, youSaved:false,
+               fed:true, hungry:false, starving:false, groomed:false, shared:false, stranger:true};
+    G.partners[deadSlot.id] = s;
+    for(let j=0;j<8;j++){ if(j!==s.id){ G.pp[s.id][j] = G.pp[j][s.id] = 0.05+0.15*roll(); } }
+    G.event = {type:"stranger", id:s.id,
+      text:`A <strong>stranger</strong> has taken the empty spot where ${esc(deadSlot.name)} used to hang —
+        a wiry newcomer the others call <strong>${esc(name)}</strong>. New bonds start small:
+        real bats "test the waters" with grooming before they ever share blood.`};
+    log(`Dawn: ${name} joins the roost.`);
+    return;
+  }
+  if(roll() > 0.3 || alive.length < 3) return;
+  const pool = ["squabble","pup","coldsnap"].filter(t=>t!==G.lastEvent);
+  const type = pool[Math.floor(roll()*pool.length)];
+  G.lastEvent = type;
+  if(type==="squabble"){
+    const pairs = [];
+    for(const a of alive) for(const b of alive) if(a.id<b.id && G.pp[a.id][b.id]>0.3) pairs.push([a,b]);
+    if(!pairs.length) return;
+    const [a,b] = pairs[Math.floor(roll()*pairs.length)];
+    G.pp[a.id][b.id] = G.pp[b.id][a.id] = Math.max(0.02, G.pp[a.id][b.id]-0.25);
+    G.event = {type:"squabble", ids:[a.id,b.id],
+      text:`<strong>${esc(a.name)} and ${esc(b.name)} squabbled</strong> over a roosting spot at dawn —
+        their friendship just took a hit, and both are ruffled and lonely.
+        Grooming either of them this dawn builds <strong>+50% extra bond</strong>.`};
+  } else if(type==="pup"){
+    const p = alive[Math.floor(roll()*alive.length)];
+    G.event = {type:"pup", id:p.id,
+      text:`<strong>${esc(p.name)}'s pup</strong> clings to her, thin. She's been giving it everything
+        she has. Anything you give <em>her</em> this dawn — grooming or blood — counts
+        <strong>double</strong> toward your bond.`};
+  } else {
+    G.event = {type:"coldsnap",
+      text:`A <strong>cold dawn</strong>; the roost huddles close. Bodies pressed together make long
+        grooming easy: it costs only <strong>1 ⚡</strong> this dawn.`};
+  }
+}
+
+/* ── the roost (dawn) ── */
+function roostPhase(){
+  G.stamina = G.energy <= 1 ? BAT.staminaPerNight - 1 : BAT.staminaPerNight;
+  G.selected = null; G.fx = null; G.lastAct = "";
+  rollDawnEvent();
+  wydSaveRun(G);  // autosave at every dawn; Exit + Resume pick up from here
+  renderRoost();
+}
+function wydResumeRun(g){
+  if(!g || g.v !== 2){ wydClearRun(); wydStart(); return; }
+  G = g; G.selected = null; G.lastAct = ""; G.fx = null;
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  log(`Resumed at dawn after night ${G.night}.`);
+  renderRoost();
+}
+function eventMult(p, isShare){
+  if(!G.event) return 1;
+  if(G.event.type==="squabble" && !isShare && G.event.ids.includes(p.id)) return 1.5;
+  if(G.event.type==="pup" && G.event.id===p.id) return 2;
+  return 1;
+}
+function netSvg(){
+  const cx=200, cy=155, rx=150, ry=105;
+  const pos = G.partners.map((p,i)=>{
+    const a = -Math.PI/2 + i*(2*Math.PI/8);
+    return {x: cx + rx*Math.cos(a), y: cy + ry*Math.sin(a)};
+  });
+  let pp="", edges="", nodes="";
+  for(let i=0;i<8;i++) for(let j=i+1;j<8;j++){
+    if(!G.partners[i].alive || !G.partners[j].alive) continue;
+    const b = G.pp[i][j];
+    if(b > 0.28) pp += `<line x1="${pos[i].x.toFixed(0)}" y1="${pos[i].y.toFixed(0)}"
+      x2="${pos[j].x.toFixed(0)}" y2="${pos[j].y.toFixed(0)}" stroke="currentColor"
+      stroke-width="${(0.4 + b*2.2).toFixed(1)}" opacity="${(0.08 + b*0.16).toFixed(2)}"/>`;
+  }
+  G.partners.forEach((p,i)=>{
+    const {x,y} = pos[i];
+    if(!p.alive){
+      nodes += `<g class="node gone" aria-hidden="true">
+        <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="15"/>
+        <text x="${x.toFixed(0)}" y="${(y+29).toFixed(0)}">${esc(p.name)}</text></g>`;
+      return;
+    }
+    edges += `<line class="edge" x1="${cx}" y1="${cy}" x2="${x.toFixed(0)}" y2="${y.toFixed(0)}"
+      stroke-width="${(0.6 + p.trust*6).toFixed(1)}" opacity="${(0.2 + p.trust*0.65).toFixed(2)}"/>`;
+    const begState = p.starving && !p.shared ? "starving" : (p.hungry && !p.shared ? "hungry" : "");
+    const cls = "node" + (begState==="starving" ? " starving" : begState==="hungry" ? " hungry":"") + (G.selected===p.id ? " sel":"");
+    nodes += `<g class="${cls}" data-pid="${p.id}" tabindex="0" role="button"
+      aria-label="${esc(p.name)}, bond ${p.trust.toFixed(2)}${begState ? ", "+begState : ""}">
+      <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="28" style="fill:transparent; stroke:none; animation:none; cursor:pointer"/>
+      ${G.selected===p.id ? `<circle class="selring" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="22"/>` : ""}
+      <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="15"/>
+      <text x="${x.toFixed(0)}" y="${(y+29).toFixed(0)}">${esc(p.name)}${p.fedYou?" ♥":""}${p.youSaved?" ✚":""}</text>
+      ${begState==="starving" ? `<text class="beg starv" x="${x.toFixed(0)}" y="${(y-22).toFixed(0)}">STARVING</text>`
+        : begState==="hungry" ? `<text class="beg" x="${x.toFixed(0)}" y="${(y-22).toFixed(0)}">BEGGING</text>`:""}
+    </g>`;
+  });
+  return `<svg class="wyd-net" viewBox="0 0 400 310" role="img"
+    aria-label="The colony's social network: you at the center, roost-mates around you; line thickness shows your bond, faint lines are their own friendships. Starving bats will die without blood.">
+    ${pp}${edges}
+    <g class="node you"><circle cx="${cx}" cy="${cy}" r="17"/><text x="${cx}" y="${cy+4}">YOU</text></g>
+    ${nodes}</svg>`;
+}
+function traitLine(p){
+  if(!p.seen || !TRAITS[p.trait].tag) return "";
+  return `<span class="wyd-ptag wyd-ptrait">${TRAITS[p.trait].tag}</span>`;
+}
+function reciprocate(p, pr){
+  const td = TRAITS[p.trait];
+  if(td.recipMult) pr *= td.recipMult;
+  if(roll() < Math.min(0.95, pr)){
+    G.hygiene = Math.min(1, G.hygiene + BAT.groomBackHyg);
+    emitStream(p.id, {color:"var(--g-warm)", r:3, count:6, interval:240, travel:1400,
+      reverse:true, delay:1200});
+    if(!p.seen && (p.trait==="generous")){ p.seen = true; }
+    let cured = "";
+    if(G.parasites && G.hygiene >= BAT.cureAbove){
+      G.parasites = false; cured = " The mites are gone.";
+      log(`Night ${G.night}: ${p.name} groomed the mites off you.`, "good");
+    } else {
+      log(`Night ${G.night}: ${p.name} grooms you back (hygiene ${G.hygiene.toFixed(2)}).`, "good");
+    }
+    const flavor = p.trait==="generous" ? ` ${TRAITS.generous.hint.charAt(0).toUpperCase()+TRAITS.generous.hint.slice(1)}.` : "";
+    return ` <strong>${esc(p.name)} grooms you back.</strong>${cured}${flavor}`;
+  }
+  if(!p.seen && p.trait==="stingy" && roll()<0.6){ p.seen = true;
+    return ` ${esc(p.name)} ${TRAITS.stingy.hint}.`; }
+  return "";
+}
+function partnerPanel(){
+  if(G.selected===null){
+    const starv = G.partners.filter(p=>p.alive && p.starving && !p.shared);
+    return `<div class="wyd-partner"><h4>Pick a roost-mate</h4>
+      <p class="wyd-story" style="font-size:.9rem">Tap a bat. Green lines are <strong>your</strong> bonds:
+      the bats most likely to save you when a night goes wrong. Faint lines are their friendships
+      with each other. Bonds fade −${BAT.decay.toFixed(2)} every night; grooming keeps them warm, and
+      groomed bats groom you back.${starv.length ? ` <strong class="wyd-warnink">A starving bat dies at
+      dusk unless somebody — maybe you — feeds it.</strong>`:""}</p>
+      ${G.lastAct ? `<p class="wyd-feedback">${G.lastAct}</p>`:""}</div>`;
+  }
+  const p = G.partners[G.selected];
+  const longCost = (G.event && G.event.type==="coldsnap") ? 1 : BAT.groomLong.cost;
+  const canQ = G.stamina>=BAT.groomQuick.cost && !p.groomed;
+  const canL = G.stamina>=longCost && !p.groomed;
+  const canShareBase = G.stamina>=1 && G.fedTonight && p.hungry && !p.shared;
+  const shareWhy = !G.fedTonight ? "you didn't feed tonight"
+    : !p.hungry || p.shared ? "not hungry"
+    : G.stamina<1 ? "no stamina left" : "reserve too low";
+  const em = eventMult(p, true), gm = eventMult(p, false);
+  const shareBtns = BAT.shares.map(s=>{
+    const ok = canShareBase && G.energy > s.blood + 0.4;
+    return `<button class="btnx ${s.key==="meal"?"btnx--solid":""} ${p.starving?"wyd-savebtn":""}" data-share="${s.key}" ${ok?"":"disabled"}>
+      ${p.starving ? "Save her: share" : "Share"} ${s.label} · 1 ⚡ −${s.blood} 🩸 <span class="sub">${ok? "bond +"+(s.gain*em).toFixed(2) : shareWhy}</span></button>`;
+  }).join("");
+  return `<div class="wyd-partner">
+    <h4>${esc(p.name)}</h4>
+    <div class="gl">Bond ${p.trust.toFixed(2)}</div>
+    <div class="wyd-bondbar"><b style="width:${(p.trust*100).toFixed(0)}%"></b></div>
+    <div class="wyd-ptags">
+      ${p.shared ? "" : p.starving ? `<span class="wyd-ptag hot">☠ starving — dies at dusk unfed</span>`
+        : p.hungry ? `<span class="wyd-ptag hot">begging (didn't feed)</span>` : `<span class="wyd-ptag">fed tonight</span>`}
+      ${p.fedYou ? `<span class="wyd-ptag hot">♥ once saved your life</span>`:""}
+      ${p.youSaved ? `<span class="wyd-ptag good">✚ you saved their life</span>`:""}
+      ${traitLine(p)}
+      ${p.groomed ? `<span class="wyd-ptag">groomed tonight</span>`:""}
+      ${p.shared ? `<span class="wyd-ptag">shared with tonight</span>`:""}
+    </div>
+    <div class="wyd-pacts">
+      <button class="btnx" id="wyd-groom-q" ${canQ?"":"disabled"}>Quick groom · ${BAT.groomQuick.cost} ⚡ <span class="sub">bond +${(BAT.groomQuick.gain*gm*(1-BAT.dimReturns*p.trust)).toFixed(2)} · they may groom back</span></button>
+      <button class="btnx" id="wyd-groom-l" ${canL?"":"disabled"}>Long groom · ${longCost} ⚡ <span class="sub">bond +${(BAT.groomLong.gain*gm*(1-BAT.dimReturns*p.trust)).toFixed(2)} · likely groomed back</span></button>
+      ${shareBtns}
+    </div>
+    ${G.lastAct ? `<p class="wyd-feedback">${G.lastAct}</p>`:""}
+  </div>`;
+}
+function renderRoost(){
+  const owed = G.partners.filter(p=>p.alive && p.hungry && !p.shared);
+  const starving = owed.filter(p=>p.starving);
+  const warn = starving.length
+    ? `<strong>${starving.map(p=>esc(p.name)).join(" and ")} ${starving.length>1?"are":"is"} starving.</strong>
+       A starving bat that no one feeds dies at dusk.${G.fedTonight ? " You fed tonight — you could be the one.":" You have no blood to give, but their other friends might."}`
+    : G.fedTonight && owed.length
+    ? `${owed.length} begging bat${owed.length>1?"s":""} will remember being refused (bond −${BAT.refuseCost.toFixed(2)}${owed.some(p=>p.fedYou)? ", −"+BAT.refuseOweCost.toFixed(2)+" for past donors":""}).`
+    : "";
+  const hyg = G.parasites ? `<strong>🕷 Mites!</strong> Get groomed to clear them.`
+    : G.hygiene < BAT.infestBelow ? `Your fur needs grooming (hygiene ${G.hygiene.toFixed(2)}); mite risk is climbing.` : "";
+  const eventBanner = G.event ? `<p class="wyd-story wyd-event">${G.event.text}</p>` : "";
+  scene(`<div class="wyd-round">🌅 Dawn after night ${G.night} of ${BAT.nights} · the roost</div>
+    <h3>Who do you invest in?</h3>
+    <p class="wyd-story">You have <strong>${G.stamina} ⚡ stamina</strong> before sleep${
+      G.energy <= 1 ? " (hunger has left you weak)" : ""}.
+    Groom to build bonds${G.fedTonight? "; share blood to feed a begging bat (you choose how much)":" (no sharing tonight; you didn't feed)"}. ${hyg}</p>
+    ${eventBanner}
+    <div class="wyd-roost">
+      <div>${netSvg()}</div>
+      <div>${partnerPanel()}
+        <div class="wyd-sleeprow"><button class="btnx wyd-clay" id="wyd-sleep">Sleep until dusk →</button>
+        <div class="wyd-sleepwarn">${warn}</div></div>
+      </div>
+    </div>`, "day");
+  $$("#wyd-scene .node[data-pid]").forEach(n=>{
+    const pick = ()=>{ G.selected = +n.dataset.pid; G.lastAct = ""; renderRoost(); };
+    n.addEventListener("click", pick);
+    n.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pick(); } });
+  });
+  const p = G.selected!==null ? G.partners[G.selected] : null;
+  const gq = $("#wyd-groom-q"), gl = $("#wyd-groom-l");
+  const longCost = (G.event && G.event.type==="coldsnap") ? 1 : BAT.groomLong.cost;
+  if(gq) gq.onclick = ()=>{
+    G.stamina -= BAT.groomQuick.cost; p.groomed = true;
+    const gain = BAT.groomQuick.gain * eventMult(p,false) * (1-BAT.dimReturns*p.trust);
+    p.trust = Math.min(1, p.trust + gain); G.score += BAT.pts.groomQ; G.ledger.grooms++;
+    if(!p.seen && p.trait==="plain") p.seen = true;
+    log(`Night ${G.night}: quick-groomed ${p.name}. Bond ${p.trust.toFixed(2)}. +${BAT.pts.groomQ}.`, "good");
+    G.lastAct = `You work through ${esc(p.name)}'s fur.` + reciprocate(p, BAT.groomQuick.recip + 0.55*p.trust);
+    G.fx = {pid: p.id, kind:"groom", n:1};
+    renderRoost();
+  };
+  if(gl) gl.onclick = ()=>{
+    G.stamina -= longCost; p.groomed = true;
+    const gain = BAT.groomLong.gain * eventMult(p,false) * (1-BAT.dimReturns*p.trust);
+    p.trust = Math.min(1, p.trust + gain); G.score += BAT.pts.groomL; G.ledger.grooms++;
+    if(!p.seen && p.trait==="plain") p.seen = true;
+    log(`Night ${G.night}: long-groomed ${p.name}. Bond ${p.trust.toFixed(2)}. +${BAT.pts.groomL}.`, "good");
+    G.lastAct = `A long, thorough grooming session with ${esc(p.name)}.` + reciprocate(p, BAT.groomLong.recip + 0.5*p.trust);
+    G.fx = {pid: p.id, kind:"groom", n:2};
+    renderRoost();
+  };
+  $$("#wyd-scene [data-share]").forEach(b=>b.onclick = ()=>{
+    const s = BAT.shares.find(x=>x.key===b.dataset.share);
+    const wasStarving = p.starving;
+    G.stamina--; p.shared = true; p.hungry = false;
+    G.energy = Math.max(0.3, G.energy - s.blood);
+    const gain = s.gain * eventMult(p,true);
+    p.trust = Math.min(1, p.trust + gain);
+    G.ledger.don++;
+    if(wasStarving){
+      p.starving = false; p.energy = 1; p.youSaved = true;
+      G.score += BAT.pts.save + s.ptsStarv; G.ledger.saves++;
+      log(`Night ${G.night}: SAVED ${p.name} from starving (${s.label}). +${BAT.pts.save + s.ptsStarv}.`, "good");
+      G.lastAct = `${esc(p.name)} feeds desperately from your mouth — ${s.label}, −${s.blood} 🩸.
+        <strong>You just saved a life.</strong> Bats remember that above all else.`;
+    } else {
+      p.energy = Math.min(BAT.partnerCap, p.energy + 0.5);
+      G.score += s.ptsHun;
+      log(`Night ${G.night}: shared ${s.label} with ${p.name}. Bond ${p.trust.toFixed(2)}. +${s.ptsHun}.`, "good");
+      G.lastAct = `${esc(p.name)} feeds from your mouth: ${s.label}, −${s.blood} 🩸. Bats remember generosity in proportion.`;
+    }
+    G.fx = {pid: p.id, kind:"share", n: s.key==="sip" ? 1 : s.key==="meal" ? 2 : 3};
+    renderRoost();
+  });
+  $("#wyd-sleep").onclick = sleep;
+  if(G.fx){ runFx(G.fx); G.fx = null; }
+}
+/* particle streams along a network edge (unchanged from v1) */
+function emitStream(pid, o){
+  const cx=200, cy=155, rx=150, ry=105;
+  const a = -Math.PI/2 + pid*(2*Math.PI/8);
+  const px = cx + rx*Math.cos(a), py = cy + ry*Math.sin(a);
+  const sx = o.reverse ? px : cx, sy = o.reverse ? py : cy;
+  const dx = o.reverse ? cx-px : px-cx, dy = o.reverse ? cy-py : py-cy;
+  const travel = o.travel || 1300;
+  let emitted = 0;
+  const start = ()=>{
+    const iv = setInterval(()=>{
+      const svg = document.querySelector("#wyd-scene .wyd-net");
+      if(!svg || emitted >= o.count){ clearInterval(iv); return; }
+      emitted++;
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx",sx); c.setAttribute("cy",sy); c.setAttribute("r",o.r);
+      c.setAttribute("fill",o.color); c.classList.add("wyd-fxdot");
+      c.style.transition = `transform ${travel}ms cubic-bezier(.25,.6,.35,1), opacity ${travel+150}ms ease`;
+      svg.appendChild(c);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        c.style.transform = `translate(${dx}px, ${dy}px)`;
+        c.style.opacity = "0.12";
+      }));
+      setTimeout(()=>c.remove(), travel + 250);
+    }, o.interval);
+  };
+  o.delay ? setTimeout(start, o.delay) : start();
+}
+function runFx(fx){
+  if(fx.kind === "groom"){
+    emitStream(fx.pid, {color:"var(--g-warm)", r:3.5,
+      count: fx.n===1 ? 13 : 26, interval:230, travel:1400});
+  } else {
+    emitStream(fx.pid, {color:"var(--g-accent)", r:3.5 + fx.n,
+      count: fx.n, interval:200, travel:1000});
+  }
+}
+
+/* ── sleep: refusals, background rescue, partner deaths, season end ── */
+function sleep(){
+  if(G.fedTonight){
+    G.partners.filter(p=>p.alive && p.hungry && !p.shared).forEach(p=>{
+      p.trust = Math.max(0.02, p.trust - (p.fedYou ? BAT.refuseOweCost : BAT.refuseCost));
+      log(`Night ${G.night}: refused ${p.name}. Bond ${p.trust.toFixed(2)}.`, "bad");
+    });
+  }
+  // starving bats you didn't feed: their own friends may save them — or not
+  const lost = [];
+  G.partners.forEach(p=>{
+    if(!p.alive || !p.starving || p.shared) return;
+    let rescued = false;
+    for(const q of G.partners){
+      if(q.id===p.id || !q.alive || !q.fed) continue;
+      if(roll() < Math.min(BAT.rescueCap, BAT.rescueBase + BAT.rescueSlope*G.pp[p.id][q.id])){
+        rescued = true;
+        log(`Night ${G.night}: ${q.name} fed ${p.name} — a near thing.`, "good");
+        break;
+      }
+    }
+    if(rescued){ p.energy = 1; p.starving = false; }
+    else {
+      p.alive = false; lost.push(p.name);
+      G.deaths.push(p.name); G.lastDeathNight = G.night;
+      log(`Night ${G.night}: ${p.name} starved to death. ☠`, "bad");
+    }
+  });
+  if(lost.length) G.deathsFresh = lost.join(" and ");
+  G.lastAct = ""; G.event = null;
+  G.score += BAT.pts.night;
+  if(G.night >= BAT.nights){ G.cause = "season"; batEnd(); return; }
+  duskPhase();
+}
+
+/* ── end of the run ── */
+function batEnd(){
+  let score = Math.round(G.score), verdict;
+  const alive = G.partners.filter(p=>p.alive);
+  const bonds = alive.reduce((a,p)=>a+p.trust,0);
+  const saved = G.partners.filter(p=>p.youSaved).map(p=>p.name);
+  const saviors = G.partners.filter(p=>p.fedYou).map(p=>p.name);
+  if(G.alive){
+    score += BAT.pts.endSurvive + Math.round(bonds*BAT.pts.endBond)
+           + (alive.length===8 ? BAT.pts.endRoost : 0);
+    const bits = [];
+    if(saved.length) bits.push(`you pulled ${saved.join(" and ")} back from the edge of starvation`);
+    if(saviors.length) bits.push(`${saviors.join(" and ")} once kept you alive`);
+    bits.push(alive.length===8
+      ? "every single bat made it through — a whole-roost bonus few runs ever see"
+      : G.deaths.length ? `the roost lost ${G.deaths.join(" and ")} along the way` : "");
+    verdict = `You survived all ${BAT.nights} nights, and as the wet season begins you move roosts
+      with the colony. Along the way ${bits.filter(Boolean).join("; ")}. Final average bond
+      ${(bonds/Math.max(1,alive.length)).toFixed(2)}. Real vampire bats survive the same way —
+      not by luck, but by portfolio.`;
+  } else {
+    verdict = `You starved on night ${G.night}${G.cond && G.cond.stormy ? ", with the storms overhead" : ""}.
+      ${saved.length ? `You saved ${saved.join(" and ")} before the end — the ledger keeps what you gave. ` : ""}Real
+      bats die exactly this way, usually the ones without strong giving and grooming histories.
+      Next run, invest earlier: bonds are the only insurance a vampire bat gets, and the storms
+      always come.`;
+  }
+  wydEnd({score, verdict, nights: G.night});
+}
+</script>

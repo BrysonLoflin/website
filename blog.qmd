@@ -1,0 +1,23 @@
+---
+pagetitle: "Field Notes"
+page-layout: full
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  categories: false
+  sort-ui: false
+  filter-ui: false
+  feed: true
+  fields: [date, title, description, categories, reading-time]
+---
+
+::: {.full-bleed}
+<section class="section section--purple halftone" style="padding-top:clamp(6rem,14vh,9rem); padding-bottom:clamp(2rem,5vh,3rem)">
+<div class="inner reveal">
+<p class="eyebrow">Field Notes</p>
+<h1 class="h-xl" style="max-width:18ch">Notes from the lab, the data, and the wild.</h1>
+<p class="lead measure" style="margin-top:1.4rem">Short posts on what I'm working on: research updates, notes from the lab, methods I'm figuring out, and the occasional photograph. New posts appear below.</p>
+</div>
+</section>
+:::

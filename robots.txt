@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://brysonloflin.github.io/sitemap.xml

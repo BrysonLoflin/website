@@ -1,0 +1,67 @@
+---
+pagetitle: "Photography"
+page-layout: full
+---
+
+::: {.full-bleed}
+<section class="section section--purple halftone" style="padding-top:clamp(6rem,14vh,9rem); padding-bottom:clamp(2.5rem,5vh,4rem)">
+<div class="inner reveal">
+<p class="eyebrow">Photography</p>
+<h1 class="h-xl" style="max-width:16ch">The wildlife I meet along the way.</h1>
+<p class="lead measure" style="margin-top:1.4rem">The sky-island canyons of southeastern Arizona, the lowland forests of Panamá, Florida scrub, North Carolina. Click any photograph for the species.</p>
+
+```{=html}
+<div class="gfilter" role="group" aria-label="Filter photographs by region">
+<button class="gf on" data-r="all">All</button>
+<button class="gf" data-r="Florida">Florida</button>
+<button class="gf" data-r="Arizona">Arizona</button>
+<button class="gf" data-r="Panamá">Panamá</button>
+<button class="gf" data-r="North Carolina">North Carolina</button>
+</div>
+<p class="gcount"><span id="gcount-n"></span> photographs · most recent first</p>
+```
+</div>
+</section>
+:::
+
+::: {.full-bleed}
+<section class="section section--black" style="padding-top:clamp(2rem,4vh,3rem)">
+<div class="inner reveal">
+
+{{< include assets/_gallery.html >}}
+
+<p class="muted reveal" style="font-size:.82rem; margin-top:2.4rem; text-align:center">
+    All photographs © Bryson Loflin.
+</p>
+</div>
+</section>
+:::
+
+```{=html}
+<script>
+(function () {
+  var grid = document.querySelector('.photo-grid');
+  var chips = document.querySelectorAll('.gfilter .gf');
+  var countEl = document.getElementById('gcount-n');
+  if (!grid || !chips.length) return;
+  var photos = Array.prototype.slice.call(grid.querySelectorAll('.photo'));
+  function apply(region) {
+    var n = 0;
+    photos.forEach(function (p) {
+      var loc = p.getAttribute('data-loc') || '';
+      var show = region === 'all' || loc.indexOf(region) !== -1;
+      p.style.display = show ? '' : 'none';
+      if (show) n++;
+    });
+    if (countEl) countEl.textContent = n;
+  }
+  chips.forEach(function (b) {
+    b.addEventListener('click', function () {
+      chips.forEach(function (x) { x.classList.toggle('on', x === b); });
+      apply(b.getAttribute('data-r'));
+    });
+  });
+  apply('all');
+})();
+</script>
+```

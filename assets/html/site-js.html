@@ -1,0 +1,712 @@
+<script>
+(function () {
+  // ---- Measure the real navbar height so the hero can fill exactly one
+  // screen (CSS assumes 57px only as a fallback) --------------------------
+  function setNavH() {
+    var nav = document.querySelector('.navbar');
+    if (nav) document.documentElement.style.setProperty('--navh', nav.offsetHeight + 'px');
+  }
+  setNavH();
+  window.addEventListener('load', setNavH);
+  window.addEventListener('resize', setNavH);
+
+  // ---- Scroll reveal ---------------------------------------------------
+  var reveals = document.querySelectorAll('.reveal');
+  if (reveals.length && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  // ---- Lightbox for the photo gallery ---------------------------------
+  var photos = Array.prototype.slice.call(document.querySelectorAll('.photo[data-full]'));
+  if (photos.length) {
+    var lb = document.createElement('div');
+    lb.className = 'lb';
+    lb.innerHTML =
+      '<button class="lb__x" aria-label="Close">&times;</button>' +
+      '<button class="lb__nav lb__prev" aria-label="Previous">&#8249;</button>' +
+      '<button class="lb__nav lb__next" aria-label="Next">&#8250;</button>' +
+      '<img alt="">' +
+      '<div class="lb__cap"></div>';
+    document.body.appendChild(lb);
+    var lbImg = lb.querySelector('img');
+    var lbCap = lb.querySelector('.lb__cap');
+    var idx = 0;
+
+    function show(i) {
+      idx = (i + photos.length) % photos.length;
+      var f = photos[idx];
+      lbImg.src = f.getAttribute('data-full');
+      var common = f.getAttribute('data-common') || '';
+      var sci = f.getAttribute('data-sci') || '';
+      var loc = f.getAttribute('data-loc') || '';
+      lbImg.alt = common + (sci ? ' (' + sci + ')' : '');
+      lbCap.innerHTML =
+        '<span class="lc-common">' + common + '</span>' +
+        (sci ? '<span class="lc-sci">' + sci + '</span>' : '') +
+        (loc ? '<span class="lc-loc">' + loc + '</span>' : '');
+    }
+    function open(i) { show(i); lb.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function close() { lb.classList.remove('open'); document.body.style.overflow = ''; }
+
+    photos.forEach(function (p, i) {
+      p.addEventListener('click', function () { open(i); });
+      p.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); }
+      });
+    });
+    lb.querySelector('.lb__x').addEventListener('click', close);
+    lb.querySelector('.lb__next').addEventListener('click', function (e) { e.stopPropagation(); show(idx + 1); });
+    lb.querySelector('.lb__prev').addEventListener('click', function (e) { e.stopPropagation(); show(idx - 1); });
+    lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') show(idx + 1);
+      else if (e.key === 'ArrowLeft') show(idx - 1);
+    });
+  }
+
+  // ---- Grid masonry: keep photos in reading order (across, then down) ----
+  // The grid places tiles left-to-right, top-to-bottom; we size each tile's
+  // row-span from its aspect ratio so heights pack like masonry.
+  var pgrid = document.querySelector('.photo-grid');
+  if (pgrid) {
+    var pitems = Array.prototype.slice.call(pgrid.querySelectorAll('.photo'));
+    var place = function () {
+      var cs = getComputedStyle(pgrid);
+      var rowH = parseFloat(cs.gridAutoRows) || 10;
+      var gap = parseFloat(cs.rowGap) || 0;
+      pitems.forEach(function (it) {
+        var ar = parseFloat(it.getAttribute('data-ar')) || 1.5;
+        var h = it.getBoundingClientRect().width / ar + 2;   // +2 for the 1px border
+        it.style.gridRowEnd = 'span ' + Math.max(1, Math.round((h + gap) / (rowH + gap)));
+      });
+    };
+    place();
+    window.addEventListener('load', place);
+    var pt;
+    window.addEventListener('resize', function () { clearTimeout(pt); pt = setTimeout(place, 120); });
+  }
+})();
+</script>
+
+<script>
+/* Live social-network hero: builds a clustered node/edge graph in #hero-net
+   and periodically sends a "food-sharing" pulse along an edge (a clay dot
+   travels node -> node, the edge lights up, the receiver rings). */
+(function () {
+  // #hero-net (home): random layout, animated food-sharing pulses.
+  // #research-net (research): SEEDED layout — identical on every visit, no
+  // animation — where bond strength decays with depth: tight solid edges at
+  // the top, thin then dashed below, disconnected nodes at the bottom.
+  // The research hero has two concepts; ?net=decay shows the seeded decay
+  // network, the default is the falling-dyad animation (runDyads below).
+  var host = document.getElementById('hero-net') || document.getElementById('research-net');
+  if (!host) return;
+  var mode = host.id === 'research-net'
+    ? (/[?&]net=decay/.test(location.search) ? 'decay' : 'dyads') : 'home';
+  var decay = mode === 'decay';
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Falling dyads: on each side of the title, two bats drift down the page.
+     On the way they converge, a bond fades in and strengthens, they orbit
+     each other while close, then the bond thins, dashes, breaks, and they
+     drift apart — the full arc of a cooperative relationship in one pass.
+     Mirrored left/right; loops with a fade; pauses while the tab is hidden. */
+  function runDyads() {
+    var cap = document.querySelector('.hero__cap');
+    if (cap) cap.textContent = 'strangers, partners, strangers again — green pulses are grooming, crimson a shared meal';
+    var GROOM = '#96b57c', SHARE = '#c4525c';   // matches the game: green groom, crimson blood
+    var CYCLE = 9500, raf = null, TH = 0, last = null, prevT = 0;
+    var pulse = null, nextPulseAt = 0;
+    var svg, W, H, sides;
+
+    function ss(a, b, x) {           // smoothstep between phases a..b of the cycle
+      x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x);
+    }
+    function mkCircle(g, r, cls) {
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r', r); c.setAttribute('class', cls); g.appendChild(c); return c;
+    }
+    function setup() {
+      host.innerHTML = ''; sides = [];
+      W = host.clientWidth || 1200; H = host.clientHeight || 600;
+      if (W < 760) return;                       // no room to flank the title on phones
+      svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      host.appendChild(svg);
+      var cx0 = Math.max(170, W * 0.145);
+      // narrower views keep only the right-side pair, for a more compact hero
+      var centers = W < 1180 ? [W - cx0] : [cx0, W - cx0];
+      centers.forEach(function (cx) {
+        var g = document.createElementNS(NS, 'g');
+        var ln = document.createElementNS(NS, 'line');
+        ln.setAttribute('class', 'hero-net-edge');
+        ln.style.transition = 'none';        // rAF drives every property; the class's
+        ln.style.strokeOpacity = 0;          // CSS transition only causes wake glitches
+        g.appendChild(ln);
+        var pu = mkCircle(g, 6.5, '');       // the traveling groom/share pulse
+        pu.style.opacity = 0;
+        sides.push({ g: g, cx: cx, line: ln, pulse: pu,
+                     a: mkCircle(g, 15, 'hero-net-node'),
+                     b: mkCircle(g, 13, 'hero-net-node clay') });
+        svg.appendChild(g);
+      });
+    }
+
+    function drawAt(t, dt, now) {
+      // separation: far -> close -> far. Closest approach is 120px between
+      // centers — a clear ~3-node-width stretch of bond between the two.
+      var d = 250 - 130 * ss(0.04, 0.30, t) + 136 * ss(0.60, 0.90, t);
+      var str = ss(0.20, 0.34, t) * (1 - ss(0.56, 0.78, t));
+      var closeness = Math.pow(Math.max(0, Math.min(1, (250 - d) / 130)), 1.5);
+      if (t < prevT - 0.5) TH = 0;               // respawn at the top (behind the fade):
+      prevT = t;                                 // start horizontal again
+      TH += dt * 1.9 * closeness;                // orbit only while close, planet-style
+      var y = 56 + t * (H - 116);
+      // the pair separates along whatever angle the orbit froze at — no
+      // snapping back to a fixed left/right, so they never cross awkwardly
+      var ox = Math.cos(TH) * d / 2;
+      var oy = Math.sin(TH) * d / 2 * 0.55;
+      var fade = ss(0, 0.035, t) * (1 - ss(0.96, 1, t));
+      var dashed = t > 0.5 && str < 0.55;
+
+      // groom/food-sharing pulses while the bond is strong
+      if (now !== undefined) {
+        if (!pulse && str > 0.65 && now >= nextPulseAt)
+          pulse = { t0: now, dur: 520, dir: Math.random() < 0.5 ? 0 : 1,
+                    color: Math.random() < 0.62 ? GROOM : SHARE };
+        if (pulse && ((now - pulse.t0) / pulse.dur >= 1 || str < 0.6)) {
+          pulse = null; nextPulseAt = now + 420 + Math.random() * 700;
+        }
+      }
+      var pk = null;
+      if (pulse) {
+        var pp = (now - pulse.t0) / pulse.dur;
+        pk = pp < .5 ? 2 * pp * pp : 1 - Math.pow(-2 * pp + 2, 2) / 2;   // ease in-out
+        if (pulse.dir) pk = 1 - pk;                                      // b -> a
+      }
+
+      sides.forEach(function (s) {
+        var m = s.cx < W / 2 ? 1 : -1;           // mirror the x-offsets on the right
+        var ax = s.cx - ox * m, ay = y - oy, bx = s.cx + ox * m, by = y + oy;
+        s.a.setAttribute('cx', ax.toFixed(1)); s.a.setAttribute('cy', ay.toFixed(1));
+        s.b.setAttribute('cx', bx.toFixed(1)); s.b.setAttribute('cy', by.toFixed(1));
+        s.line.setAttribute('x1', ax.toFixed(1)); s.line.setAttribute('y1', ay.toFixed(1));
+        s.line.setAttribute('x2', bx.toFixed(1)); s.line.setAttribute('y2', by.toFixed(1));
+        s.line.setAttribute('stroke-width', (0.8 + 3.0 * str).toFixed(2));
+        s.line.style.strokeOpacity = str <= 0.02 ? 0 : (0.15 + 0.6 * str).toFixed(2);
+        s.line.setAttribute('stroke-dasharray', dashed ? (str < 0.2 ? '2 9' : '4 7') : 'none');
+        if (pk !== null) {
+          s.pulse.setAttribute('cx', (ax + (bx - ax) * pk).toFixed(1));
+          s.pulse.setAttribute('cy', (ay + (by - ay) * pk).toFixed(1));
+          s.pulse.setAttribute('fill', pulse.color);
+          s.pulse.style.opacity = .95;
+        } else s.pulse.style.opacity = 0;
+        s.g.style.opacity = fade.toFixed(2);
+      });
+    }
+
+    function frame(now) {
+      raf = requestAnimationFrame(frame);
+      if (document.hidden || !sides.length) { last = null; return; }
+      if (last === null) last = now;
+      var dt = Math.min((now - last) / 1000, 0.1); last = now;
+      drawAt((now % CYCLE) / CYCLE, dt, now);
+    }
+
+    setup();
+    if (!sides.length) return;
+    if (reduce) { drawAt(0.45, 0); return; }     // still frame: bonded pair, mid-fall
+    raf = requestAnimationFrame(frame);
+    var rt2;
+    window.addEventListener('resize', function () {
+      clearTimeout(rt2);
+      rt2 = setTimeout(function () { setup(); if (reduce && sides.length) drawAt(0.45, 0); }, 300);
+    });
+  }
+  if (mode === 'dyads') { runDyads(); return; }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function build() {
+    var rnd = decay ? mulberry32(20260829) : Math.random;
+    host.innerHTML = '';
+    var W = host.clientWidth || 560, H = host.clientHeight || 500;
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var gE = document.createElementNS(NS, 'g'), gN = document.createElementNS(NS, 'g');
+    svg.appendChild(gE); svg.appendChild(gN); host.appendChild(svg);
+
+    // when the network is the hero's background layer, carve a clear zone
+    // around the title block — one tight box PER element (eyebrow, h1, lead,
+    // links), so the colony steps down around the ragged shape of the text
+    // instead of skirting one big rectangle
+    var avoid = [];
+    if (host.classList.contains('hero-net-bg')) {
+      var hero = host.closest('.hero');
+      var hostR = host.getBoundingClientRect();
+      if (hero) Array.prototype.forEach.call(hero.querySelectorAll('.hero__copy > *, .hero__cap'), function (el) {
+        var r = el.getBoundingClientRect(), m = 26;
+        if (!r.width || !r.height) return;
+        avoid.push({ x1: r.left - hostR.left - m, y1: r.top - hostR.top - m,
+                     x2: r.right - hostR.left + m, y2: r.bottom - hostR.top + m });
+      });
+    }
+    function inAvoid(x, y) {
+      for (var a = 0; a < avoid.length; a++)
+        if (x > avoid[a].x1 && x < avoid[a].x2 && y > avoid[a].y1 && y < avoid[a].y2) return true;
+      return false;
+    }
+    function crossesAvoid(x1, y1, x2, y2) {   // sample a few points along the edge
+      return inAvoid(x1 + (x2 - x1) * .25, y1 + (y2 - y1) * .25) ||
+             inAvoid(x1 + (x2 - x1) * .5,  y1 + (y2 - y1) * .5)  ||
+             inAvoid(x1 + (x2 - x1) * .75, y1 + (y2 - y1) * .75);
+    }
+
+    // even, well-connected spread via a jittered grid (no tight clusters);
+    // density scales with the canvas so the full-bleed hero doesn't go sparse
+    var target = avoid.length ? Math.min(84, Math.max(30, Math.round(W * H / 14000))) : 34;
+    var aspect = W / H;
+    var cols = Math.max(3, Math.round(Math.sqrt(target * aspect)));
+    var rows = Math.max(3, Math.ceil(target / cols));
+    var nodes = [];
+    for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+      if (rnd() < 0.08) continue;                                 // drop a few cells for variety
+      var jx = (c + 0.5 + (rnd() - 0.5) * 0.74) / cols;           // jitter within the cell
+      var jy = (r + 0.5 + (rnd() - 0.5) * 0.74) / rows;
+      var px = Math.min(Math.max(jx, .05), .95) * W, py = Math.min(Math.max(jy, .06), .94) * H;
+      if (inAvoid(px, py)) continue;                              // keep the title zone clear
+      nodes.push({ x: px, y: py, r: 6 + rnd() * 4 });
+    }
+    var N = nodes.length;
+
+    // edges: link each node to its 2-3 nearest neighbours + a few longer bridges;
+    // no edge may cut through the title zone. In decay mode the edge's fate
+    // depends on how deep it sits: strong up top, frail below, mostly gone
+    // at the bottom.
+    var edges = [], seen = {};
+    function addEdge(i, j) {
+      if (i === j) return; var key = i < j ? i+'-'+j : j+'-'+i; if (seen[key]) return;
+      if (crossesAvoid(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y)) return;
+      var cls = '';
+      if (decay) {
+        var yF = (nodes[i].y + nodes[j].y) / 2 / H;
+        if (yF < 0.40)      cls = ' e-strong';
+        else if (yF < 0.62) cls = '';
+        else if (yF < 0.80) { if (rnd() > 0.60) return; cls = ' e-frail'; }
+        else                { if (rnd() > 0.16) return; cls = ' e-lost'; }
+      }
+      seen[key] = 1; edges.push({ i: i, j: j, cls: cls });
+    }
+    for (var i = 0; i < N; i++) {
+      var nb = [];
+      for (var j = 0; j < N; j++) if (j !== i) nb.push([Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y), j]);
+      nb.sort(function (a, b) { return a[0] - b[0]; });
+      var k = 3 + Math.floor(rnd() * 2);
+      if (decay && nodes[i].y / H < 0.40) k += 1;                 // the top is tight-knit
+      for (var m = 0; m < k && m < nb.length; m++) addEdge(i, nb[m][1]);
+    }
+    var extra = Math.round(N * 0.6);
+    for (var x = 0; x < extra; x++) {
+      var p = Math.floor(rnd() * N), q = Math.floor(rnd() * N);
+      if (Math.hypot(nodes[p].x - nodes[q].x, nodes[p].y - nodes[q].y) < W * 0.62) addEdge(p, q);
+    }
+
+    // draw edges + nodes
+    edges.forEach(function (e) {
+      var ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', nodes[e.i].x.toFixed(1)); ln.setAttribute('y1', nodes[e.i].y.toFixed(1));
+      ln.setAttribute('x2', nodes[e.j].x.toFixed(1)); ln.setAttribute('y2', nodes[e.j].y.toFixed(1));
+      ln.setAttribute('class', 'hero-net-edge' + e.cls); gE.appendChild(ln); e.el = ln;
+    });
+    nodes.forEach(function (nd, idx) {
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', nd.x.toFixed(1)); c.setAttribute('cy', nd.y.toFixed(1)); c.setAttribute('r', nd.r.toFixed(1));
+      var cls = 'hero-net-node' + (idx % 7 === 0 ? ' clay' : '');
+      if (decay && nd.y / H > 0.78) cls += ' dim';                // the isolated drift apart
+      c.setAttribute('class', cls); gN.appendChild(c); nd.el = c;
+    });
+
+    if (decay || reduce || !edges.length) return;   // research net is still: no pulses
+
+    function ease(k) { return k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+    function pulse() {
+      var e = edges[Math.floor(Math.random() * edges.length)];
+      var from = Math.random() < .5 ? nodes[e.i] : nodes[e.j];
+      var to = from === nodes[e.i] ? nodes[e.j] : nodes[e.i];
+      e.el.classList.add('lit');
+      var dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('r', '4.5'); dot.setAttribute('class', 'hero-net-pulse');
+      dot.setAttribute('cx', from.x); dot.setAttribute('cy', from.y); gN.appendChild(dot);
+      var t0 = performance.now(), dur = 850;
+      (function step(t) {
+        var k = Math.min((t - t0) / dur, 1), e2 = ease(k);
+        dot.setAttribute('cx', (from.x + (to.x - from.x) * e2).toFixed(1));
+        dot.setAttribute('cy', (from.y + (to.y - from.y) * e2).toFixed(1));
+        if (k < 1) requestAnimationFrame(step);
+        else {
+          gN.removeChild(dot);
+          setTimeout(function () { e.el.classList.remove('lit'); }, 260);
+          var ring = document.createElementNS(NS, 'circle');
+          ring.setAttribute('cx', to.x); ring.setAttribute('cy', to.y); ring.setAttribute('r', (to.r + 2).toFixed(1));
+          ring.setAttribute('class', 'hero-net-ring'); gN.appendChild(ring);
+          requestAnimationFrame(function () { ring.style.transform = 'scale(2.6)'; ring.style.opacity = '0'; });
+          setTimeout(function () { if (ring.parentNode) ring.parentNode.removeChild(ring); }, 650);
+        }
+      })(t0);
+    }
+    function loop() {
+      if (document.hidden) return;          // don't queue shares while the tab is backgrounded
+      pulse();
+      if (Math.random() < .25) setTimeout(pulse, 180);
+      heroLoopT = setTimeout(loop, 650 + Math.random() * 1200);
+    }
+    clearTimeout(heroLoopT);
+    heroLoopT = setTimeout(loop, 700);
+    heroResume = loop;                       // restart the loop when the tab becomes visible again
+  }
+
+  var heroLoopT = null, heroResume = null;
+  build();
+  // rebuild once webfonts have settled so the title's no-node zone is measured
+  // against the real text box, not the fallback font's
+  window.addEventListener('load', function () { setTimeout(build, 60); }, { once: true });
+  var rt;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(build, 300); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && heroResume) { clearTimeout(heroLoopT); heroLoopT = setTimeout(heroResume, 300); }
+  });
+})();
+</script>
+
+<script>
+/* Dyad animation (research / interdependence): two pairs share food reciprocally,
+   then the partner defects. The unrelated focal bat WITHDRAWS (bond weakens);
+   the kin focal bat KEEPS GIVING (interdependence buffers the response). */
+(function () {
+  var vizN = document.getElementById('dyad-nonkin');
+  var vizK = document.getElementById('dyad-kin');
+  if (!vizN || !vizK) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function ease(k) { return k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+
+  function build(host) {
+    host.innerHTML = '';
+    var W = 320, H = 150, ax = 78, bx = 242, y = 70, r = 18;
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('class', 'dyad-svg');
+    var edge = document.createElementNS(NS, 'line');
+    edge.setAttribute('x1', ax); edge.setAttribute('y1', y);
+    edge.setAttribute('x2', bx); edge.setAttribute('y2', y);
+    edge.setAttribute('class', 'dyad-edge'); svg.appendChild(edge);
+    function node(cx) {
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', cx); c.setAttribute('cy', y); c.setAttribute('r', r);
+      c.setAttribute('class', 'dyad-node'); svg.appendChild(c); return c;
+    }
+    var nA = node(ax), nB = node(bx);
+    function label(cx, txt) {
+      var t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', cx); t.setAttribute('y', y + r + 20);
+      t.setAttribute('class', 'dyad-node-label'); t.textContent = txt; svg.appendChild(t);
+    }
+    label(ax, 'focal'); label(bx, 'partner');
+    host.appendChild(svg);
+    return { svg: svg, edge: edge, nA: nA, nB: nB, ax: ax, bx: bx, y: y, r: r };
+  }
+
+  function ring(d, cx, cy) {
+    var rg = document.createElementNS(NS, 'circle');
+    rg.setAttribute('cx', cx); rg.setAttribute('cy', cy); rg.setAttribute('r', d.r + 3);
+    rg.setAttribute('class', 'dyad-ring'); d.svg.appendChild(rg);
+    requestAnimationFrame(function () { rg.style.transform = 'scale(1.9)'; rg.style.opacity = '0'; });
+    setTimeout(function () { if (rg.parentNode) rg.parentNode.removeChild(rg); }, 650);
+  }
+
+  function share(d, dir) {                       // dir: 'AB' (focal gives) or 'BA' (partner gives)
+    var fx = dir === 'AB' ? d.ax : d.bx, tx = dir === 'AB' ? d.bx : d.ax;
+    d.edge.classList.add('is-lit');
+    var dot = document.createElementNS(NS, 'circle');
+    dot.setAttribute('r', '6'); dot.setAttribute('class', 'dyad-pulse');
+    dot.setAttribute('cx', fx); dot.setAttribute('cy', d.y); d.svg.appendChild(dot);
+    var t0 = performance.now(), dur = 780;
+    (function step(t) {
+      var k = Math.min((t - t0) / dur, 1);
+      dot.setAttribute('cx', (fx + (tx - fx) * ease(k)).toFixed(1));
+      if (k < 1) requestAnimationFrame(step);
+      else {
+        if (dot.parentNode) dot.parentNode.removeChild(dot);
+        setTimeout(function () { d.edge.classList.remove('is-lit'); }, 220);
+        ring(d, tx, d.y);
+      }
+    })(t0);
+  }
+
+  function defect(d) {                           // partner refuses to share: red flash + X
+    d.nB.classList.add('is-defect');
+    d.edge.classList.remove('is-lit'); d.edge.classList.add('is-warn');
+    var g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'dyad-defect-x');
+    [[-7, -7, 7, 7], [-7, 7, 7, -7]].forEach(function (c) {
+      var ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', d.bx + c[0]); ln.setAttribute('y1', d.y + c[1]);
+      ln.setAttribute('x2', d.bx + c[2]); ln.setAttribute('y2', d.y + c[3]);
+      g.appendChild(ln);
+    });
+    d.svg.appendChild(g);
+    setTimeout(function () {
+      if (g.parentNode) g.parentNode.removeChild(g);
+      d.nB.classList.remove('is-defect');
+      d.edge.classList.remove('is-warn');
+    }, 1500);
+  }
+
+  function reset(d) {
+    d.edge.setAttribute('class', 'dyad-edge');
+    d.nA.setAttribute('class', 'dyad-node');
+    d.nB.setAttribute('class', 'dyad-node');
+    Array.prototype.slice.call(d.svg.querySelectorAll('.dyad-pulse,.dyad-ring,.dyad-defect-x'))
+      .forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+  }
+
+  function status(id, txt, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt; el.className = 'dyad__status' + (cls ? ' ' + cls : '');
+  }
+
+  var dN = build(vizN), dK = build(vizK);
+
+  if (reduce) {                                  // static end-state, no motion
+    dN.edge.classList.add('is-weak'); status('status-nonkin', 'Withdraws after defection', 'is-withdraw');
+    dK.edge.classList.add('is-strong'); status('status-kin', 'Keeps giving after defection', 'is-hold');
+    return;
+  }
+
+  var timers = [], running = false, onScreen = false;
+  function later(fn, ms) { var id = setTimeout(fn, ms); timers.push(id); return id; }
+  function clearAll() { timers.forEach(clearTimeout); timers = []; }
+
+  function cycle() {
+    reset(dN); reset(dK);
+    status('status-nonkin', 'Reciprocal food sharing');
+    status('status-kin', 'Reciprocal food sharing');
+
+    var seq = ['AB', 'BA', 'AB', 'BA'], step = 950, t = 350;
+    seq.forEach(function (dir, i) {
+      later(function () { share(dN, dir); share(dK, dir); }, t + i * step);
+    });
+
+    var tDef = t + seq.length * step + 200;      // ~4.35s: partner defects in both
+    later(function () {
+      status('status-nonkin', 'Partner defects', 'is-defect');
+      status('status-kin', 'Partner defects', 'is-defect');
+      defect(dN); defect(dK);
+    }, tDef);
+
+    var tResp = tDef + 1900;                      // responses diverge
+    later(function () {
+      status('status-nonkin', 'Focal bat withdraws', 'is-withdraw');
+      dN.edge.classList.add('is-weak');
+      status('status-kin', 'Focal bat keeps giving', 'is-hold');
+      dK.edge.classList.add('is-strong');
+      ['AB', 'AB', 'BA'].forEach(function (dir, i) {   // kin: focal keeps giving, partner reconciles
+        later(function () { share(dK, dir); }, i * 950);
+      });
+    }, tResp);
+
+    var tEnd = tResp + 3600;                       // hold, then loop
+    later(function () { if (running) cycle(); }, tEnd);
+  }
+
+  // run only when the scene is on screen AND the tab is visible, so shares
+  // don't queue up in the background and fire all at once on return
+  function start() { if (running) return; running = true; cycle(); }
+  function stop() { running = false; clearAll(); }
+  function update() { if (onScreen && !document.hidden) start(); else stop(); }
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { onScreen = e.isIntersecting; });
+      update();
+    }, { threshold: 0.25 });
+    io.observe(vizN);
+  } else { onScreen = true; update(); }
+  document.addEventListener('visibilitychange', update);
+})();
+</script>
+
+<script>
+/* Partner-choice animation (research project 03): two strangers join a small
+   colony of three. Residents test both with grooming; one newcomer gives back,
+   the other never does. Investment follows help — the helper is woven into the
+   network, the defector's edges thin, dash, and disappear. */
+(function () {
+  var host = document.getElementById('choice-viz');
+  if (!host) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var GROOM = '#96b57c', SHARE = '#c4525c';
+
+  var W = 560, H = 250, r = 15;
+  var R = [{x:150,y:58},{x:95,y:178},{x:230,y:122}];   // the resident triangle
+  var HP = {x:420,y:66}, UP = {x:462,y:192};           // helpful / unhelpful newcomers
+  var svg, gH, gU, dynEdges = {}, nodes = {};
+
+  function line(x1,y1,x2,y2,cls,op,w){
+    var l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+    l.setAttribute('class',cls); l.style.transition='none';
+    if(op!==undefined) l.style.strokeOpacity=op;
+    if(w!==undefined) l.setAttribute('stroke-width',w);
+    svg.appendChild(l); return l;
+  }
+  function circle(g,x,y,rad,cls){
+    var c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',rad);
+    c.setAttribute('class',cls); (g||svg).appendChild(c); return c;
+  }
+
+  function build(){
+    host.innerHTML='';
+    svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    svg.setAttribute('class','dyad-svg');
+    host.appendChild(svg);
+    // resident bonds: established, steady
+    line(R[0].x,R[0].y,R[1].x,R[1].y,'dyad-edge',.6,4);
+    line(R[1].x,R[1].y,R[2].x,R[2].y,'dyad-edge',.6,4);
+    line(R[0].x,R[0].y,R[2].x,R[2].y,'dyad-edge',.6,4);
+    // dynamic edges to the newcomers (hidden until the testing phase)
+    dynEdges.h1=line(R[0].x,R[0].y,HP.x,HP.y,'dyad-edge',0,2);
+    dynEdges.h3=line(R[2].x,R[2].y,HP.x,HP.y,'dyad-edge',0,2);
+    dynEdges.u2=line(R[1].x,R[1].y,UP.x,UP.y,'dyad-edge',0,2);
+    dynEdges.u3=line(R[2].x,R[2].y,UP.x,UP.y,'dyad-edge',0,2);
+    R.forEach(function(p){ circle(null,p.x,p.y,r,'dyad-node'); });
+    gH=document.createElementNS(NS,'g'); gU=document.createElementNS(NS,'g');
+    svg.appendChild(gH); svg.appendChild(gU);
+    [gH,gU].forEach(function(g){ g.style.transition='transform .9s ease, opacity .9s ease'; });
+    nodes.h=circle(gH,HP.x,HP.y,r,'dyad-node');
+    nodes.u=circle(gU,UP.x,UP.y,r,'dyad-node');
+  }
+
+  function pulse(a,b,color){
+    var dot=circle(null,a.x,a.y,6,'dyad-pulse');
+    dot.setAttribute('fill',color);
+    dot.style.filter='drop-shadow(0 0 4px '+color+'88)';
+    var t0=performance.now(),dur=720;
+    (function step(t){
+      var k=Math.min((t-t0)/dur,1);
+      var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      dot.setAttribute('cx',(a.x+(b.x-a.x)*e).toFixed(1));
+      dot.setAttribute('cy',(a.y+(b.y-a.y)*e).toFixed(1));
+      if(k<1) requestAnimationFrame(step);
+      else if(dot.parentNode) dot.parentNode.removeChild(dot);
+    })(t0);
+  }
+
+  function status(txt){
+    var el=document.getElementById('status-choice');
+    if(el) el.textContent=txt;
+  }
+  function edgeState(l,cls,op,w){
+    l.setAttribute('class','dyad-edge'+(cls?' '+cls:''));
+    l.style.transition='stroke-opacity .8s ease, stroke-width .8s ease';
+    l.style.strokeOpacity=op; l.setAttribute('stroke-width',w);
+  }
+
+  function endState(){
+    gH.style.transform='none'; gU.style.transform='none';
+    gH.style.opacity=1; gU.style.opacity=1;
+    edgeState(dynEdges.h1,'is-strong',.85,5); edgeState(dynEdges.h3,'is-strong',.85,5);
+    edgeState(dynEdges.u2,'is-weak',0,2); edgeState(dynEdges.u3,'is-weak',0,2);
+    nodes.u.style.fillOpacity=.35;
+    status('Investment follows help: the defector is left out');
+  }
+
+  var timers=[], running=false, onScreen=false;
+  function later(fn,ms){ timers.push(setTimeout(fn,ms)); }
+  function clearAll(){ timers.forEach(clearTimeout); timers=[]; }
+
+  function cycle(){
+    // reset: newcomers offstage, dynamic edges hidden
+    gH.style.transition='none'; gU.style.transition='none';
+    gH.style.transform='translate(80px,0)'; gU.style.transform='translate(80px,0)';
+    gH.style.opacity=0; gU.style.opacity=0;
+    nodes.u.style.fillOpacity=1;
+    Object.keys(dynEdges).forEach(function(k){ edgeState(dynEdges[k],'',0,2); dynEdges[k].style.transition='none'; });
+    status('Two strangers join the colony');
+    later(function(){
+      [gH,gU].forEach(function(g){ g.style.transition='transform .9s ease, opacity .9s ease'; });
+      gH.style.transform='none'; gU.style.transform='none';
+      gH.style.opacity=1; gU.style.opacity=1;
+    },400);
+    later(function(){
+      status('The residents test both newcomers with grooming');
+      Object.keys(dynEdges).forEach(function(k){ edgeState(dynEdges[k],'',.25,2); });
+    },1800);
+    later(function(){ pulse(R[0],HP,GROOM); },2000);
+    later(function(){ pulse(R[1],UP,GROOM); },2600);
+    later(function(){ pulse(R[2],HP,GROOM); },3200);
+    later(function(){ pulse(R[2],UP,GROOM); },3800);
+    later(function(){ status('One gives back, one doesn’t'); },5000);
+    later(function(){ pulse(HP,R[0],GROOM); },5200);
+    later(function(){ pulse(HP,R[2],SHARE); },5900);
+    later(function(){ pulse(R[0],HP,GROOM); },6600);
+    later(function(){
+      status('Help flows back to the helper');
+      edgeState(dynEdges.h1,'is-strong',.85,5); edgeState(dynEdges.h3,'is-strong',.85,5);
+      edgeState(dynEdges.u2,'is-weak',.25,2); edgeState(dynEdges.u3,'is-weak',.25,2);
+    },7800);
+    later(function(){ pulse(HP,R[0],SHARE); },8400);
+    later(function(){ pulse(R[2],HP,GROOM); },9100);
+    later(function(){
+      edgeState(dynEdges.u2,'is-weak',0,2); edgeState(dynEdges.u3,'is-weak',0,2);
+      nodes.u.style.transition='fill-opacity .9s ease';
+      nodes.u.style.fillOpacity=.35;
+      status('Investment follows help: the defector is left out');
+    },10600);
+    later(function(){                       // both eventually move on — full loop
+      status('Night falls again, and the bats move on');
+      edgeState(dynEdges.h1,'is-strong',0,5); edgeState(dynEdges.h3,'is-strong',0,5);
+      gH.style.transform='translate(90px,-14px)'; gU.style.transform='translate(90px,18px)';
+      gH.style.opacity=0; gU.style.opacity=0;
+    },13400);
+    later(function(){ if(running) cycle(); },15400);
+  }
+
+  build();
+  if (reduce){ endState(); return; }
+
+  function start(){ if(running) return; running=true; cycle(); }
+  function stop(){ running=false; clearAll(); }
+  function update(){ if(onScreen && !document.hidden) start(); else stop(); }
+  if ('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ onScreen=e.isIntersecting; });
+      update();
+    },{threshold:0.25});
+    io.observe(host);
+  } else { onScreen=true; update(); }
+  document.addEventListener('visibilitychange', update);
+})();
+</script>

@@ -1,0 +1,197 @@
+---
+pagetitle: "You are a honeybee worker"
+description: "A life-allocation game with real odds from the hive: nurse safely, forage dangerously, or gamble your eggs past the police."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-bee">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play.html">← All games</a></p>
+<p class="g-kicker">A whole life · real odds from the hive</p>
+<h1>You are a worker honeybee.</h1>
+<p class="g-lede">You will live <strong>about a month</strong>. Spend it nursing the queen's
+brood in safety, or foraging: glorious for the colony, and the job that kills most workers.
+Or gamble: sneak your own eggs into the comb, past the <strong>police that eat 98% of
+them</strong>. Your genes ride on the colony either way. Spend yourself well.</p>
+<div class="g-cta">
+<button class="g-start" id="wyd-start">🐝 Emerge from the comb</button>
+<a class="g-learnlink" href="learn-bee.html">Learn the real science →</a>
+</div>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+
+<div id="wyd-play" style="display:none">
+<div class="wyd-hud" id="wyd-hud"></div>
+<div class="wyd-scene" id="wyd-scene"></div>
+<div class="wyd-log" id="wyd-log" aria-live="polite"></div>
+</div>
+
+<div id="wyd-end" style="display:none">
+<div class="wyd-endcard">
+<p class="wyd-endkicker" id="wyd-e-species"></p>
+<div class="wyd-bigscore" id="wyd-e-score"></div>
+<p class="wyd-verdict" id="wyd-e-verdict"></p>
+<div class="wyd-postrow">
+<input id="wyd-e-name" maxlength="24" placeholder="Your name" aria-label="Your name for the leaderboard">
+<button class="btnx btnx--solid" id="wyd-e-post">Post to leaderboard</button>
+<button class="btnx" id="wyd-e-again">Live again</button>
+</div>
+<p class="wyd-notice" id="wyd-e-notice"></p>
+</div>
+</div>
+
+<div class="wyd-lbwrap">
+<p class="wyd-lbhead">Most valuable workers</p>
+<div class="wyd-tablewrap"><table class="wyd-board">
+<thead><tr><th>#</th><th>Player</th><th>Species</th><th style="text-align:right">Score</th><th>Survived</th><th>When</th></tr></thead>
+<tbody id="wyd-lb-body"><tr><td colspan="6">Loading scores…</td></tr></tbody>
+</table></div>
+</div>
+
+<details class="wyd-model">
+<summary>How the odds work</summary>
+<div class="wyd-model-body">
+<p>Every core number is drawn from published studies. You allocate 3 ⚡ stamina a week: nursing
+pays the colony +3 safely; foraging pays +5 but adds 12% to that week's death risk per trip; a
+laid egg survives worker policing with P = 0.02 (worth +150 if it does). Baseline mortality
+rises 2% per week of age; a real summer worker lives about 2–5 weeks. Some weeks the colony's
+needs shift — a brood boom doubles what nursing is worth, a nectar flow doubles foraging (the
+week-to-week needs are the game's own invention, standing in for the very real way colony
+labor demands change). Score = colony points ×6 plus your sons. Full sources and the natural
+history live on the <a href="learn-bee.html">Learn&nbsp;more page</a>.</p>
+</div>
+</details>
+
+</div>
+</section>
+</div>
+```
+:::
+
+<script>window.WYD_SPECIES = "bee";</script>
+<script src="assets/js/wyd-core.js"></script>
+<script>
+/* ── honeybee engine ──
+   pass-1 rebalance (full redesign blueprint: ../design/bee-redesign.md):
+   each week the colony NEEDS something (brood boom doubles nursing, nectar flow
+   doubles foraging) so the optimal allocation shifts week to week; score = colony x6
+   + sons x150, so the board has a real gradient. */
+const BEE = { pEggSurvive:0.02, sonValue:150, nurseGain:3, forageGain:5,
+  forageRisk:0.12, senesc:0.02, stamina:3, colonyPts:6 };
+const NEEDS = [
+  {key:"brood",  p:0.3, mult:{nurse:2, forage:1},
+   label:"Brood boom — the queen has filled the comb; <strong>nursing pays double</strong> this week."},
+  {key:"nectar", p:0.3, mult:{nurse:1, forage:2},
+   label:"Nectar flow — the fields are blooming; <strong>foraging pays double</strong> this week."},
+  {key:"calm",   p:0.4, mult:{nurse:1, forage:1},
+   label:"An ordinary week in the colony."}];
+function rollNeed(){
+  let t = roll();
+  for(const n of NEEDS){ t -= n.p; if(t <= 0) return n; }
+  return NEEDS[2];
+}
+let G = null;
+
+function wydStart(){
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  G = {week:0, round:0, score:0, sons:0, colony:0, forages:0, alive:true, cause:"", needKey:"calm"};
+  log("You emerge into the hive. The queen is laying; the police are patrolling.");
+  weekPhase();
+}
+function wydHud(){
+  const h = $("#wyd-hud"); if(!h || !G) return;
+  const pips = [0,1,2].map(k=>`<i class="${k < G.stamina ? "on":""}"></i>`).join("");
+  h.innerHTML = `<div class="wyd-ghud">
+    <div class="gstat"><span class="gl">Week</span><span class="gv">${G.week}</span></div>
+    <div class="gstat"><span class="gl">Stamina ⚡</span><div class="wyd-pips">${pips}</div></div>
+    <div class="gstat"><span class="gl">Colony 🍯</span><span class="gv">${G.colony}</span></div>
+    <div class="gstat"><span class="gl">Sons</span><span class="gv">${G.sons}</span></div>
+    <div class="gstat"><span class="gl">Score</span><span class="gv">${Math.round(G.score)}</span></div>
+  </div>`;
+}
+function ageRisk(){ return Math.min(0.6, BEE.senesc * G.week); }
+function weekPhase(){
+  G.week++; G.round = G.week;
+  G.stamina = BEE.stamina; G.forages = 0;
+  G.needKey = rollNeed().key;
+  wydSaveRun(G);  // autosave at the start of each week; Exit + Resume pick up here
+  renderWeek();
+}
+function need(){ return NEEDS.find(n=>n.key===G.needKey) || NEEDS[2]; }
+function wydResumeRun(g){
+  G = g;
+  $("#wyd-play").style.display = "block";
+  $("#wyd-log").innerHTML = "";
+  log(`Resumed at week ${G.week}.`);
+  renderWeek();
+}
+function renderWeek(){
+  const risk = 1 - (1 - ageRisk()) * Math.pow(1 - BEE.forageRisk, G.forages);
+  const nd = need();
+  const nGain = BEE.nurseGain * nd.mult.nurse, fGain = BEE.forageGain * nd.mult.forage;
+  scene(`<div class="wyd-round">🍯 Week ${G.week} · plan the week</div>
+    <h3><span class="${G.stamina===BEE.stamina ? "wyd-buzzy" : ""}" aria-hidden="true">🐝</span> The colony hums. Where do you spend yourself?</h3>
+    <p class="wyd-story">You have <strong>${G.stamina} ⚡ stamina</strong> this week. Nursing is safe.
+    Foraging feeds the colony best but kills workers: every trip adds ${fmtP(BEE.forageRisk)} to this
+    week's death risk. And the comb is right there, unguarded, if you want to gamble an egg…</p>
+    <p class="wyd-story wyd-event">${nd.label}</p>
+    <div class="wyd-pacts" style="margin-top:1.2rem">
+      <button class="btnx btnx--solid" id="wyd-nurse" ${G.stamina<1?"disabled":""}>Nurse the brood · 1 ⚡ <span class="sub">colony +${nGain}${nd.mult.nurse>1?" (doubled!)":""} · safe</span></button>
+      <button class="btnx" id="wyd-forage" ${G.stamina<1?"disabled":""}>Forage · 1 ⚡ <span class="sub">colony +${fGain}${nd.mult.forage>1?" (doubled!)":""} · +${fmtP(BEE.forageRisk)} death risk this week</span></button>
+      <button class="btnx wyd-clay" id="wyd-lay" ${G.stamina<1?"disabled":""}>Lay your own egg · 1 ⚡ <span class="sub">${fmtP(BEE.pEggSurvive)} chance it survives the police · +${BEE.sonValue} if it does</span></button>
+    </div>
+    <div class="wyd-sleeprow"><button class="btnx" id="wyd-endweek">End the week →</button>
+    <div class="wyd-sleepwarn">Your death risk this week so far: ${fmtP(risk)} (age ${fmtP(ageRisk())}${G.forages? ` + ${G.forages} foraging trip${G.forages>1?"s":""}`:""}). A real summer worker lives 2–5 weeks.</div></div>`);
+  $("#wyd-nurse").onclick = ()=>{ G.stamina--; G.colony += nGain; G.score += nGain * BEE.colonyPts;
+    log(`Week ${G.week}: nursed brood. Colony +${nGain}.`, "good"); renderWeek(); };
+  $("#wyd-forage").onclick = ()=>{ G.stamina--; G.forages++; G.colony += fGain; G.score += fGain * BEE.colonyPts;
+    log(`Week ${G.week}: foraged. Colony +${fGain} (risk +${fmtP(BEE.forageRisk)}).`, "good"); renderWeek(); };
+  $("#wyd-lay").onclick = ()=>{ G.stamina--;
+    const r = roll(), survived = r < BEE.pEggSurvive;
+    if(survived){ G.sons++; G.score += BEE.sonValue; }
+    log(`Week ${G.week}: laid an egg. ${survived? "IT SURVIVED (+"+BEE.sonValue+")":"Policed and eaten"} (roll ${r.toFixed(3)} vs ${BEE.pEggSurvive}).`, survived?"good":"bad");
+    renderWeek(); };
+  $("#wyd-endweek").onclick = endWeek;
+  wydHud();
+}
+function endWeek(){
+  const pAge = ageRisk();
+  const pDie = 1 - (1 - pAge) * Math.pow(1 - BEE.forageRisk, G.forages);
+  if(roll() < pDie){
+    G.alive = false;
+    G.cause = G.forages && roll() < 0.7 ? "field" : "age";
+    log(`Week ${G.week}: died ${G.cause==="field"?"in the field":"of old age"} (P was ${fmtP(pDie)}). ☠`, "bad");
+    scene(`<div class="wyd-round">🍯 Week ${G.week}</div>
+      <h3>${G.cause==="field" ? "You don't make it home." : "You fall from the comb."}</h3>`+ outcomeBlock(
+      `Your death risk this week was <strong>${fmtP(pDie)}</strong> (age ${fmtP(pAge)}${G.forages? " + "+G.forages+" foraging trip"+(G.forages>1?"s":""):""}). This time it caught you.`,
+      G.cause==="field"
+        ? `A dragonfly, a swallow, a storm, a windshield. Foragers rarely die in bed.`
+        : `Workers wear out. The colony you fed flies on without you.`,
+      "In real life",
+      `Foraging is the deadly job: marked foragers suffer heavy weekly mortality, and summer
+       workers live only ~2–5 weeks. A worker's fitness is what she banked in the colony,
+       plus any sons the police didn't find.`,
+      "Visscher & Dukas 1997 · Winston 1987"));
+    $("#wyd-next").onclick = beeEnd;
+    return;
+  }
+  log(`Week ${G.week}: survived (P(die) was ${fmtP(pDie)}).`, "good");
+  weekPhase();
+}
+function beeEnd(){
+  const verdict = `You worked ${G.week} week${G.week===1?"":"s"} (a real summer worker lives 2–5),
+    banking ${G.colony} colony points (×${BEE.colonyPts})${G.sons? ` and, against 2% odds, fledging ${G.sons}
+    son${G.sons>1?"s":""}`:""}. ${G.sons? "Almost no real worker ever pulls that off."
+    : "If you laid eggs, the police ate them, as they do to ~98% of worker-laid eggs. The colony was the better bet all along."}`;
+  wydEnd({score: G.score, verdict, nights: G.week});
+}
+</script>

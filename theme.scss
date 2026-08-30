@@ -1,0 +1,24 @@
+/*-- scss:defaults --*/
+// ============================================================
+//  Bryson Loflin — "After Dark" theme
+//  Palette + type. Bootstrap variables (consumed by Quarto).
+//  Every color is named for its referent in the bats' world;
+//  the full token set lives in assets/css/site.css :root.
+// ============================================================
+$font-family-sans-serif: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+$body-bg:        #161210;   // cave — unlit roost interior
+$body-color:     #cfc5b4;   // moonlit parchment
+$link-color:     #c9964b;   // headlamp amber
+$link-hover-color: #dcae63;
+
+$navbar-bg:      #120f0d;   // cave mouth, darker than the page
+$navbar-fg:      #e9e1d2;
+$navbar-hl:      #ffffff;
+
+$footer-bg:      #120f0d;
+
+$headings-font-family: "Newsreader", Georgia, serif;
+$headings-font-weight: 400;
+$headings-color: #e9e1d2;   // limestone at the cave mouth
+$body-font-size: 1.05rem;

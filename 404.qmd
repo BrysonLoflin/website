@@ -1,0 +1,19 @@
+---
+pagetitle: "404"
+page-layout: full
+---
+
+::: {.full-bleed}
+<section class="section section--purple halftone" style="min-height:70svh; display:flex; align-items:center">
+<div class="inner reveal center">
+<p class="eyebrow eyebrow--center">404 · Echolocation failed</p>
+<h1 class="h-xl">This page flew off.</h1>
+<p class="lead" style="margin:1.4rem auto 0; max-width:44ch">Even a vampire bat strikes out about 7% of nights. The page you're after isn't here, but the roost is full of others.</p>
+<div class="btn-row" style="justify-content:center">
+<a class="btnx btnx--solid" href="/">Back to the roost</a>
+<a class="btnx" href="/research.html">Research</a>
+<a class="btnx" href="/play.html">Play the game</a>
+</div>
+</div>
+</section>
+:::

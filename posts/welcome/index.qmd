@@ -1,0 +1,22 @@
+---
+title: "What a vampire bat can teach us about trust"
+description: "Why I study cooperation in one of the few animals where you can actually manipulate it, and what this site is for."
+author: "Bryson Loflin"
+date: "2026-07-20"
+categories: [research, cooperation, vampire bats]
+image: ../../assets/photos/thumbs/caiman.jpg
+---
+
+Cooperation shouldn't exist. That's the puzzle that got me into this work. Helping another individual costs you something (time, energy, a hard-won meal), so natural selection ought to weed out the helpers. And yet cooperation is everywhere: in primates, in whales, in birds, and in the animal I spend my nights with, the common vampire bat.
+
+Vampire bats are special because they wear their cooperation on their sleeve. A bat that fails to feed can starve within a few days, and when that happens, a roost-mate will often **regurgitate part of its own blood meal** to keep the hungry bat alive. They also groom one another constantly. Grooming is the social glue that builds and maintains these bonds. Because we can see who helps whom, and because the lab can *manipulate* who goes hungry, vampire bats are one of the very few systems where we can test how cooperative relationships actually form, rather than just describe them after the fact.
+
+## The question underneath
+
+My dissertation asks whether two forces, **reciprocity** (help given causing help received) and **fitness interdependence** (having a stake in a partner's survival), reinforce or undercut each other. If you're already invested in a partner, do you still keep strict score? Answering that needs experiments, not just observation, which is why I split my time between statistical models, a captive colony of bats, and a lot of late nights watching who shares a meal with whom.
+
+## What this site is for
+
+I built this site to keep my research, my [CV](../../cv.html), and my [wildlife photography](../../photography.html) in one place, and to have somewhere to write. These *Field Notes* will be short: updates on the [three projects](../../research.html) I'm juggling, dispatches from the field, methods I'm working through, and photographs from wherever the work takes me.
+
+More soon.

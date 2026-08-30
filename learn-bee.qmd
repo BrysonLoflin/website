@@ -1,0 +1,76 @@
+---
+pagetitle: "The real honeybee worker"
+description: "Everything the game is built on: worker policing, relatedness math, foraging mortality, and the short sharp life of a honeybee worker, with sources."
+page-layout: full
+---
+
+::: {.full-bleed}
+```{=html}
+<link rel="stylesheet" href="assets/css/wyd.css">
+<div class="gpage theme-bee-light">
+
+<section class="g-hero">
+<div class="g-inner">
+<p class="g-backlink"><a class="g-backlink" href="play-bee.html">← Back to the game</a></p>
+<p class="g-kicker">The real science · honeybee</p>
+<h1>A month to live, a colony to serve.</h1>
+<p class="g-lede">Honeybee workers look selfless, but the hive is policed for a reason.</p>
+</div>
+</section>
+
+<section class="g-main">
+<div class="g-inner">
+<div class="g-prose">
+
+<h2>A short life in stages</h2>
+<p>A summer worker honeybee lives roughly <strong>2–5 weeks</strong> as an adult
+<sup><a href="#ref-1">1</a></sup>. She moves through jobs in a pretty reliable pattern. Young
+bees nurse brood and build comb deep in the interior, middle-aged bees guard and process food,
+the oldest bees forage<sup><a href="#ref-2">2</a></sup>. The dangerous job is saved for last,
+when a worker has the least life left to lose, which is exactly the trade-off the game hands
+you each week.</p>
+
+<h2>Foraging</h2>
+<p>Foraging feeds the colony but kills the forager. Once a bee starts flying field trips she
+faces predators, weather, exhaustion, and even windshields. Marked-bee studies measured the
+mortality of foragers and found it strong enough that a forager's remaining life expectancy is
+only a few days<sup><a href="#ref-3">3</a></sup>. Foragers rarely die in the hive, they simply
+fail to come home. In the game, every foraging trip adds 12% to your weekly death risk.</p>
+
+<h2>The temptation</h2>
+<p>Workers can lay unfertilized eggs that develop into <strong>males</strong>. Genetically, a
+worker is more related to her own sons (r = 0.5) than to the queen's sons, her brothers
+(r = 0.25), so from her genes' point of view, sneaking eggs into the comb beats raising the
+queen's. So why don't all of the workers just lay their own eggs?</p>
+
+<h2>The police</h2>
+<p>Because the queen mates with many males, the <em>other</em> workers are mostly half-sisters,
+and a half-sister's son (r ≈ 0.125) is worth less to them than the queen's son (r = 0.25). So
+workers stop <em>each other</em> from reproducing<sup><a href="#ref-4">4</a></sup>. Ratnieks
+and Visscher showed that eggs laid by workers are found and <strong>eaten within a day (about
+98% of them)</strong>, while queen-laid eggs are left alone<sup><a href="#ref-5">5</a></sup>.
+Because of this, a laid egg is worth 0.02 × 30 = 0.6 expected points vs. 3 for honest work.</p>
+
+<p>The bees take a different route to cooperation than the vampire bats' reciprocity or the
+cleaner fish's reputation. Comparing them is exactly why the games exist. The question of how
+cooperation is stabilized runs through <a href="research.html">my own research</a> too.</p>
+
+<p><a class="g-learnlink" href="play-bee.html">← Play the game</a></p>
+
+<div class="g-refs">
+<h2>References</h2>
+<ol>
+<li id="ref-1">Winston, M.L. (1987). <em>The Biology of the Honey Bee.</em> Harvard University Press.</li>
+<li id="ref-2">Seeley, T.D. (1982). Adaptive significance of the age polyethism schedule in honeybee colonies. <em>Behavioral Ecology and Sociobiology</em> 11, 287–293. <a href="https://doi.org/10.1007/BF00299306">doi:10.1007/BF00299306</a></li>
+<li id="ref-3">Visscher, P.K. &amp; Dukas, R. (1997). Survivorship of foraging honey bees. <em>Insectes Sociaux</em> 44, 1–5. <a href="https://doi.org/10.1007/s000400050017">doi:10.1007/s000400050017</a></li>
+<li id="ref-4">Ratnieks, F.L.W. (1988). Reproductive harmony via mutual policing by workers in eusocial Hymenoptera. <em>The American Naturalist</em> 132, 217–236. <a href="https://doi.org/10.1086/284846">doi:10.1086/284846</a></li>
+<li id="ref-5">Ratnieks, F.L.W. &amp; Visscher, P.K. (1989). Worker policing in the honeybee. <em>Nature</em> 342, 796–797. <a href="https://doi.org/10.1038/342796a0">doi:10.1038/342796a0</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</section>
+</div>
+```
+:::
