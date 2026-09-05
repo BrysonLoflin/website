@@ -1,0 +1,1693 @@
+/* ============================================================
+   "What would you do?", the game pages stylesheet.
+   Every component reads --g-* tokens; a theme class on .gpage
+   (theme-bat / theme-fish / theme-bee / theme-paper and the
+   *-light learn variants) defines the palette.
+   ============================================================ */
+
+/* ---------- themes ---------- */
+.gpage{
+  background:var(--g-bg); color:var(--g-ink);
+  --g-radius:2px;
+}
+.theme-bat{
+  --g-bg:#0d1114; --g-bg2:#131a1e; --g-card:#171f25; --g-card2:#1c262d;
+  --g-ink:#f2f6f8; --g-muted:#c6d2d9; --g-dim:#9cadb7; --g-line:#243039; --g-line2:#3a4c58;
+  --g-accent:#c6303c; --g-accent-ink:#ef7b85; --g-warm:#e8ad64; --g-good:#67c09b;
+  --g-glow:rgba(198,48,60,.35);
+}
+.theme-fish{
+  --g-bg:#04303d; --g-bg2:#063a4a; --g-card:#0a4456; --g-card2:#0e4f63;
+  --g-ink:#f2fffd; --g-muted:#c9e8eb; --g-dim:#95c4ca; --g-line:#0f566b; --g-line2:#1d819a;
+  --g-accent:#ff8a5c; --g-accent-ink:#ffb090; --g-warm:#ffd166; --g-good:#57e0ad;
+  --g-glow:rgba(255,138,92,.30);
+}
+.theme-bee{
+  --g-bg:#1c1303; --g-bg2:#241906; --g-card:#2c1f08; --g-card2:#35260b;
+  --g-ink:#fcf4e2; --g-muted:#e7d7b1; --g-dim:#c1ab7e; --g-line:#40300f; --g-line2:#65501c;
+  --g-accent:#f2a71b; --g-accent-ink:#ffc95e; --g-warm:#ec8340; --g-good:#b1d167;
+  --g-glow:rgba(242,167,27,.30);
+}
+/* dark arcade neutral for the hub */
+.theme-arcade{
+  --g-bg:#0f130f; --g-bg2:#151a14; --g-card:#1a211a; --g-card2:#202920;
+  --g-ink:#eef3e9; --g-muted:#c6d1bf; --g-dim:#99a58f; --g-line:#26301f; --g-line2:#3b4a33;
+  --g-accent:#d98a4a; --g-accent-ink:#eda86a; --g-warm:#e8ad64; --g-good:#67b58d;
+  --g-glow:rgba(217,138,74,.3);
+}
+/* the page body behind each themed page goes dark/light with it */
+body:has(.theme-bat){ background:#0d1114; }
+body:has(.theme-fish){ background:#04303d; }
+body:has(.theme-bee){ background:#1c1303; }
+body:has(.theme-arcade){ background:#0f130f; }
+body:has(.theme-bat-light){ background:#eef0f2; }
+body:has(.theme-fish-light){ background:#e8f6f7; }
+body:has(.theme-bee-light){ background:#faf3e0; }
+/* site-styled elements that appear inside a dark game wrapper */
+.theme-arcade .eyebrow{ color:var(--g-warm); }
+.theme-arcade .h-xl, .theme-arcade .h-md{ color:var(--g-ink); }
+.theme-arcade .lead{ color:var(--g-muted); }
+.theme-arcade .muted{ color:var(--g-dim); }
+.theme-arcade .klink{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+.theme-arcade .klink:hover{ background:var(--g-accent-ink); color:var(--g-bg); }
+/* learn pages: light variants of the same worlds */
+.theme-bat-light{
+  --g-bg:#eef0f2; --g-bg2:#e5e9ec; --g-card:#f8fafb; --g-card2:#eef2f4;
+  --g-ink:#1c2429; --g-muted:#4d5c66; --g-dim:#7d8b94; --g-line:#d3dade; --g-line2:#b9c4cb;
+  --g-accent:#a5252f; --g-accent-ink:#a5252f; --g-warm:#a56a25; --g-good:#2e7a62;
+  --g-glow:rgba(165,37,47,.15);
+}
+.theme-fish-light{
+  --g-bg:#e8f6f7; --g-bg2:#dceff1; --g-card:#f7fdfd; --g-card2:#e9f6f7;
+  --g-ink:#0b3b46; --g-muted:#3c6b74; --g-dim:#6d979e; --g-line:#c8e2e5; --g-line2:#a7cfd4;
+  --g-accent:#d4592f; --g-accent-ink:#c24e27; --g-warm:#b98514; --g-good:#1d8a66;
+  --g-glow:rgba(212,89,47,.15);
+}
+.theme-bee-light{
+  --g-bg:#faf3e0; --g-bg2:#f4ead0; --g-card:#fffaf0; --g-card2:#f6eeda;
+  --g-ink:#33250a; --g-muted:#6b5a33; --g-dim:#98876030; --g-dim:#93815a; --g-line:#e5d9bc; --g-line2:#d2c19a;
+  --g-accent:#b97708; --g-accent-ink:#9c6406; --g-warm:#c25a1d; --g-good:#5d7d2b;
+  --g-glow:rgba(185,119,8,.18);
+}
+/* hub sections sit on the site's cream */
+.theme-paper{
+  --g-bg:transparent; --g-bg2:rgba(63,107,75,.04); --g-card:rgba(250,247,238,.9); --g-card2:#f3f0e8;
+  --g-ink:#27211b; --g-muted:#5c6553; --g-dim:#7c8473; --g-line:rgba(31,44,27,.13); --g-line2:rgba(47,74,55,.3);
+  --g-accent:#3f6b4b; --g-accent-ink:#3f6b4b; --g-warm:#bf6e46; --g-good:#2e7a62;
+  --g-glow:rgba(63,107,75,.2);
+}
+
+/* ---------- page scaffolding ---------- */
+.gpage.theme-bat, .gpage.theme-fish, .gpage.theme-bee, .gpage.theme-arcade{ min-height:100vh; }
+.g-inner{ max-width:1260px; margin:0 auto; padding:0 clamp(1.2rem,4vw,2.4rem); }
+.g-main{ padding:clamp(1.6rem,4vh,3rem) 0 clamp(4rem,8vh,6rem); }
+/* the hub's g-main carries .halftone, whose speckle layer reaches 10% past
+   each edge; without the containment every .section has, it escapes into the
+   page and widens the mobile layout viewport (clipped navbar on phones) */
+.g-main.halftone{ position:relative; overflow:hidden; }
+
+/* bootstrap paints .table backgrounds, so neutralize them inside game pages */
+.gpage table.wyd-board,
+.gpage table.wyd-board > :not(caption) > * > *{
+  background:transparent !important; --bs-table-bg:transparent; box-shadow:none; color:inherit;
+}
+
+/* hero: the second-person cold open */
+.g-hero{ position:relative; padding:clamp(5.5rem,13vh,8.5rem) 0 clamp(2.6rem,6vh,4rem); overflow:hidden; }
+.g-hero .g-inner{ position:relative; z-index:2; }
+.g-kicker{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.74rem;
+  letter-spacing:.3em; text-transform:uppercase; color:var(--g-warm); margin:0 0 1.1rem; }
+.g-hero h1{ font-size:clamp(2.6rem,6.5vw,4.6rem); font-weight:900; line-height:1.0;
+  color:var(--g-ink); margin:0; letter-spacing:-.02em; text-wrap:balance; }
+.g-lede{ margin:1.4rem 0 0; max-width:56ch; font-size:clamp(1.02rem,1.5vw,1.2rem);
+  line-height:1.65; color:var(--g-muted); }
+.g-lede strong{ color:var(--g-ink); }
+.g-cta{ display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-top:2rem; }
+.g-start{
+  font:inherit; font-weight:800; font-size:1rem; letter-spacing:.12em; text-transform:uppercase;
+  cursor:pointer; padding:1.05rem 2.2rem; border:none; border-radius:var(--g-radius);
+  background:var(--g-accent); color:#fff;
+  box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 12px 34px -10px var(--g-glow), 0 4px 0 rgba(0,0,0,.35);
+  transition:transform .12s ease, filter .2s;
+}
+.g-start:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+.g-start:active{ transform:translateY(2px); box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 6px 18px -8px var(--g-glow); }
+.g-learnlink{ color:var(--g-muted); font-weight:600; border-bottom:1px solid var(--g-line2); padding-bottom:2px; }
+.g-learnlink:hover{ color:var(--g-ink); border-color:var(--g-ink); }
+.g-backlink{ font-family:"Archivo Narrow",sans-serif; font-size:.78rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--g-dim); }
+.g-backlink:hover{ color:var(--g-ink); }
+
+/* themed hero backdrops */
+.theme-bat .g-hero{
+  background:
+    radial-gradient(1.4px 1.4px at 8% 22%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 22% 9%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.2px 1.2px at 37% 28%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1px 1px at 52% 12%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.5px 1.5px at 66% 24%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 78% 8%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.2px 1.2px at 90% 30%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 45% 44%, rgba(255,255,255,.3), transparent),
+    radial-gradient(340px 340px at 84% 6%, rgba(224,199,158,.16), transparent 70%),
+    linear-gradient(180deg, #0a0d10 0%, #0d1114 70%, #12181c 100%);
+}
+.theme-fish .g-hero{
+  background:
+    radial-gradient(3px 3px at 12% 30%, rgba(255,255,255,.16), transparent),
+    radial-gradient(2px 2px at 26% 60%, rgba(255,255,255,.12), transparent),
+    radial-gradient(4px 4px at 71% 26%, rgba(255,255,255,.14), transparent),
+    radial-gradient(2.5px 2.5px at 88% 55%, rgba(255,255,255,.12), transparent),
+    radial-gradient(70% 60% at 50% -10%, rgba(148,255,239,.14), transparent 65%),
+    linear-gradient(180deg, #02222c 0%, #04303d 65%, #06394a 100%);
+}
+.theme-bee .g-hero{
+  background:
+    repeating-linear-gradient(60deg, rgba(242,167,27,.05) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(-60deg, rgba(242,167,27,.05) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(0deg, rgba(242,167,27,.04) 0 2px, transparent 2px 26px),
+    radial-gradient(60% 50% at 80% 0%, rgba(242,167,27,.16), transparent 70%),
+    linear-gradient(180deg, #170f02 0%, #1c1303 70%, #221807 100%);
+}
+
+/* ---------- HUD ---------- */
+.wyd-hud{ margin-bottom:1rem; }
+.wyd-ghud{ display:flex; gap:clamp(.8rem,2.5vw,2rem); flex-wrap:wrap; align-items:center;
+  background:var(--g-card); color:var(--g-ink); padding:.9rem 1.2rem;
+  border:1px solid var(--g-line2); border-radius:var(--g-radius);
+  box-shadow:0 14px 34px -22px rgba(0,0,0,.8); }
+.wyd-ghud .gstat{ display:flex; flex-direction:column; gap:.3rem; min-width:96px; }
+.wyd-ghud .gl{ font-size:.58rem; text-transform:uppercase; letter-spacing:.18em; font-weight:700; color:var(--g-dim); }
+.wyd-ghud .gv{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:1.35rem;
+  line-height:1; color:var(--g-ink); font-variant-numeric:tabular-nums; }
+.wyd-bloodbar{ display:flex; gap:3px; }
+.wyd-bloodbar i{ width:26px; height:12px; background:var(--g-bg2); border:1px solid var(--g-line);
+  overflow:hidden; position:relative; }
+.wyd-bloodbar i b{ position:absolute; inset:0; background:var(--g-accent); display:block; transform-origin:left; }
+.wyd-bloodbar.wyd-hyg i{ width:82px; }
+.wyd-bloodbar.wyd-hyg i b{ background:var(--g-good); }
+.wyd-bloodbar.wyd-hyg.bad i b{ background:var(--g-accent); }
+/* P6d (Bryson): dark hours and stamina read like the blood bar (segments), amber for stamina, moon-blue for hours */
+.wyd-pips{ display:flex; gap:3px; }
+.wyd-pips i{ width:26px; height:12px; background:var(--g-bg2); border:1px solid var(--g-line); position:relative; overflow:hidden; }
+.wyd-pips i.on{ background:var(--g-warm); border-color:var(--g-warm); }
+.wyd-pips.wyd-ticks i.on{ background:#6f8fb8; border-color:#6f8fb8; }
+.wyd-pips.bad i.on{ background:var(--g-accent); border-color:var(--g-accent); }
+/* hover / focus explanations on every HUD stat: one strip under the HUD (never clipped on a phone) */
+.wyd-ghud .gstat[data-tip]{ cursor:help; outline:none; border-radius:4px; }
+.wyd-ghud .gstat[data-tip]:hover .gl, .wyd-ghud .gstat[data-tip]:focus-visible .gl{ color:var(--g-warm); }
+.wyd-hudtip{ max-height:0; overflow:hidden; opacity:0; padding:0 1.4rem; font-size:.8rem; line-height:1.45; color:var(--g-muted);
+  border-top:1px solid transparent; transition:max-height .2s ease, opacity .2s ease, padding .2s ease; }
+.wyd-hudtip.on{ max-height:5rem; opacity:1; padding:.45rem 1.4rem .6rem; border-top-color:var(--g-line); }
+
+/* P7: the season events as icons in line with the other stats; hover / tap = the strip under the HUD */
+.wyd-events{ display:flex; gap:.35rem; align-items:center; }
+.wyd-ev{ width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.05rem; line-height:1;
+  border:1px solid var(--g-line2); background:var(--g-card2); cursor:help; outline:none; transition:border-color .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s cubic-bezier(.2,.9,.3,1); }
+.wyd-ev.now{ border-color:var(--g-warm); box-shadow:0 0 0 2px var(--g-warm), 0 0 14px -2px var(--g-glow); }
+.wyd-ev.active{ border-color:var(--g-warm); }
+.wyd-ev.done{ opacity:.4; }
+.wyd-ev.secret{ border-style:dashed; color:var(--g-dim); font-weight:800; font-size:.95rem; }
+.wyd-ev:hover, .wyd-ev:focus-visible{ border-color:var(--g-warm); box-shadow:0 0 10px -3px var(--g-glow); }
+.wyd-evbanner .wyd-evicon{ font-size:1.2rem; margin-right:.2rem; }
+/* P8: the sound toggle in the HUD */
+.wyd-soundbtn{ font:inherit; font-size:1.05rem; line-height:1; width:30px; height:30px; border-radius:50%; border:1px solid var(--g-line2); background:var(--g-card2); cursor:pointer; color:var(--g-ink); padding:0; }
+.wyd-soundbtn:hover, .wyd-soundbtn:focus-visible{ border-color:var(--g-warm); outline:none; }
+.wyd-soundbtn[aria-pressed="false"]{ opacity:.55; }
+/* mite risk: fills as fur goes ungroomed; amber past the mite threshold, red once they are in */
+.wyd-bloodbar.wyd-hyg i b{ background:var(--g-good); }
+.wyd-bloodbar.wyd-hyg.warn i b{ background:var(--g-warm); }
+.wyd-bloodbar.wyd-hyg.bad i b{ background:var(--g-accent); }
+/* compact HUD on phones: three tight columns instead of a tall wrap */
+@media (max-width:600px){
+  .wyd-ghud{ display:grid; grid-template-columns:repeat(3,1fr); gap:.55rem .8rem;
+    padding:.65rem .85rem; }
+  .wyd-ghud .gstat{ min-width:0; gap:.18rem; }
+  .wyd-ghud .gv{ font-size:1.05rem; }
+  /* P26 (seen in the phone shots): every HUD label is nowrap with no overflow rule, so the night
+     cell's "NIGHT (icon) . NO MOON" ran straight over the word BLOOD in the next column. Labels now
+     clip with an ellipsis instead of overlapping, and the night cell, which is the only one long
+     enough to need it, gets its letter-spacing back so the sky name fits whole at these sizes. */
+  .wyd-ghud .gl{ font-size:.54rem; letter-spacing:.12em; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; min-width:0; max-width:100%; }
+  /* the night cell carries the longest label in the HUD ("NIGHT (icon) . NO MOON"), and P25 put the
+     sky name there on purpose, so it gets the room it needs rather than an ellipsis */
+  .wyd-ghud .gstat.wyd-c-night .gl, .wyd-ghud .gstat.wyd-evcell .gl,
+  .wyd-ghud .gstat.wyd-c-stam .gl, .wyd-ghud .gstat.wyd-c-mite .gl{ letter-spacing:.01em; font-size:.47rem; }
+  .wyd-bloodbar i, .wyd-pips i{ width:16px; height:9px; }
+  .wyd-bloodbar.wyd-hyg i{ width:52px; }
+}
+
+/* ---------- scene ---------- */
+.wyd-scene{ background:var(--g-card); border:1px solid var(--g-line2); border-radius:var(--g-radius);
+  padding:clamp(1.3rem,3vw,2rem); box-shadow:0 24px 60px -30px rgba(0,0,0,.75);
+  transition:background .8s ease, border-color .8s ease; }
+/* scroll targets must clear the fixed 57px navbar */
+#wyd-play, #wyd-end, .wyd-lbwrap, .wyd-outcome{ scroll-margin-top:76px; }
+.wyd-round{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.74rem;
+  text-transform:uppercase; letter-spacing:.16em; color:var(--g-warm); }
+.wyd-scene h3{ font-size:clamp(1.35rem,2.6vw,1.9rem); font-weight:800; margin:.6rem 0 .8rem; color:var(--g-ink); }
+.wyd-story{ color:var(--g-muted); max-width:62ch; line-height:1.65; }
+.wyd-story strong{ color:var(--g-ink); }
+.wyd-choices{ display:flex; gap:.9rem; margin-top:1.5rem; flex-wrap:wrap; }
+.wyd-choices .btnx{ flex:1; min-width:200px; justify-content:center; }
+
+/* buttons inside the game (engine emits .btnx classes) */
+.gpage .btnx{
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem; cursor:pointer;
+  font:inherit; font-weight:700; font-size:.76rem; letter-spacing:.14em; text-transform:uppercase;
+  padding:.9rem 1.4rem; border-radius:var(--g-radius); transition:.15s ease;
+  border:1px solid var(--g-line2); background:var(--g-card2); color:var(--g-ink);
+  flex-direction:column;
+}
+.gpage .btnx:hover{ border-color:var(--g-dim); filter:brightness(1.08); }
+.gpage .btnx--solid{ background:var(--g-good); border-color:var(--g-good); color:#fff;
+  box-shadow:0 8px 24px -12px var(--g-glow); }
+.gpage .btnx--solid:hover{ filter:brightness(1.1); }
+/* P26 (seen in the phone shots): a disabled "Meal" still wore the solid green of the recommended
+   action, so the one option you cannot take was the loudest thing on the card. */
+.gpage .btnx--solid[disabled]{ background:transparent; border-color:var(--g-line); color:var(--g-dim); }
+.gpage .wyd-clay{ background:transparent; border-color:var(--g-accent); color:var(--g-accent-ink); }
+.gpage .wyd-clay:hover{ background:var(--g-accent); color:#fff; }
+.gpage .btnx:disabled{ opacity:.4; cursor:default; pointer-events:none; }
+.gpage .btnx .sub{ display:block; font-weight:500; font-size:.62rem; letter-spacing:.06em;
+  text-transform:none; opacity:.85; }
+
+/* ---------- outcome / real-life callout ---------- */
+.wyd-outcome{ margin-top:1.3rem; border-top:1px dashed var(--g-line2); padding-top:1.1rem; }
+.wyd-roll{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.8rem;
+  letter-spacing:.05em; color:var(--g-dim); }
+.wyd-roll strong{ color:var(--g-ink); }
+.wyd-reallife{ margin-top:1rem; border-left:3px solid var(--g-good); background:var(--g-bg2);
+  border-radius:0 var(--g-radius) var(--g-radius) 0;
+  padding:.8rem 1.1rem; font-size:.92rem; color:var(--g-muted); max-width:64ch; }
+.wyd-reallife .rl-k{ display:block; font-size:.62rem; text-transform:uppercase; letter-spacing:.16em;
+  font-weight:700; color:var(--g-good); margin-bottom:.3rem; }
+.wyd-reallife .cite{ display:block; margin-top:.4rem; font-family:"Archivo Narrow",sans-serif;
+  font-size:.74rem; letter-spacing:.04em; color:var(--g-dim); }
+
+/* ---------- log ---------- */
+.wyd-log{ margin-top:1rem; font-family:"Archivo Narrow",sans-serif; font-size:.8rem; letter-spacing:.03em;
+  color:var(--g-dim); max-height:130px; overflow-y:auto; border:1px solid var(--g-line);
+  border-radius:var(--g-radius); background:var(--g-bg2); padding:.7rem .9rem; }
+.wyd-log div{ padding:.05rem 0; }
+.wyd-log .good{ color:var(--g-good); } .wyd-log .bad{ color:var(--g-accent-ink); }
+
+/* ---------- bat scene day/night ---------- */
+.theme-bat .wyd-night{
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 32% 8%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.4px 1.4px at 55% 14%, rgba(255,255,255,.65), transparent),
+    radial-gradient(1px 1px at 71% 6%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.2px 1.2px at 86% 20%, rgba(255,255,255,.6), transparent),
+    linear-gradient(180deg, #07090b 0%, #0d1114 60%, #131a1e 100%);
+}
+.theme-bat .wyd-day{
+  background:
+    radial-gradient(60% 45% at 85% 0%, rgba(224,163,92,.16), transparent),
+    linear-gradient(180deg, #1a2026 0%, #171f25 100%);
+}
+
+/* ---------- network view ---------- */
+.wyd-roost{ display:grid; grid-template-columns:1.4fr 1fr; gap:clamp(1.4rem,3vw,2.4rem); align-items:start; margin-top:1.2rem; }
+@media (max-width:760px){ .wyd-roost{ grid-template-columns:1fr; } }
+.wyd-net{ width:100%; height:auto; display:block; background:var(--g-bg2);
+  border:1px solid var(--g-line); border-radius:var(--g-radius); }
+.wyd-net .edge{ stroke:var(--g-good); }
+.wyd-net .node circle{ fill:var(--g-card2); stroke:var(--g-good); stroke-width:2; cursor:pointer; }
+.wyd-net .node.hungry circle{ stroke:var(--g-accent); animation:wydpulse 1.6s ease-in-out infinite; }
+.wyd-net .node.sel circle{ stroke-width:4; fill:var(--g-card); }
+.wyd-net .node text{ font-family:"Archivo Narrow",sans-serif; font-size:11px; font-weight:700;
+  fill:var(--g-ink); text-anchor:middle; pointer-events:none; }
+.wyd-net .node .beg{ font-size:9px; fill:var(--g-accent-ink); letter-spacing:.08em; }
+.wyd-net .you circle{ fill:var(--g-good); stroke:var(--g-ink); }
+.wyd-net .you text{ fill:#fff; font-size:10px; }
+@keyframes wydpulse{ 0%,100%{ stroke-width:2; } 50%{ stroke-width:5; } }
+/* a starving bat: urgent red pulse, filled darker */
+.wyd-net .node.starving circle{ stroke:var(--g-accent); fill:rgba(198,48,60,.18);
+  animation:wydstarve .9s ease-in-out infinite; }
+.wyd-net .node .beg.starv{ fill:var(--g-accent); font-weight:900; }
+@keyframes wydstarve{ 0%,100%{ stroke-width:2.5; } 50%{ stroke-width:6.5; } }
+/* a dead roost-mate: a faded ghost of the node, non-interactive */
+.wyd-net .node.gone circle{ stroke:var(--g-dim); fill:transparent; opacity:.22;
+  animation:none; cursor:default; stroke-dasharray:3 4; }
+.wyd-net .node.gone text{ opacity:.3; text-decoration:line-through; }
+.wyd-net .node[role="button"]:focus-visible{ outline:none; }
+.wyd-net .node[role="button"]:focus-visible > circle:first-of-type{
+  stroke:var(--g-warm); stroke-width:2; fill:rgba(232,173,100,.08); }
+/* selection ring: pulsing warm halo */
+.wyd-net .selring{ fill:none; stroke:var(--g-warm); stroke-width:2.5;
+  animation:wydsel 1.15s ease-in-out infinite; pointer-events:none; }
+@keyframes wydsel{ 0%,100%{ opacity:.95; stroke-width:2; } 50%{ opacity:.35; stroke-width:7; } }
+/* groom/share particles travelling along an edge (durations set inline per dot) */
+.wyd-fxdot{ transition:transform 1.2s cubic-bezier(.25,.6,.35,1), opacity 1.3s ease; opacity:.95; }
+
+.wyd-swimmer{ display:inline-block; font-size:1.6em; margin-right:.35rem; vertical-align:-4px;
+  animation:wydswim 1.1s cubic-bezier(.2,.7,.3,1); }
+@keyframes wydswim{ 0%{ transform:translateX(-150px); opacity:0; } 45%{ opacity:1; }
+  70%{ transform:translateX(12px); } 100%{ transform:translateX(0); } }
+.wyd-buzzy{ display:inline-block; font-size:1.4em; margin-right:.3rem; vertical-align:-3px;
+  animation:wydbuzz 1.5s ease-in-out; }
+@keyframes wydbuzz{ 0%{ transform:translate(-70px,14px) rotate(-14deg); opacity:0; }
+  35%{ transform:translate(14px,-8px) rotate(8deg); opacity:1; }
+  65%{ transform:translate(-6px,5px) rotate(-5deg); } 100%{ transform:translate(0,0) rotate(0); } }
+@media (prefers-reduced-motion:reduce){
+  .wyd-net .node.hungry circle{ animation:none; stroke-width:4; }
+  .wyd-net .node.starving circle{ animation:none; stroke-width:5; }
+  .wyd-net .selring{ animation:none; opacity:.9; }
+  .wyd-swimmer, .wyd-buzzy{ animation:none; transition:none; }
+  .wyd-fxdot{ transition:none; }
+}
+
+
+/* ---------- partner / action panel ---------- */
+.wyd-partner{ border:1px solid var(--g-line); background:var(--g-bg2); border-radius:var(--g-radius);
+  padding:1.1rem 1.2rem; }
+.wyd-partner h4{ font-size:1.15rem; font-weight:800; color:var(--g-ink); margin:0 0 .5rem; }
+.wyd-partner .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em;
+  color:var(--g-dim); font-weight:700; }
+.wyd-bondbar{ height:8px; background:var(--g-bg); border:1px solid var(--g-line); margin:.4rem 0 .7rem; }
+.wyd-bondbar b{ display:block; height:100%; background:var(--g-good); transition:width .3s; }
+.wyd-ptags{ display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.9rem; }
+.wyd-ptag{ font-size:.6rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700;
+  border:1px solid var(--g-line2); color:var(--g-muted); padding:.22rem .5rem; }
+.wyd-ptag.hot{ border-color:var(--g-accent); color:var(--g-accent-ink); }
+.wyd-ptag.good{ border-color:var(--g-good); color:var(--g-good); }
+.wyd-ptag.wyd-ptrait{ border-style:dashed; color:var(--g-warm); border-color:var(--g-warm); }
+.wyd-pacts{ display:flex; flex-direction:column; gap:.6rem; }
+.wyd-pacts .btnx{ width:100%; }
+.wyd-sleeprow{ margin-top:1.2rem; }
+.wyd-sleeprow .btnx{ width:100%; }
+.wyd-sleepwarn{ margin-top:.5rem; font-size:.78rem; color:var(--g-accent-ink); text-align:center; min-height:1.1em; }
+.wyd-feedback{ font-size:.86rem; margin-top:.8rem; color:var(--g-muted); }
+/* dusk hunt options: no default pick, both neutral, outlines pulse softly for attention */
+.gpage .btnx.wyd-huntopt{ background:var(--g-card2); border-color:var(--g-line2);
+  animation:wydhuntpulse 2.4s ease-in-out infinite; }
+.gpage .btnx.wyd-huntopt:hover,
+.gpage .btnx.wyd-huntopt:focus-visible{ animation:none; border-color:var(--g-warm);
+  box-shadow:0 0 12px -2px var(--g-glow); }
+@keyframes wydhuntpulse{
+  0%,100%{ border-color:var(--g-line2); box-shadow:0 0 0 0 rgba(0,0,0,0); }
+  50%{ border-color:var(--g-warm); box-shadow:0 0 12px -3px var(--g-glow); } }
+@media (prefers-reduced-motion:reduce){
+  .gpage .btnx.wyd-huntopt{ animation:none; border-color:var(--g-line2); }
+}
+
+/* dawn event banner + grief note + inline warning ink */
+.wyd-event{ border-left:3px solid var(--g-warm); background:var(--g-bg2);
+  padding:.6rem .9rem; border-radius:0 var(--g-radius) var(--g-radius) 0; font-size:.92rem; }
+.wyd-grief{ border-left:3px solid var(--g-accent); background:var(--g-bg2);
+  padding:.6rem .9rem; border-radius:0 var(--g-radius) var(--g-radius) 0; font-size:.92rem; }
+.wyd-warnink{ color:var(--g-accent-ink); }
+.gpage .btnx.wyd-savebtn:not(:disabled){ border-color:var(--g-accent);
+  box-shadow:0 0 14px -4px var(--g-glow); }
+/* HUD "of season" suffix */
+.wyd-ghud .gv .wyd-of{ font-size:.7em; color:var(--g-dim); font-weight:500; }
+/* scene wipe (NIGHT FLIGHT P3): the engine re-adds .wyd-wipe to #wyd-scene after
+   every scene change, so each new scene fades and lifts in; same-scene redraws
+   (picking a roost-mate at dawn) do not re-trigger it */
+@keyframes wydwipe-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+.theme-bat .wyd-scene.wyd-wipe{ animation:wydwipe-in .38s cubic-bezier(.2,.9,.3,1); }
+@media (prefers-reduced-motion:reduce){
+  .theme-bat .wyd-scene.wyd-wipe{ animation:none; }
+}
+
+/* ---------- end screen ---------- */
+.wyd-endcard{ text-align:center; background:var(--g-card); border:1px solid var(--g-line2);
+  border-radius:var(--g-radius); padding:clamp(1.6rem,4vw,2.6rem);
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.75); }
+.wyd-endkicker{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.78rem;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--g-warm); }
+.wyd-bigscore{ font-size:clamp(3rem,7vw,4.6rem); font-weight:900; color:var(--g-ink); line-height:1; margin:.4rem 0 .9rem; }
+.wyd-verdict{ color:var(--g-muted); max-width:56ch; margin:0 auto 1.6rem; line-height:1.6; }
+.wyd-postrow{ display:flex; gap:.8rem; justify-content:center; flex-wrap:wrap; }
+.wyd-postrow input{ font:inherit; padding:.8rem 1rem; border-radius:var(--g-radius);
+  border:1px solid var(--g-line2); background:var(--g-bg2); color:var(--g-ink); width:210px; }
+.wyd-postrow input:focus{ outline:2px solid var(--g-warm); outline-offset:1px; }
+.wyd-notice{ margin-top:.9rem; font-size:.86rem; color:var(--g-warm); min-height:1.2em; }
+
+/* ---------- leaderboard ---------- */
+.wyd-lbwrap{ margin-top:clamp(2.2rem,5vh,3.4rem); }
+.wyd-lbhead{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.78rem;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--g-warm); margin-bottom:.9rem; }
+.wyd-lbtabs{ display:flex; gap:.5rem; flex-wrap:wrap; margin:0 0 1rem; }
+.wyd-lbtabs button{ font:inherit; font-size:.78rem; font-weight:600; letter-spacing:.06em; cursor:pointer;
+  border:1px solid var(--g-line2); background:transparent; color:var(--g-muted);
+  border-radius:var(--g-radius); padding:.35rem 1rem; }
+.wyd-lbtabs button[aria-pressed="true"]{ background:var(--g-good); border-color:var(--g-good); color:#fff; }
+.wyd-tablewrap{ overflow-x:auto; }
+table.wyd-board{ width:100%; border-collapse:collapse; font-size:.94rem; color:var(--g-ink); }
+table.wyd-board th{ font-size:.62rem; text-transform:uppercase; letter-spacing:.14em; font-weight:700;
+  color:var(--g-dim); text-align:left; padding:.4rem .7rem; border-bottom:1px solid var(--g-line2); }
+table.wyd-board td{ padding:.55rem .7rem; border-bottom:1px solid var(--g-line); color:var(--g-muted); }
+table.wyd-board td.num{ font-family:"Archivo Narrow",sans-serif; font-weight:700;
+  font-variant-numeric:tabular-nums; color:var(--g-ink); }
+table.wyd-board tr.me td{ color:var(--g-warm); font-weight:600; }
+
+/* ---------- notes / references ---------- */
+.wyd-model{ margin-top:2rem; border:1px dashed var(--g-line2); border-radius:var(--g-radius); background:var(--g-bg2); }
+.wyd-model summary{ cursor:pointer; padding:.9rem 1.2rem; font-weight:700; font-size:.84rem;
+  letter-spacing:.04em; color:var(--g-muted); list-style:none; }
+.wyd-model summary::-webkit-details-marker{ display:none; }
+.wyd-model summary::after{ content:"+"; float:right; color:var(--g-dim); }
+.wyd-model[open] summary::after{ content:"–"; }
+.wyd-model-body{ padding:0 1.2rem 1.2rem; }
+.wyd-model-body p{ color:var(--g-muted); font-size:.92rem; max-width:78ch; }
+.wyd-model-body a{ color:var(--g-accent-ink); }
+.wyd-caveat{ font-size:.8rem !important; color:var(--g-dim) !important; border-top:1px solid var(--g-line); padding-top:.9rem; }
+.wyd-refs summary{ font-size:.78rem; }
+.wyd-reflist{ font-size:.76rem; color:var(--g-dim); padding-left:1.2rem; line-height:1.55; }
+.wyd-reflist li{ margin-bottom:.4rem; }
+.wyd-reflist a{ color:var(--g-dim); border-bottom:1px dotted var(--g-dim); }
+.wyd-reflist a:hover{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+
+/* ---------- hub posters ---------- */
+.poster-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.2rem; margin-top:2.4rem; }
+.poster{ position:relative; display:flex; flex-direction:column; gap:.5rem; min-height:340px;
+  padding:1.8rem 1.6rem; border-radius:3px; overflow:hidden; border:1px solid rgba(0,0,0,.25);
+  transition:transform .18s ease, box-shadow .18s ease; box-shadow:0 18px 44px -24px rgba(31,44,27,.55); }
+.poster:hover{ transform:translateY(-5px); box-shadow:0 30px 60px -26px rgba(31,44,27,.6); }
+.poster .p-em{ font-size:2.2rem; }
+.poster h3{ font-size:1.5rem; font-weight:900; margin:.4rem 0 0; color:#fff; }
+.poster p{ margin:.4rem 0 0; font-size:.92rem; line-height:1.55; color:rgba(255,255,255,.82); }
+.poster .p-tag{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.68rem;
+  letter-spacing:.2em; text-transform:uppercase; }
+.poster .p-cta{ margin-top:auto; padding-top:1.2rem; font-weight:800; font-size:.8rem;
+  letter-spacing:.18em; text-transform:uppercase; color:#fff; }
+.poster .p-cta::after{ content:" →"; }
+.poster-bat{ background:
+  radial-gradient(1.2px 1.2px at 18% 16%, rgba(255,255,255,.8), transparent),
+  radial-gradient(1px 1px at 44% 8%, rgba(255,255,255,.5), transparent),
+  radial-gradient(1.3px 1.3px at 72% 20%, rgba(255,255,255,.65), transparent),
+  radial-gradient(1px 1px at 88% 10%, rgba(255,255,255,.4), transparent),
+  radial-gradient(200px 200px at 88% 4%, rgba(224,199,158,.22), transparent 70%),
+  linear-gradient(165deg, #0a0d10 0%, #131a1e 80%); }
+.poster-bat .p-tag{ color:#e46974; }
+.poster-fish{ background:
+  radial-gradient(3px 3px at 20% 34%, rgba(255,255,255,.18), transparent),
+  radial-gradient(2px 2px at 68% 22%, rgba(255,255,255,.15), transparent),
+  radial-gradient(2.6px 2.6px at 84% 58%, rgba(255,255,255,.13), transparent),
+  radial-gradient(70% 60% at 50% -10%, rgba(148,255,239,.2), transparent 65%),
+  linear-gradient(165deg, #02222c 0%, #075065 90%); }
+.poster-fish .p-tag{ color:#ffa583; }
+.poster-bee{ background:
+  repeating-linear-gradient(60deg, rgba(242,167,27,.07) 0 2px, transparent 2px 24px),
+  repeating-linear-gradient(-60deg, rgba(242,167,27,.07) 0 2px, transparent 2px 24px),
+  radial-gradient(60% 50% at 80% 0%, rgba(242,167,27,.25), transparent 70%),
+  linear-gradient(165deg, #170f02 0%, #2a1d06 90%); }
+.poster-bee .p-tag{ color:#ffc14d; }
+
+/* ---------- learn pages prose ---------- */
+.g-prose{ max-width:70ch; }
+.g-prose h2{ font-size:clamp(1.5rem,3vw,2.1rem); font-weight:900; color:var(--g-ink);
+  margin:2.6rem 0 .9rem; letter-spacing:-.01em; }
+.g-prose p{ color:var(--g-muted); line-height:1.75; margin:0 0 1.1rem; }
+.g-prose strong{ color:var(--g-ink); }
+.g-prose a{ color:var(--g-accent-ink); border-bottom:1px solid transparent; }
+.g-prose a:hover{ border-color:var(--g-accent-ink); }
+.g-prose sup a{ font-family:"Archivo Narrow",sans-serif; font-size:.72em; color:var(--g-accent-ink); border:none; }
+.g-refs{ margin-top:3rem; border-top:1px solid var(--g-line2); padding-top:1.4rem; }
+.g-refs h2{ font-size:1rem; letter-spacing:.2em; text-transform:uppercase;
+  font-family:"Archivo Narrow",sans-serif; color:var(--g-dim); margin:0 0 .9rem; }
+.g-refs ol{ font-size:.8rem; color:var(--g-dim); padding-left:1.2rem; line-height:1.6; max-width:80ch; }
+.g-refs li{ margin-bottom:.45rem; }
+.g-refs a{ color:var(--g-dim); border-bottom:1px dotted var(--g-dim); }
+.g-refs a:hover{ color:var(--g-accent-ink); border-color:var(--g-accent-ink); }
+
+/* ---------- fullscreen play mode ----------
+   While a run is live the game takes over the page: hero, leaderboard, and
+   model notes disappear (no scrolling back up to the start screen), a top bar
+   carries the exit button, and the site footer is hidden. The leaderboard
+   returns on the end screen (.wyd-ended). */
+.gpage.wyd-playing .g-hero{ display:none; }
+.gpage.wyd-playing .wyd-lbwrap, .gpage.wyd-playing .wyd-model{ display:none; }
+.gpage.wyd-playing.wyd-ended .wyd-lbwrap{ display:block; }
+.gpage.wyd-playing .g-main{ padding-top:.9rem; padding-bottom:1.2rem; }
+body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
+#wyd-topbar{ display:flex; justify-content:space-between; align-items:center; gap:1rem;
+  margin-bottom:.7rem; }
+#wyd-topbar .wyd-tb-title{ font-family:"Archivo Narrow",sans-serif; font-weight:700;
+  font-size:.78rem; letter-spacing:.22em; text-transform:uppercase; color:var(--g-warm); }
+#wyd-topbar .wyd-tb-note{ font-size:.72rem; color:var(--g-dim); margin-left:auto; }
+#wyd-topbar .btnx{ padding:.4rem .9rem; flex-direction:row; }
+.g-resume{ background:var(--g-good); }
+
+/* ---------- the silhouette stage (NIGHT FLIGHT P3b, bat-stage.js) ----------
+   The approved prototype (anim_prototypes/style-2-svg-silhouette.html, brightened
+   grade) mounted under the game. Rig CSS is the prototype's, verbatim, with a
+   wst- prefix (keyframes too, so nothing collides with the wyd* set above).
+   Motion tokens live on .wyd-stage; linear / default ease are not used here. */
+#wyd-stagehost{ margin-top:.9rem; }
+#wyd-stagehost[hidden]{ display:none; }
+.wyd-stage{
+  --e-act:cubic-bezier(.2,.9,.3,1);          /* actions: snappy out */
+  --e-anticipate:cubic-bezier(.55,-.35,.6,1);/* wind-ups */
+  --e-soft:cubic-bezier(.45,.05,.55,.95);    /* flaps, sways */
+  --e-drift:cubic-bezier(.37,.1,.63,.9);     /* ambience */
+  --wst-sil:#05080c; --wst-moon:#e9e3d0;
+  position:relative; width:100%; height:clamp(200px, 32vw, 380px); overflow:hidden;
+  border:1px solid var(--g-line); border-radius:var(--g-radius); background:#1b2a44;
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.75);
+}
+/* this breakpoint is ALSO the stage's meet / slice switch (bat-stage.js NARROW_MQ): keep them equal */
+@media (max-width:600px){ .wyd-stage{ height:230px; } }
+.wyd-stage > svg, .wyd-stage > canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.wyd-stage > canvas{ pointer-events:none; }
+.wst-front .wst-cow{ pointer-events:none; }                    /* decorative outside choice mode */
+.wyd-stage.wst-choice .wst-front .wst-cow{ pointer-events:auto; cursor:pointer; }
+.wst-hidden{ display:none; }
+
+/* caption: the prototype HUD voice, beat names only */
+.wst-cap{ position:absolute; left:14px; bottom:10px; font-size:13px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--g-warm); text-shadow:0 1px 6px rgba(0,0,0,.8);
+  opacity:0; transition:opacity .45s var(--e-act); pointer-events:none; }
+.wst-cap.wst-on{ opacity:1; }
+/* P6d: the cow's floating bars (foreignObject above the tag) and your own bars in the corner */
+.wst-infobox{ display:flex; flex-direction:column; gap:4px; width:370px; box-sizing:border-box; padding:11px 13px;
+  border-radius:8px; background:rgba(10,15,22,.82); border:1px solid rgba(232,173,100,.55);
+  font:700 11px/1.2 "Archivo Narrow",sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#d8dde6; }
+/* P21 (Bryson: "meal size and then feeding risk ... but also in bigger font, its too small"):
+   the card lives in a foreignObject, so its CSS px are STAGE units and render at about 0.71x on a
+   desktop pasture. 18px here is ~13px on screen (it was 10px here = ~7px on screen, hence "too
+   small"), and the box is 370x104 in stage units to match (bat-stage wst-info). */
+.wst-infobox .wyd-meters{ margin:0; gap:7px; flex-direction:column; }
+.wst-infobox .wyd-meter{ flex-direction:row; align-items:center; gap:10px; min-width:0; }
+.wst-infobox .wyd-meter .gl{ width:146px; font-size:18px; letter-spacing:.05em; color:#ccd4e0; white-space:nowrap; }
+.wst-infobox .wyd-meter .wyd-bloodbar{ width:auto; gap:4px; }
+.wst-infobox .wyd-bloodbar i{ width:48px; height:17px; }
+.wst-infobox .wyd-riskbar{ width:172px; height:17px; }
+.wst-you{ position:absolute; right:12px; top:10px; display:flex; flex-direction:column; gap:5px; padding:7px 9px;
+  border-radius:8px; background:rgba(10,15,22,.72); border:1px solid rgba(255,255,255,.12); pointer-events:none;
+  font:700 10px/1.2 "Archivo Narrow",sans-serif; letter-spacing:.12em; text-transform:uppercase; color:#aab4c2; }
+.wst-yourow{ display:flex; align-items:center; gap:8px; }
+.wst-yourow > span{ width:64px; }
+.wst-you .wyd-bloodbar i, .wst-you .wyd-pips i{ width:22px; height:8px; }
+@media (max-width:600px){
+  .wst-you{ right:8px; top:8px; padding:5px 7px; gap:3px; }
+  .wst-yourow > span{ width:52px; font-size:9px; }
+  .wst-you .wyd-bloodbar i, .wst-you .wyd-pips i{ width:16px; height:7px; }
+}
+/* up to ~760px the caption moves to the top-left: below that width the calf's silhouette reaches
+   the bottom-left corner (601-700px included), so a bottom caption would sit on top of it */
+@media (max-width:760px){ .wst-cap{ font-size:11px; left:10px; top:8px; bottom:auto; } }
+
+/* ---------- stars ---------- */
+.wst-star{ fill:#c6d2d9; }
+.wst-tw1{ animation:wst-twinkle 3.4s var(--e-soft) infinite; }
+.wst-tw2{ animation:wst-twinkle 4.7s var(--e-soft) infinite .9s; }
+.wst-tw3{ animation:wst-twinkle 5.6s var(--e-soft) infinite 2.1s; }
+@keyframes wst-twinkle{ 0%,100%{ opacity:.25 } 50%{ opacity:.95 } }
+
+/* clouds: slow mass, long symmetric drift */
+.wst-cloud{ fill:#3a5271; opacity:.55; }
+.wst-cloud.wst-cloud-storm{ opacity:.8; }
+.wst-drift1{ animation:wst-drift 46s var(--e-soft) infinite alternate; }
+.wst-drift2{ animation:wst-drift 64s var(--e-soft) infinite alternate -20s; }
+@keyframes wst-drift{ from{ transform:translateX(-40px) } to{ transform:translateX(60px) } }
+
+/* ---------- bat rig ---------- */
+.wst-bat *{ transform-box:fill-box; }
+.wst-body, .wst-ear, .wst-wing path{ fill:var(--wst-sil); }
+.wst-bat.wst-rival .wst-body, .wst-bat.wst-rival .wst-ear, .wst-bat.wst-rival .wst-wing path{ fill:#33090f; }
+.wst-bat.wst-rival{ filter:drop-shadow(0 0 3px rgba(198,48,60,.4)); }
+.wst-bat.wst-rival.wst-flare{ filter:drop-shadow(0 0 8px rgba(198,48,60,.7)); }
+.wst-bat.wst-tuck .wst-bob{ animation:none; }
+
+.wst-wing-l{ transform-origin:96% 30%; }
+.wst-wing-r{ transform-origin:4% 30%; }
+.wst-bat.wst-flap .wst-wing-l{ animation:wst-flapL .34s var(--e-soft) infinite alternate; }
+.wst-bat.wst-flap .wst-wing-r{ animation:wst-flapR .34s var(--e-soft) infinite alternate; }
+@keyframes wst-flapL{ from{ transform:rotate(30deg) } to{ transform:rotate(-22deg) } }
+@keyframes wst-flapR{ from{ transform:rotate(-30deg) } to{ transform:rotate(22deg) } }
+/* perched: wings folded in tight */
+.wst-bat.wst-tuck .wst-wing-l{ transform:rotate(58deg) scale(.72); transition:transform .4s var(--e-act); }
+.wst-bat.wst-tuck .wst-wing-r{ transform:rotate(-58deg) scale(.72); transition:transform .4s var(--e-act); }
+/* threat display: full flare */
+.wst-bat.wst-flare .wst-wing-l{ animation:wst-flareL .5s var(--e-act) infinite alternate; }
+.wst-bat.wst-flare .wst-wing-r{ animation:wst-flareR .5s var(--e-act) infinite alternate; }
+@keyframes wst-flareL{ from{ transform:rotate(-34deg) scale(1.12) } to{ transform:rotate(-16deg) scale(1.12) } }
+@keyframes wst-flareR{ from{ transform:rotate(34deg) scale(1.12) } to{ transform:rotate(16deg) scale(1.12) } }
+
+.wst-bob{ animation:wst-bob 2.2s var(--e-soft) infinite; }
+@keyframes wst-bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-7px) } }
+.wst-bat.wst-wobble .wst-bob{ animation:wst-wobble .55s var(--e-act) 2; }
+@keyframes wst-wobble{ 0%{ transform:rotate(0) } 25%{ transform:rotate(-14deg) }
+  60%{ transform:rotate(10deg) } 100%{ transform:rotate(0) } }
+/* the player's move group (transform set inline by batTo); settle = into the dark */
+.wst-move{ opacity:1; transition:opacity 1.5s var(--e-drift); }
+.wst-move.wst-dark{ opacity:.55; }   /* .3 read as a grey ghost against the sky */
+/* camera pan groups (transform + transition set inline by st.look; phones only) */
+.wst-pan{ will-change:transform; }
+
+/* ---------- cows ---------- */
+.wst-cow use{ fill:var(--wst-sil); }
+.wst-cow .wst-halo-ring{ opacity:0; transition:opacity .3s var(--e-act); }
+.wst-cow .wst-tag{ opacity:0; transition:opacity .3s var(--e-act);
+  font-size:12px; letter-spacing:.05em; fill:var(--g-dim); text-anchor:middle; }
+.wst-choice .wst-cow:hover .wst-halo-ring, .wst-cow.wst-sel .wst-halo-ring{ opacity:1; }
+.wst-choice .wst-cow:hover .wst-tag, .wst-cow.wst-sel .wst-tag{ opacity:1; }
+.wst-choice .wst-cow .wst-tag{ opacity:.55; }
+
+/* ---------- the cow board (P4): choice mode, selection, occupancy, commit ----------
+   Three hues only: the resting ring reads occupancy (green free, crimson occupied); hover,
+   focus and the selection (pselHalo, the breathing amber ring) are attention = amber.
+   .wst-hit is the invisible tap target (fill transparent; grown on phones by bat-stage.js). */
+.wst-hit{ fill:transparent; }
+.wst-cow:focus{ outline:none; }
+.wst-cow .wst-halo-ring{ stroke:var(--g-good); }
+.wst-cow.wst-occ .wst-halo-ring{ stroke:var(--g-accent); }
+.wst-choice .wst-cow .wst-halo-ring{ opacity:.45; }
+.wst-choice .wst-cow:hover .wst-halo-ring, .wst-choice .wst-cow:focus-visible .wst-halo-ring,
+.wst-cow.wst-sel .wst-halo-ring{ opacity:1; stroke:var(--g-warm); }
+.wst-choice .wst-cow:hover .wst-tag, .wst-choice .wst-cow:focus-visible .wst-tag,
+.wst-cow.wst-sel .wst-tag{ opacity:1; fill:var(--g-warm); }
+.wst-cow.wst-sel .wst-halo-ring{ animation:wst-psel 1.15s var(--e-soft) infinite alternate; }
+@keyframes wst-psel{ from{ stroke-width:2; opacity:.7 } to{ stroke-width:3.5; opacity:1 } }
+.wst-cow{ transition:opacity .4s var(--e-act); }
+.wst-cow.wst-dim{ opacity:.35; }
+/* P6b: the roost pick shares the cow board's language (halo ring, tag, selection) */
+.wyd-stage.wst-choice .wst-front .wst-roostpick{ pointer-events:auto; cursor:pointer; }
+.wst-roostpick .wst-halo-ring{ opacity:0; transition:opacity .3s var(--e-act); stroke:var(--g-good); }
+.wst-roostpick .wst-tag{ opacity:.9; font-size:19px; font-weight:700; fill:#f2efe6; paint-order:stroke; stroke:rgba(0,0,0,.55); stroke-width:4px; transition:opacity .3s var(--e-act); }   /* P18: the roost's name reads over it */
+.wst-roostpick.wst-sel .wst-tag{ fill:var(--g-warm); }
+.wst-choice .wst-roostpick .wst-halo-ring{ opacity:.45; }
+.wst-choice .wst-roostpick:hover .wst-halo-ring, .wst-choice .wst-roostpick:focus-visible .wst-halo-ring,
+.wst-roostpick.wst-sel .wst-halo-ring{ opacity:1; stroke:var(--g-warm); }
+.wst-choice .wst-roostpick:hover .wst-tag, .wst-choice .wst-roostpick:focus-visible .wst-tag,
+.wst-roostpick.wst-sel .wst-tag{ opacity:1; fill:var(--g-warm); }
+.wst-roostpick.wst-sel .wst-halo-ring{ animation:wst-psel 1.15s var(--e-soft) infinite alternate; }
+.wst-roostpick:focus, .wst-roostpick:focus-visible{ outline:none; }   /* the amber halo is the focus indicator */
+.wst-roostpick.wst-unknown .wst-roostsil{ opacity:.55; }
+@media (max-width:600px){ .wst-roostpick .wst-tag{ font-size:18px; } }
+@media (max-width:600px){ .wst-cow .wst-tag{ display:none; } }   /* phones: the intel panel carries the words */
+/* the resident: the prototype rival rig tucked on the back, and a crimson feeding bead at
+   the wound that pulses (2x slower while you wait); after a tolerated join the player's own
+   bead lights beside it (two feeders). Both beads are the drip primitive, larger. */
+.wst-res{ will-change:transform; }
+.wst-bead{ fill:var(--g-accent); opacity:0; transform-box:fill-box; transform-origin:50% 50%; }
+.wst-cow.wst-occ .wst-res .wst-bead, .wst-cow.wst-cofeed .wst-bead-you{ animation:wst-bead 1.35s var(--e-soft) infinite alternate; }
+.wst-cow.wst-slow .wst-res .wst-bead{ animation-duration:2.7s; }
+@keyframes wst-bead{ from{ opacity:.35; transform:scale(.8) } to{ opacity:.95; transform:scale(1.15) } }
+.wst-breathe{ animation:wst-breathe 3.8s var(--e-soft) infinite; transform-box:fill-box;
+  transform-origin:50% 100%; }
+@keyframes wst-breathe{ 0%,100%{ transform:scaleY(1) } 50%{ transform:scaleY(1.02) } }
+/* the kick: pivots at the hooves */
+.wst-breathe.wst-kick{ animation:wst-kick .55s var(--e-act) 1; }
+@keyframes wst-kick{ 0%{ transform:rotate(0) } 30%{ transform:rotate(-16deg) translateY(-5px) }
+  60%{ transform:rotate(7deg) } 100%{ transform:rotate(0) } }
+
+/* confrontation pulse + camera nudge */
+.wst-pulse{ fill:none; stroke:var(--g-accent); stroke-width:2; opacity:0; }
+.wst-pulse.wst-go{ animation:wst-pulse .8s var(--e-act) 2; }
+@keyframes wst-pulse{ 0%{ opacity:.9; transform:scale(.4) } 100%{ opacity:0; transform:scale(1.6) } }
+.wst-camera.wst-shake{ animation:wst-shake .38s var(--e-act) 1; }
+@keyframes wst-shake{ 0%,100%{ transform:translate(0,0) } 25%{ transform:translate(-5px,2px) }
+  55%{ transform:translate(4px,-2px) } 80%{ transform:translate(-2px,1px) } }
+
+/* blood reveal (+ drips while feeding) */
+.wst-blood{ transform-box:fill-box; transform-origin:50% 0%; transform:scale(0); }
+.wst-bloodg.wst-go .wst-blood{ transition:transform .5s var(--e-act); transform:scale(1); }
+.wst-bloodpulse{ fill:none; stroke:var(--g-accent-ink); stroke-width:1.5; opacity:0; }
+.wst-bloodg.wst-go .wst-bloodpulse{ animation:wst-pulse 1s var(--e-act) 2 .2s; }
+.wst-drip{ fill:var(--g-accent); opacity:0; }
+.wst-bloodg.wst-go .wst-drip{ animation:wst-drip 2.7s var(--e-anticipate) infinite .5s; }
+.wst-bloodg.wst-go .wst-drip.wst-d2{ animation-delay:1.4s; }
+.wst-bloodg.wst-go .wst-drip.wst-d3{ animation-delay:2.3s; }
+@keyframes wst-drip{ 0%{ opacity:0; transform:translateY(0) scale(.5) } 8%{ opacity:.95 }
+  38%{ opacity:0; transform:translateY(38px) scale(1.05) } 100%{ opacity:0; transform:translateY(38px) } }
+/* dust puff where the flung bat lands */
+.wst-puff circle{ fill:#c6d2d9; opacity:0; }
+.wst-puff.wst-go circle{ animation:wst-puff .6s var(--e-act) 1; transform-box:fill-box; transform-origin:50% 50%; }
+@keyframes wst-puff{ 0%{ opacity:.6; transform:scale(.4) } 100%{ opacity:0; transform:scale(2) } }
+
+/* reduced motion: a static frame (bat-stage.js also skips the canvas loop) */
+@media (prefers-reduced-motion:reduce){
+  .wst-tw1, .wst-tw2, .wst-tw3, .wst-drift1, .wst-drift2, .wst-bob, .wst-breathe,
+  .wst-bat.wst-flap .wst-wing-l, .wst-bat.wst-flap .wst-wing-r,
+  .wst-bat.wst-flare .wst-wing-l, .wst-bat.wst-flare .wst-wing-r,
+  .wst-bat.wst-wobble .wst-bob, .wst-breathe.wst-kick, .wst-pulse.wst-go,
+  .wst-camera.wst-shake, .wst-bloodg.wst-go .wst-bloodpulse, .wst-bloodg.wst-go .wst-drip,
+  .wst-puff.wst-go circle, .wst-cow.wst-sel .wst-halo-ring,
+  .wst-cow.wst-occ .wst-res .wst-bead, .wst-cow.wst-cofeed .wst-bead-you{ animation:none !important; }
+  .wst-move, .wst-pan, .wst-cap, .wst-cow, .wst-res, .wst-cow .wst-halo-ring, .wst-cow .wst-tag,
+  .wst-bat.wst-tuck .wst-wing-l, .wst-bat.wst-tuck .wst-wing-r, .wst-blood{ transition:none !important; }
+  .wst-bloodg.wst-go .wst-drip{ opacity:.9; }
+  /* static twins: a steady 2px amber ring on the selected cow, steady beads on the feeders */
+  .wst-cow.wst-sel .wst-halo-ring{ stroke-width:2; opacity:1; }
+  .wst-cow.wst-occ .wst-res .wst-bead, .wst-cow.wst-cofeed .wst-bead-you{ opacity:.85; }
+}
+
+/* ---------- the pasture game (NIGHT FLIGHT P4): dark hours, intel panel, verbs, badges ----------
+   bat-game.js emits these class names. The rules keep the three-hue discipline (crimson = blood /
+   loss, amber = attention / selection / threat, green = bonds / safety) and the motion tokens
+   (no linear, no bare ease). Reduced-motion twins close the block. */
+.gpage.theme-bat{ --e-act:cubic-bezier(.2,.9,.3,1); --e-anticipate:cubic-bezier(.55,-.35,.6,1);
+  --e-soft:cubic-bezier(.45,.05,.55,.95); --e-drift:cubic-bezier(.37,.1,.63,.9);
+  --g-glow-warm:rgba(232,173,100,.5); --g-glow-good:rgba(103,192,155,.5); }
+
+/* HUD "Dark hours": the stamina diamond pips in amber (3 a night, 2 in a storm); a spent hour goes dark */
+.wyd-ticks{ display:flex; gap:4px; }
+/* P6d: dark hours share the segment look (moon-blue when lit) */
+.wyd-ticks i{ width:26px; height:12px; background:var(--g-bg2); border:1px solid var(--g-line); transform:none; }
+.wyd-ticks i.on{ background:#6f8fb8; border-color:#6f8fb8; box-shadow:none; }
+
+/* desperation tint (blood <= BAT.desperateAt): amber framing on the high-variance options, no modifier;
+   the engine writes the "desperate hours" label */
+.wyd-desperate{ border-color:var(--g-warm);
+  background-image:linear-gradient(180deg, rgba(232,173,100,.12), rgba(232,173,100,.04));
+  box-shadow:0 0 0 1px rgba(232,173,100,.18) inset, 0 0 18px -8px var(--g-glow-warm); }
+.gpage .btnx.wyd-desperate, .gpage .btnx.wyd-huntopt.wyd-desperate{ border-color:var(--g-warm); animation:none;
+  background-image:linear-gradient(180deg, rgba(232,173,100,.12), rgba(232,173,100,.04));
+  box-shadow:0 0 0 1px rgba(232,173,100,.18) inset, 0 0 18px -8px var(--g-glow-warm); }
+.wyd-desperate .sub, .wyd-desperate .gl, .wyd-desperate .wyd-deslabel{ color:var(--g-warm); }
+.wyd-desperate .wyd-ptag{ border-color:var(--g-warm); color:var(--g-warm); }
+
+/* intel panel (the .wyd-partner pattern): what you know about the selected animal before you commit */
+.wyd-intel{ border:1px solid var(--g-line); background:var(--g-bg2); border-radius:var(--g-radius);
+  padding:1rem 1.2rem; margin-top:1.1rem; transition:border-color .3s var(--e-act), box-shadow .3s var(--e-act); }
+.wyd-intel h4{ font-size:1.1rem; font-weight:800; color:var(--g-ink); margin:0 0 .3rem; }
+.wyd-intel .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em; color:var(--g-dim); font-weight:700; }
+.wyd-intel p{ margin:.35rem 0 0; color:var(--g-muted); font-size:.92rem; }
+.wyd-intel .empty{ color:var(--g-dim); font-style:italic; margin:0; }
+/* itemized odds: one term per line, values right-aligned in tabular figures */
+.wyd-intel .terms{ list-style:none; margin:.6rem 0 0; padding:0; max-width:36rem; }
+.wyd-intel .terms li{ display:flex; justify-content:space-between; align-items:baseline; gap:1rem;
+  padding:.28rem 0; border-bottom:1px dashed var(--g-line); font-size:.9rem; color:var(--g-muted); }
+.wyd-intel .terms li:last-child{ border-bottom:none; }
+.wyd-intel .terms .v{ margin-left:auto; text-align:right; white-space:nowrap; font-family:"Archivo Narrow",sans-serif;
+  font-weight:700; font-size:.94rem; letter-spacing:.04em; font-variant-numeric:tabular-nums; color:var(--g-ink); }
+.wyd-intel .terms li.total{ border-top:1px solid var(--g-line2); border-bottom:none; margin-top:.2rem; padding-top:.45rem;
+  color:var(--g-ink); font-weight:600; }
+.wyd-intel .terms li.total .v{ color:var(--g-warm); font-size:1.05rem; }
+.wyd-intel .terms .v.bad{ color:var(--g-accent-ink); }   /* a term that raises the fail chance: loss */
+.wyd-intel .terms .v.good{ color:var(--g-good); }        /* a term that lowers it: safety */
+.wyd-intel .cue{ margin:.7rem 0 0; font-size:.88rem; color:var(--g-muted); }
+.wyd-intel .cue.occ{ color:var(--g-warm); }              /* a resident at the wound: threat */
+.wyd-intel .cue.locked{ color:var(--g-accent-ink); }     /* done with you tonight: loss */
+.wyd-intel .cite{ display:block; margin-top:.6rem; font-family:"Archivo Narrow",sans-serif; font-size:.72rem;
+  letter-spacing:.04em; color:var(--g-dim); }
+/* the panel itself in desperate hours (occupied prime at blood <= desperateAt): the compound selector is
+   needed because the .wyd-intel shorthand above would otherwise win the specificity tie */
+.wyd-intel.wyd-desperate{ border-color:var(--g-warm);
+  background-image:linear-gradient(180deg, rgba(232,173,100,.12), rgba(232,173,100,.04));
+  box-shadow:0 0 0 1px rgba(232,173,100,.18) inset, 0 0 18px -8px var(--g-glow-warm); }
+
+/* the choices row under the intel panel: #wyd-approach + #wyd-flyhome; sticky at the bottom on phones so
+   the commit stays under the thumb while the panel is read */
+.wyd-cowpick{ display:flex; gap:.7rem; margin-top:1.1rem; flex-wrap:wrap; }
+.wyd-cowpick .btnx{ flex:1 1 0; min-width:0; min-height:48px; }   /* basis 0: the pair shares one row even at 375px */
+@media (max-width:600px){
+  /* P26: these negative margins were the desktop scene padding (1.3rem), but the phone scene pads
+     .8rem .9rem, so the bar hung 6px past the card's border down each side. Match the real padding. */
+  .wyd-cowpick{ position:sticky; bottom:0; z-index:3; margin:1rem -.9rem -.8rem;
+    padding:.6rem .9rem calc(.7rem + env(safe-area-inset-bottom)); background:var(--g-card);
+    border-top:1px solid var(--g-line); border-radius:0 0 var(--g-radius) var(--g-radius); }
+  /* two buttons share 288px: tighter type so the labels wrap to two lines, not three */
+  .wyd-cowpick .btnx{ font-size:.68rem; letter-spacing:.08em; padding:.65rem .55rem; }
+}
+
+/* encounter verb cards: JOIN green (bonds), DISPLACE amber (threat), WAIT neutral, LEAVE dim; 48px tap height */
+.wyd-verbs{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.6rem; margin-top:1.1rem; }
+.wyd-verbs .wyd-verb{ min-width:0; width:auto; }
+.gpage .wyd-verb{ display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.25rem;
+  min-height:48px; padding:.8rem 1rem; text-align:left; cursor:pointer;
+  font:inherit; font-weight:800; font-size:.8rem; letter-spacing:.14em; text-transform:uppercase;
+  border:1px solid var(--g-line2); border-radius:var(--g-radius); background:var(--g-card2); color:var(--g-ink);
+  transition:border-color .2s var(--e-act), box-shadow .2s var(--e-act), transform .2s var(--e-act), filter .2s var(--e-act); }
+.gpage .wyd-verb .sub{ display:block; font-weight:500; font-size:.68rem; letter-spacing:.03em; text-transform:none;
+  color:var(--g-muted); line-height:1.35; opacity:1; }
+.gpage .wyd-verb:hover, .gpage .wyd-verb:focus-visible{ transform:translateY(-1px); filter:brightness(1.08); }
+.gpage .wyd-verb:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+.gpage .wyd-verb:disabled{ opacity:.4; cursor:default; pointer-events:none; }
+.gpage .wyd-verb.join{ border-color:var(--g-good); color:var(--g-good); }
+.gpage .wyd-verb.join:hover, .gpage .wyd-verb.join:focus-visible{ box-shadow:0 0 16px -5px var(--g-glow-good); }
+.gpage .wyd-verb.displace{ border-color:var(--g-warm); color:var(--g-warm); }
+.gpage .wyd-verb.displace:hover, .gpage .wyd-verb.displace:focus-visible{ box-shadow:0 0 16px -5px var(--g-glow-warm); }
+.gpage .wyd-verb.wait{ border-color:var(--g-line2); color:var(--g-ink); }
+.gpage .wyd-verb.leave{ border-color:var(--g-line); color:var(--g-dim); background:transparent; }
+.gpage .wyd-verb.leave .sub{ color:var(--g-dim); }
+@media (max-width:899px){ .wyd-verbs{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+/* P29 (Bryson: "too much wasted space on this screen, should be condensed to a 2x2 grid of options
+   making it so the user doesnt have to scroll"). Four verbs, two by two, each a label over its
+   chance. */
+@media (max-width:600px){
+  .wyd-verbs{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:.4rem; }
+  .wyd-verbs .btnx{ padding:.55rem .5rem; text-align:left; }
+  .wyd-verbs .btnx .sub{ font-size:.6rem; display:block; margin-top:.15rem; }
+}
+
+/* end-screen badges: chips beside the verdict (plain-text strings; wyd-core writes the verdict with
+   textContent, so the engine inserts this element into .wyd-endcard itself) */
+.wyd-badges{ display:flex; flex-wrap:wrap; justify-content:center; gap:.5rem; max-width:56ch; margin:.2rem auto 1.4rem; }
+.wyd-verdict + .wyd-badges{ margin-top:-.7rem; }
+.wyd-badge{ display:inline-block; font-family:"Archivo Narrow",sans-serif; font-size:.7rem; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; border:1px solid var(--g-warm); color:var(--g-warm);
+  padding:.38rem .8rem; border-radius:var(--g-radius); animation:wydbadge-in .5s var(--e-act) both; }
+.wyd-badge.good{ border-color:var(--g-good); color:var(--g-good); }   /* bond badges: Bonded, The Connector, Full Roost */
+.wyd-badge:nth-child(2){ animation-delay:.12s; } .wyd-badge:nth-child(3){ animation-delay:.24s; }
+.wyd-badge:nth-child(4){ animation-delay:.36s; } .wyd-badge:nth-child(5){ animation-delay:.48s; }
+@keyframes wydbadge-in{ from{ opacity:0; transform:translateY(6px) scale(.96); } to{ opacity:1; transform:none; } }
+
+/* model notes (P4): MODEL flags, live-filled numbers (.wyd-n, see play-bat.qmd), the cow tier list */
+.wyd-flag{ display:inline-block; font-family:"Archivo Narrow",sans-serif; font-size:.6rem; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; line-height:1.3; color:var(--g-warm); border:1px solid var(--g-warm);
+  border-radius:3px; padding:.05rem .35rem; vertical-align:.12em; }
+.wyd-n{ font-variant-numeric:tabular-nums; }
+.wyd-tiers{ list-style:none; padding:0; margin:.2rem 0 .9rem; display:grid; gap:.4rem; max-width:78ch; }
+.wyd-tiers li{ color:var(--g-muted); font-size:.92rem; padding-left:.9rem; border-left:2px solid var(--g-line2); }
+.wyd-model-body b{ color:var(--g-ink); }
+
+/* reduced motion: no transitions or entrance motion; states snap */
+@media (prefers-reduced-motion:reduce){
+  .wyd-ticks i, .wyd-intel, .gpage .wyd-verb{ transition:none; }
+  .gpage .wyd-verb:hover, .gpage .wyd-verb:focus-visible{ transform:none; }
+  .wyd-badge{ animation:none; }
+}
+
+/* ---------- compact desktop play mode ----------
+   On a PC screen the whole play column (HUD + scene + log) should fit in one
+   viewport, so no scrolling during play. Mobile keeps the roomier spacing.
+   KEEP THIS BLOCK LAST: it must override the base component rules above. */
+/* NIGHT FLIGHT launch (2026-09-02): the anonymous play-log disclosure under the hero buttons,
+   and the board's species column hidden on the bat-only page (wyd-core still emits 6 cells) */
+.theme-bat .g-foot{ margin:1.1rem 0 0; max-width:38rem; font-size:.82rem; line-height:1.5; color:#8fa0a8; }
+.theme-bat .wyd-board td:nth-child(3), .theme-bat .wyd-board th:nth-child(3){ display:none; }
+@media (min-width:900px){
+  .wyd-hud{ margin-bottom:.6rem; }
+  .wyd-ghud{ padding:.55rem 1.1rem; gap:1.3rem; }
+  .wyd-ghud .gstat{ min-width:78px; gap:.2rem; }
+  .wyd-ghud .gv{ font-size:1.12rem; }
+  .wyd-scene{ padding:1rem 1.3rem; }
+  .wyd-scene h3{ font-size:1.28rem; margin:.35rem 0 .45rem; }
+  .wyd-story{ font-size:.92rem; line-height:1.5; }
+  .wyd-choices{ margin-top:.9rem; }
+  .gpage .btnx{ padding:.55rem 1rem; }
+  .wyd-roost{ margin-top:.8rem; gap:1.2rem; grid-template-columns:1.1fr 1fr; }
+  .wyd-net{ max-height:max(46vh, 240px); }
+  .theme-fish .wyd-net{ max-height:max(32vh, 220px); }
+  .wyd-partner{ padding:.8rem .9rem; }
+  .wyd-partner h4{ font-size:1.02rem; margin-bottom:.35rem; }
+  .wyd-ptags{ margin-bottom:.6rem; }
+  /* action buttons two-up so the panel stays shorter than the network */
+  .wyd-pacts{ display:grid; grid-template-columns:1fr 1fr; gap:.45rem; }
+  .wyd-pacts .btnx{ width:auto; }
+  .wyd-sleeprow{ margin-top:.6rem; }
+  .wyd-sleepwarn{ margin-top:.35rem; }
+  .wyd-feedback{ margin-top:.5rem; font-size:.82rem; }
+  .wyd-outcome{ margin-top:.8rem; padding-top:.7rem; }
+  .wyd-reallife{ margin-top:.6rem; padding:.6rem .95rem; font-size:.87rem; }
+  .wyd-log{ margin-top:.6rem; max-height:76px; font-size:.74rem; padding:.5rem .8rem; }
+}
+/* short desktop screens (small laptops): drop the log to keep play on one screen */
+/* NIGHT FLIGHT P5 (2026-09-03): the SLEEP cards at dusk, the dawn roost line and hazards, the
+   who-needs-you strip on a crowded dawn, HUD state chips, visiting bats in the network */
+.wyd-sleep{ margin-top:1.4rem; }
+.wyd-sleep h4{ font-size:.66rem; text-transform:uppercase; letter-spacing:.18em; color:var(--g-warm); font-weight:700; margin:0 0 .4rem; }
+.wyd-sleep .wyd-sleepintro{ font-size:.9rem; margin:0 0 .8rem; }
+.wyd-roostcards{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:.7rem; }
+.wyd-roostcard{ font:inherit; text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:.4rem;
+  padding:.8rem .9rem; border-radius:var(--g-radius); border:1px solid var(--g-line2); background:var(--g-card2);
+  color:var(--g-ink); transition:border-color .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s cubic-bezier(.2,.9,.3,1); }
+.wyd-roostcard:hover, .wyd-roostcard:focus-visible{ border-color:var(--g-warm); outline:none; }
+.wyd-roostcard.sel{ border-color:var(--g-warm); box-shadow:0 0 0 1px var(--g-warm), 0 0 14px -4px var(--g-glow); background:var(--g-card); }
+.wyd-roostcard:disabled{ cursor:default; }
+.wyd-roostcard .rc-name{ font-weight:800; font-size:1rem; line-height:1.2; }
+.wyd-roostcard .rc-tags{ display:flex; gap:.35rem; flex-wrap:wrap; }
+.wyd-roostcard .rc-sub{ font-size:.8rem; color:var(--g-muted); line-height:1.45; }
+.wyd-roostcard.unknown .rc-sub{ font-style:italic; }
+.wyd-roostcard .rc-rumor{ font-size:.78rem; color:var(--g-warm); line-height:1.4; }
+.wyd-roostcard .rc-haz{ font-size:.66rem; text-transform:uppercase; letter-spacing:.1em; color:var(--g-accent-ink); font-weight:700; }
+.wyd-roostline{ font-size:.92rem; }
+.wyd-grief.wyd-hazard{ border-left-color:var(--g-warm); }
+.wyd-needs{ display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; margin:.6rem 0 0; }
+.wyd-needs .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em; color:var(--g-dim); font-weight:700; margin-right:.2rem; }
+.wyd-needchip{ font:inherit; cursor:pointer; background:transparent; font-size:.6rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700; }
+.wyd-needchip:hover, .wyd-needchip:focus-visible{ border-color:var(--g-warm); color:var(--g-warm); outline:none; }
+.wyd-ghud .wyd-hudstate{ flex-direction:row; gap:.35rem; align-items:center; min-width:0; }
+.wyd-ghud .gl.wyd-roostname{ text-transform:none; letter-spacing:0; font-size:.62rem; color:var(--g-muted); font-weight:600; white-space:normal; line-height:1.15; }
+.wyd-hudchip{ font-size:.56rem; }
+.wyd-net .node.visitor circle{ stroke-dasharray:4 3; }
+@media (prefers-reduced-motion:reduce){ .wyd-roostcard{ transition:none; } }
+
+/* NIGHT FLIGHT P6a (2026-09-03): the season cues at the first dusk, the bat-ear node motif, coughing
+   bats, the rescue line and spread-thin warning in the partner panel, the bead stream, achievements */
+.wyd-season{ margin-top:1.4rem; border:1px solid var(--g-line2); border-radius:var(--g-radius); background:var(--g-card2); padding:.9rem 1rem .6rem; }
+.wyd-season h4{ font-size:.66rem; text-transform:uppercase; letter-spacing:.18em; color:var(--g-warm); font-weight:700; margin:0 0 .3rem; }
+.wyd-cues{ margin:.4rem 0 0; padding:0; list-style:none; }
+.wyd-cues li{ position:relative; padding:.35rem 0 .35rem 1.1rem; font-size:.9rem; color:var(--g-muted); line-height:1.5; border-top:1px solid var(--g-line); }
+.wyd-cues li:first-child{ border-top:none; }
+.wyd-cues li::before{ content:""; position:absolute; left:0; top:.95rem; width:6px; height:6px; border-radius:50%; background:var(--g-warm); }
+.wyd-net .ears path{ fill:var(--g-good); opacity:.85; }
+.wyd-net .node.hungry .ears path, .wyd-net .node.starving .ears path{ fill:var(--g-accent); }
+.wyd-net .node.cough .ears path{ fill:var(--g-warm); }
+.wyd-net .you .ears path{ fill:var(--g-good); opacity:1; }
+.wyd-net .node.cough circle{ stroke:var(--g-warm); stroke-dasharray:2 3; }
+.wyd-net .node .beg.cough{ fill:var(--g-warm); }
+.wyd-ptag.wyd-cough{ border-color:var(--g-warm); color:var(--g-warm); }
+.wyd-rescueline{ margin:.2rem 0 .7rem; font-size:.8rem; color:var(--g-warm); }
+.wyd-spread{ color:var(--g-accent-ink); margin:0 0 .7rem; }
+.wyd-fxbead{ pointer-events:none; }
+.wyd-fxline{ pointer-events:none; opacity:.9; }
+.wyd-achlist{ list-style:none; margin:.4rem 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:.35rem .9rem; }
+.wyd-ach{ display:flex; gap:.6rem; align-items:flex-start; padding:.45rem .2rem; border-bottom:1px solid var(--g-line); font-size:.86rem; color:var(--g-dim); }
+.wyd-ach .wyd-achmark{ flex:0 0 1.4rem; height:1.4rem; border-radius:50%; border:1px solid var(--g-line2); display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; }
+.wyd-ach.got{ color:var(--g-muted); }
+.wyd-ach.got .wyd-achmark{ border-color:var(--g-good); color:var(--g-good); }
+.wyd-ach.secret .wyd-achmark{ border-style:dashed; color:var(--g-warm); border-color:var(--g-warm); }
+.wyd-ach .wyd-achtext{ display:flex; flex-direction:column; gap:.1rem; }
+.wyd-ach .wyd-achtext strong{ color:var(--g-ink); font-weight:700; }
+.wyd-ach:not(.got) .wyd-achtext strong{ color:var(--g-muted); }
+.wyd-achrow{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; align-items:center; margin:.9rem 0 .2rem; }
+.wyd-achrow .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em; color:var(--g-dim); font-weight:700; }
+.wyd-achrow .wyd-ach-chip{ border-color:var(--g-warm); color:var(--g-warm); }
+.wyd-achrow .wyd-ach-chip.secret{ border-style:dashed; }
+.wyd-achtally{ font-size:.72rem; color:var(--g-dim); margin-left:.3rem; }
+/* P6c: meal and risk meters (the numbers stay, small, for the screen reader and the curious) */
+.wyd-meters{ display:flex; gap:1.2rem 2rem; flex-wrap:wrap; margin:.7rem 0 .2rem; }
+.wyd-meter{ display:flex; flex-direction:column; gap:.3rem; min-width:150px; }
+.wyd-meter .gl{ font-size:.6rem; text-transform:uppercase; letter-spacing:.15em; color:var(--g-dim); font-weight:700; }
+.wyd-meter .wyd-bloodbar{ width:150px; }
+.wyd-riskbar{ width:150px; height:10px; border-radius:5px; background:var(--g-card); border:1px solid var(--g-line2); overflow:hidden; }
+.wyd-riskbar b{ display:block; height:100%; background:var(--g-good); transition:width .3s cubic-bezier(.2,.9,.3,1); }
+.wyd-riskbar.mid b{ background:var(--g-warm); }
+.wyd-riskbar.bad b{ background:var(--g-accent); }
+/* P24: the plain-language trait line under the chips ("Tight-furred: takes your grooming and
+   gives little back."). Small and muted, because it explains a label and is not a headline. */
+.wyd-traithint{ margin:.35rem 0 0 !important; font-size:.84rem !important; color:var(--g-dim) !important; }
+.wyd-ptrait{ cursor:help; border-bottom:1px dotted currentColor; }
+.wyd-intel .wyd-meternum{ font-size:.72rem !important; color:var(--g-dim) !important; font-weight:500 !important; margin:.15rem 0 0; }
+.wyd-verb .wyd-meter{ min-width:0; margin-top:.4rem; gap:.2rem; align-items:center; }
+.wyd-verb .wyd-riskbar{ width:120px; height:7px; }
+.wyd-verb .wyd-meter .gl{ font-size:.52rem; }
+.wyd-roostcard.wyd-intel{ cursor:default; }
+@media (max-width:600px){ .wyd-roostcards{ grid-template-columns:1fr; } }
+
+@media (min-width:900px) and (max-height:820px){
+  .wyd-log{ display:none; }
+}
+
+/* ---------- daylight: the hub follows the site's light-mode toggle ----------
+   (the paper token set from .theme-paper, re-applied when <html> carries
+   data-theme="light"; the three game pages + posters stay night scenes) */
+:root[data-theme="light"] .theme-arcade{
+  --g-bg:transparent; --g-bg2:rgba(63,107,75,.04); --g-card:rgba(250,247,238,.9); --g-card2:#f3f0e8;
+  --g-ink:#27211b; --g-muted:#5c6553; --g-dim:#7c8473; --g-line:rgba(31,44,27,.13); --g-line2:rgba(47,74,55,.3);
+  --g-accent:#3f6b4b; --g-accent-ink:#3f6b4b; --g-warm:#bf6e46; --g-good:#2e7a62;
+  --g-glow:rgba(63,107,75,.2);
+}
+:root[data-theme="light"] body:has(.theme-arcade){ background:#f5f0e3; }
+:root[data-theme="light"] .theme-arcade .klink:hover{ color:#f7f3e8; }  /* --g-bg is transparent in daylight */
+
+/* NIGHT FLIGHT P9 (2026-09-03 evening): popups (the first-dusk briefing, surprises, hazards, help) and
+   the year / season icons in the HUD. One modal, fixed over the page, above the navbar. */
+.wyd-modal{ position:fixed; inset:0; height:100%; z-index:1200; display:flex; align-items:center; justify-content:center; padding:1.2rem;
+  background:rgba(6,4,2,.72); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+.wyd-modal[hidden]{ display:none; }
+.wyd-modal__card{ width:min(560px,100%); max-height:min(86vh,720px); display:flex; flex-direction:column; background:var(--g-card); color:var(--g-ink);
+  border:1px solid var(--g-line2); border-radius:var(--g-radius); box-shadow:0 30px 80px -30px rgba(0,0,0,.9);
+  padding:clamp(1.1rem,3vw,1.6rem); animation:wydPop .22s cubic-bezier(.2,.9,.3,1); }
+@keyframes wydPop{ from{ transform:translateY(10px) scale(.98); opacity:0; } to{ transform:none; opacity:1; } }
+.wyd-modal__kicker{ margin:0 0 .35rem; font-size:.62rem; text-transform:uppercase; letter-spacing:.18em; font-weight:700; color:var(--g-warm); }
+.wyd-modal h3{ margin:0 0 .6rem; font-size:1.35rem; }
+.wyd-modal h3[hidden]{ display:none; }
+.wyd-modal__body{ flex:1 1 auto; min-height:0; overflow:auto; padding-right:.2rem; }   /* the body scrolls; the OK row below never leaves the screen */
+.wyd-modal__body p{ color:var(--g-muted); line-height:1.6; }
+.wyd-modal__body .wyd-story{ font-size:.92rem; margin:.2rem 0 .8rem; max-width:none; }
+.wyd-modal__body .wyd-hazard{ color:var(--g-ink); }
+.wyd-modal__sub{ font-size:.66rem; text-transform:uppercase; letter-spacing:.18em; color:var(--g-warm); font-weight:700; margin:1.1rem 0 .1rem; }
+.wyd-modal .wyd-cues li{ font-size:.88rem; }
+.wyd-modal__body .wyd-modal__note{ font-size:.8rem; color:var(--g-dim); margin:.9rem 0 0; }
+.wyd-modal .wyd-choices{ margin-top:1rem; flex:none; }
+.wyd-modal .wyd-choices .btnx{ flex:0 1 auto; min-width:160px; margin-left:auto; }
+.wyd-evcard{ display:flex; gap:.9rem; align-items:flex-start; border:1px solid var(--g-line2); background:var(--g-card2); border-radius:var(--g-radius); padding:.8rem .9rem; margin-top:.7rem; }
+.wyd-evcard__icon{ font-size:1.6rem; line-height:1; width:42px; height:42px; flex:none; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--g-line2); background:var(--g-bg2); }
+.wyd-evcard h4{ margin:0 0 .25rem; font-size:1.02rem; font-weight:800; color:var(--g-ink); }
+.wyd-evcard p{ margin:0; font-size:.9rem; }
+.wyd-evcard p strong{ color:var(--g-ink); }
+.wyd-ev[role="button"]{ cursor:pointer; }
+.wyd-ev.year{ border-color:var(--g-warm); }
+.wyd-ev.season{ border-style:dotted; }
+.wyd-events .wyd-evsep{ display:inline-block; width:1px; height:22px; background:var(--g-line2); margin:0 .2rem; }
+.wyd-hudbtns{ display:flex; gap:.35rem; }
+.wyd-helpbtn{ font-size:.95rem; }
+.wyd-hudchip[data-tip]{ cursor:help; }
+.wyd-ghud .gstat.wyd-evcell{ min-width:0; }
+.wyd-hudtip.on{ max-height:14rem; }
+@media (prefers-reduced-motion:reduce){ .wyd-modal__card{ animation:none; } }
+@media (max-width:600px){
+  .wyd-modal{ padding:.7rem; align-items:center;
+    padding-bottom:max(.7rem, env(safe-area-inset-bottom));
+    padding-top:max(.7rem, env(safe-area-inset-top)); }
+  .wyd-modal__card{ max-height:80vh; }
+  .wyd-ghud .gstat.wyd-evcell{ grid-column:1 / -1; }
+  .wyd-events{ flex-wrap:wrap; }
+}
+
+/* ── P10 (2026-09-04): the season meters and the Skill bar in the HUD, the end-of-season ledger,
+      and the one-donation-a-dawn line in the partner panel ── */
+.wyd-ghud .gstat.wyd-seasoncell{ min-width:0; cursor:pointer; }
+.wyd-smeters{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.18rem .7rem; }
+.wyd-sbar{ display:flex; align-items:center; gap:.35rem; outline:none; border-radius:3px; }
+.wyd-sbar .gl{ font-size:.5rem; letter-spacing:.1em; white-space:nowrap; min-width:5.6em; }
+.wyd-sbar .wyd-riskbar{ width:54px; height:6px; border-radius:3px; }
+.wyd-sbar:hover .gl, .wyd-sbar:focus-visible .gl{ color:var(--g-warm); }
+.wyd-ghud .gstat.wyd-skillcell{ cursor:pointer; }
+.wyd-skillbar i b{ background:#a58bd6; }   /* P13: skill has its own colour (lavender) */
+.wyd-onedon{ font-size:.82rem; color:var(--g-muted); margin:.5rem 0 .2rem; }
+.wyd-ledger{ max-width:44ch; margin:1.1rem auto .3rem; text-align:left; border-top:1px solid var(--g-line2); padding-top:.6rem; }
+.wyd-ledger .gl{ display:block; font-size:.6rem; text-transform:uppercase; letter-spacing:.15em; color:var(--g-dim); font-weight:700; margin-bottom:.35rem; }
+.wyd-ledline{ display:flex; gap:.8rem; justify-content:space-between; align-items:baseline; font-size:.85rem; color:var(--g-muted); padding:.15rem 0; }
+.wyd-ledline b{ font-family:"Archivo Narrow",sans-serif; color:var(--g-ink); font-weight:700; white-space:nowrap; }
+.wyd-ledtotal{ border-top:1px solid var(--g-line2); margin-top:.35rem; padding-top:.4rem; color:var(--g-ink); font-weight:700; }
+@media (max-width:600px){
+  .wyd-ghud .gstat.wyd-seasoncell{ grid-column:1 / -1; }
+  .wyd-smeters{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .wyd-sbar .wyd-riskbar{ width:100%; }
+}
+.wyd-lbpick{ margin:-.5rem 0 .9rem; font-size:.82rem; color:var(--g-muted); display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+.wyd-lbpick label{ text-transform:uppercase; letter-spacing:.14em; font-size:.6rem; font-weight:700; color:var(--g-dim); }
+.wyd-lbpick select{ background:var(--g-card); color:var(--g-ink); border:1px solid var(--g-line2); border-radius:6px; padding:.25rem .5rem; font:inherit; font-size:.82rem; }
+
+/* P10b: the compact briefing (Bryson: bars + one sentence each) */
+.wyd-evcard.wyd-evcard--row{ padding:.55rem .75rem; gap:.7rem; align-items:center; margin-top:.5rem; }
+.wyd-evcard--row .wyd-evcard__icon{ width:34px; height:34px; font-size:1.25rem; }
+.wyd-evcard--row h4{ font-size:.92rem; margin:0 0 .1rem; }
+.wyd-evcard--row p{ font-size:.84rem; line-height:1.45; }
+.wyd-cues--bars li{ display:grid; grid-template-columns:7.2rem 1fr; align-items:center; gap:.15rem .7rem; padding:.45rem 0; }
+.wyd-cues--bars li::before{ display:none; }
+.wyd-cues--bars .gl{ font-size:.58rem; text-transform:uppercase; letter-spacing:.15em; font-weight:700; color:var(--g-dim); }
+.wyd-cues--bars .wyd-riskbar{ width:100%; }
+.wyd-cues--bars .txt{ grid-column:1 / -1; font-size:.84rem; color:var(--g-muted); line-height:1.45; }
+.wyd-modal .wyd-modal__sub{ margin-top:.9rem; }
+/* P10b phones: the four season bars stack label over bar (side by side they overlapped at 375px) */
+@media (max-width:600px){
+  .wyd-smeters{ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.3rem .8rem; }
+  .wyd-sbar{ display:block; }
+  .wyd-sbar .gl{ display:block; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wyd-sbar .wyd-riskbar{ width:100%; }
+}
+
+/* P10c phones: the picked animal's meal and bite-risk bars move from the (tiny) stage box into the panel */
+.wyd-meters--phone{ display:none; }
+@media (max-width:600px){
+  .wyd-meters--phone{ display:block; margin:.5rem 0 .2rem; }
+  .wyd-meters--phone .wyd-meters{ display:flex; flex-direction:column; gap:.35rem; }
+  .wyd-meters--phone .wyd-meter{ display:flex; align-items:center; gap:.6rem; }
+  .wyd-meters--phone .wyd-meter .gl{ width:6.5rem; }
+  .wyd-meters--phone .wyd-riskbar{ flex:1; height:9px; }
+  .wst-infobox{ display:none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   NIGHT FLIGHT P11 (Bryson, 2026-09-04): "I want the entire GUI kinda condensed so the player
+   doesn't have to scroll while playing, it takes away from the experience."
+   The play column (status bar + stage + scene) has to fit 1920x1080 AND 1366x768 with the site
+   navbar in place, in every scene. KEEP THIS BLOCK LAST: it overrides the component rules above.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* the old top bar (title + "progress saves..." note + Exit) is folded into the status bar: the
+   Exit button there clicks this one, and the save note moved into the ❔ help popup */
+.theme-bat #wyd-topbar{ display:none !important; }
+
+/* the running log is hidden during play behind the status bar's 📜 toggle */
+.gpage.wyd-playing #wyd-log{ display:none; }
+.gpage.wyd-playing #wyd-log.wyd-logopen{ display:block; }
+
+/* the night summary and the beg cards are a row of change chips, not prose */
+.wyd-chips{ display:flex; flex-wrap:wrap; gap:.4rem; margin:.2rem 0 0; align-items:center; }
+.wyd-chips .wyd-ptag{ margin:0; }
+.wyd-chips .wyd-roll{ font-family:"Archivo Narrow",sans-serif; letter-spacing:.02em; cursor:help; }
+
+/* the dawn network legend, one line under the web */
+.wyd-netlegend{ margin:.3rem 0 0; font-size:.68rem; line-height:1.45; color:var(--g-dim); }
+
+/* P11 two rings: a bat you barely know is a small grey node; only the starving ring pulses */
+.wyd-net .node.far circle{ stroke:var(--g-dim); }
+.wyd-net .node.hungry:not(.starving) circle{ animation:none; }
+.wyd-net .node.out circle{ stroke-opacity:.9; }
+.wyd-net .node.gone circle{ stroke-dasharray:3 3; }
+
+@media (min-width:601px){
+  /* the stage was a fixed ~380px band; on a short laptop it ate the scene below it */
+  .wyd-stage{ height:clamp(200px, 32vh, 360px); }
+  #wyd-stagehost{ margin-top:.5rem; }
+  .wyd-hud{ margin-bottom:.5rem; }
+  .wyd-scene{ padding:1rem 1.2rem; }
+  .wyd-scene h3{ font-size:clamp(1.1rem, 1.9vw, 1.45rem); margin:.3rem 0 .45rem; }
+  .wyd-story{ max-width:none; font-size:.9rem; line-height:1.5; }
+  .wyd-choices{ margin-top:.8rem; gap:.6rem; }
+  .wyd-outcome{ margin-top:.6rem; padding-top:.6rem; }
+  .wyd-reallife{ margin-top:.5rem; padding:.5rem .9rem; font-size:.84rem; }
+  .wyd-sleep{ margin-top:0; }
+  .wyd-sleep .wyd-sleepintro{ margin:0; }
+  .wyd-verbs{ margin-top:.7rem; }
+  .wyd-dawnhead .wyd-story{ margin:.25rem 0 0; }
+}
+
+/* a scene panel that carries more than a paragraph is two columns on desktop: the story on the
+   left, the cards / intel / buttons on the right, both aligned to the top, so the panel is as
+   tall as its tallest column instead of the sum of the two */
+@media (min-width:900px){
+  .wyd-cols{ display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.05fr);
+    gap:1rem 1.6rem; align-items:start; }
+  .wyd-cols > *{ min-width:0; }
+  .wyd-cols .wyd-choices{ margin-top:.7rem; }
+  .wyd-roostcards{ grid-template-columns:1fr; }
+}
+
+/* one status-bar row on a desktop screen: smaller labels, 20px bar segments, tight gaps, and the
+   year / sound / log / exit cells in line with the numbers */
+@media (min-width:1100px){
+  .wyd-ghud{ gap:.5rem .95rem; padding:.45rem .8rem; align-items:center; }
+  .wyd-ghud .gstat{ min-width:0; gap:.16rem; }
+  .wyd-ghud .gl{ font-size:.5rem; letter-spacing:.1em; white-space:nowrap; }
+  .wyd-ghud .gv{ font-size:1.02rem; }
+  .wyd-bloodbar i, .wyd-pips i{ width:20px; height:10px; }
+  .wyd-bloodbar.wyd-hyg i{ width:64px; }
+  .wyd-ghud .gl.wyd-roostname{ font-size:.55rem; max-width:9rem; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .wyd-ev, .wyd-soundbtn{ width:24px; height:24px; font-size:.88rem; }
+  .wyd-events{ gap:.25rem; }
+  .wyd-hudbtns{ gap:.25rem; }
+  .wyd-hudtip{ font-size:.74rem; }
+  .wyd-hudtip.on{ max-height:4.2rem; padding:.3rem 1rem .4rem; }
+  .wyd-hudchip{ font-size:.52rem; }
+}
+
+/* the dawn: cap the web so the whole roost fits, and keep the panel beside it */
+@media (min-width:761px){
+  .wyd-roost{ margin-top:.6rem; gap:1rem 1.4rem; grid-template-columns:1fr 1fr; }
+  .wyd-net{ max-height:clamp(190px, 33vh, 320px); }
+  .wyd-needs{ margin:.4rem 0 0; }
+  .wyd-partner{ padding:.7rem .85rem; }
+  .wyd-onedon{ margin:.35rem 0 .15rem; font-size:.78rem; }
+  .wyd-rescueline{ font-size:.82rem; }
+}
+
+/* short desktop screens (1366x768 and every small laptop): the tightest pass that still keeps
+   every number on the screen */
+@media (min-width:900px) and (max-height:820px){
+  /* P27: the pasture's panel varies with the deal (an occupied animal adds a line, a meal that
+     would overspill adds another), and on the tallest of those deals the scene still ran a couple
+     of dozen pixels past 768. The stage is the one block that can give, and only on short screens. */
+  .wyd-stage{ height:clamp(170px, 24vh, 260px); }
+  .wyd-scene{ padding:.8rem 1.1rem; }
+  .wyd-scene h3{ font-size:1.15rem; margin:.25rem 0 .35rem; }
+  .wyd-story{ font-size:.86rem; line-height:1.45; }
+  .wyd-net{ max-height:clamp(170px, 30vh, 250px); }
+  .wyd-reallife{ font-size:.8rem; padding:.45rem .8rem; }
+  .gpage .btnx{ padding:.5rem .9rem; }
+  .wyd-netlegend{ font-size:.64rem; }
+}
+
+/* P11: during play the page is exactly as tall as the play column. The 100vh floor on .gpage was
+   why every scene reported a scrollable page even when the scene itself fit: 100vh of card plus
+   the navbar and the container's own padding always overflowed by about 150 px. */
+.gpage.wyd-playing{ min-height:0; }
+.gpage.wyd-playing .g-main{ padding-top:.7rem; padding-bottom:.7rem; }
+
+/* P11: the dawn panel's five action buttons three-up (they were three rows of two, taller than
+   the web beside them), and the short-screen pass that brings the dawn inside 768 px */
+@media (min-width:900px){
+  .wyd-pacts{ grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.4rem; }
+  .wyd-roost{ grid-template-columns:.85fr 1.15fr; }
+}
+@media (min-width:900px) and (max-height:820px){
+  .gpage .btnx{ padding:.42rem .7rem; font-size:.7rem; }
+  .gpage .btnx .sub{ font-size:.58rem; line-height:1.28; }
+  .wyd-partner{ padding:.6rem .75rem; }
+  .wyd-partner h4{ font-size:.95rem; margin-bottom:.25rem; }
+  .wyd-ptags{ margin-bottom:.4rem; gap:.3rem; }
+  .wyd-sleeprow{ margin-top:.45rem; }
+  .wyd-netlegend{ font-size:.6rem; }
+  .wyd-dawnhead .wyd-story{ font-size:.82rem; }
+  .wyd-rescueline{ font-size:.78rem; }
+  /* P26: the P11 no-scroll check still failed on the PASTURE on about one 1366x768 run in three,
+     depending on whether the occupancy and spill lines both render. These are the same kind of
+     saving P25 made for the dawn, applied to the panel that actually overflows. */
+  .wyd-intel{ padding:.55rem .7rem; }
+  .wyd-intel .wyd-story, .wyd-intel p{ font-size:.8rem; line-height:1.32; }
+  .wyd-intel .wyd-substat, .wyd-spill{ font-size:.68rem; line-height:1.25; }
+  .wyd-meters{ gap:.16rem; }
+  .wyd-cowpick{ margin-top:.45rem; }
+  /* P27: the last 2px. The meal is one bar now, so its row does not need pip spacing. */
+  .wyd-meter .gl{ line-height:1.2; }
+  .wyd-spill{ margin:.15rem 0 0; }
+}
+
+/* P11: Quarto reserves ~77 px of bottom padding under #quarto-content for the site footer, and
+   the footer is hidden while a run is live, so that padding is dead space at the bottom of every
+   scene. Reclaiming it is what finally brings the dawn inside 768 px. */
+body:has(.gpage.wyd-playing) #quarto-content{ padding-bottom:.4rem; }
+body:has(.gpage.wyd-playing) main.content{ margin-bottom:0; }
+
+/* P11: a change chip carries a short sentence, not a label, so it keeps sentence case (the
+   uppercase .wyd-ptag treatment shouted at eight chips in a row) */
+.wyd-chips .wyd-ptag{ text-transform:none; letter-spacing:.02em; font-size:.76rem; padding:.3rem .6rem; }
+
+/* P11 phones: the status bar's four icon buttons (sound, help, log, exit) are real tap targets */
+@media (max-width:600px){
+  .wyd-soundbtn{ width:44px; height:44px; min-width:44px; flex:none; font-size:1.15rem; }
+  .wyd-ghud .gstat.wyd-soundcell, .wyd-ghud .gstat.wyd-exitcell{ min-width:0; }
+  .wyd-hudbtns{ gap:.3rem; }
+}
+
+/* P12: every bat on the dawn network keeps her name; the outer ring (barely known) in a smaller type */
+.wyd-net .node text.small{ font-size:8.5px; opacity:.85; }
+.wyd-net .node.out .ears path{ opacity:.6; }
+
+/* P13 (Bryson): the score sits after the events in its own box, bigger; the corner is log, sound, help, exit */
+.wyd-ghud .gstat.wyd-scorecell{ border:1px solid var(--g-warm); border-radius:var(--g-radius); padding:.25rem .7rem .3rem; background:var(--g-card2); min-width:0; }
+.wyd-ghud .gstat.wyd-scorecell .gl{ color:var(--g-warm); }
+.wyd-ghud .gstat.wyd-scorecell .gv{ font-size:1.7rem; color:var(--g-warm); }
+.wyd-ghud .gstat.wyd-ctrlcell{ margin-left:auto; }
+@media (max-width:600px){ .wyd-ghud .gstat.wyd-scorecell .gv{ font-size:1.35rem; } .wyd-ghud .gstat.wyd-ctrlcell{ margin-left:0; } }
+
+/* P14 (Bryson): the phone HUD is two compact rows; the corner is ONE ⋯ button (the menu popup holds
+   log, sound, help, exit); desktop keeps the four buttons. Blood and stamina bars share one size. */
+.wyd-menubtn{ display:none; }
+.wyd-menu .btnx{ min-width:0; flex:1 1 45%; }
+@media (max-width:600px){
+  .wyd-ghud{ position:relative; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.35rem .6rem; padding:.5rem 2.7rem .55rem .7rem; }   /* room on the right for the ⋯ button */
+  .wyd-ghud .gstat{ gap:.12rem; }
+  .wyd-ghud .gl{ font-size:.5rem; letter-spacing:.1em; }
+  .wyd-ghud .gv{ font-size:.95rem; }
+  .wyd-ghud .gstat.wyd-evcell{ grid-column:1 / 3; }
+  .wyd-ghud .gstat.wyd-scorecell{ grid-column:3; padding:.2rem .5rem .25rem; }
+  .wyd-ghud .gstat.wyd-scorecell .gv{ font-size:1.15rem; }
+  .wyd-ghud .gstat.wyd-ctrlcell{ position:absolute; top:.35rem; right:.5rem; margin:0; }
+  .wyd-ghud .gstat.wyd-ctrlcell .gl, .wyd-ghud .gstat.wyd-ctrlcell .wyd-hudbtns{ display:none; }
+  .wyd-menubtn{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; font-size:1.1rem; line-height:1; }
+  .wyd-ev, .wyd-soundbtn{ width:26px; height:26px; font-size:.9rem; }
+  .wyd-events .wyd-evsep{ height:18px; }
+  .wyd-hudchip{ font-size:.5rem; }
+  .wyd-stage{ height:200px; }
+  .wyd-scene{ padding:.8rem .9rem; }
+  .wyd-scene h3{ font-size:1.15rem; margin-bottom:.3rem; }
+  .wyd-story{ font-size:.86rem; line-height:1.4; }
+  .wyd-choices{ margin-top:.6rem; gap:.5rem; }
+  .gpage .btnx{ padding:.55rem .7rem; }
+}
+
+/* P14 phones: the dawn fits one screen: no legend (it is in the ❔ help) and a capped web. */
+@media (max-width:600px){
+  .wyd-netlegend{ display:none; }
+  .wyd-net{ max-height:var(--wyd-netmax); }
+  .wyd-roost{ display:flex; flex-direction:column; gap:.7rem; margin-top:.5rem; }
+  .wyd-roostline, .wyd-scene .wyd-story{ font-size:.84rem; line-height:1.4; }
+  .wyd-partner{ padding:.7rem .8rem; }
+  .wyd-pacts .btnx{ padding:.5rem .55rem; }
+  .wyd-pacts .btnx .sub{ font-size:.56rem; }
+}
+
+
+
+
+/* ── P26 the two dawn bars (Bryson: "a slider where you click on a bat then choose how much to
+   give"). Each bar is a label, a live percentage, the range itself, what it will cost and buy, and
+   the button that spends it. The range's own max IS the cap, so the bar physically cannot be
+   dragged past what you are holding: there is nothing to enforce on release.
+   Phones: the cap sentence is dropped and the button sits beside the range rather than under it,
+   because the dawn has to stay on one screen (p21-dawn-phone measures it). */
+.wyd-bars{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.7rem; }
+/* P11's no-scroll guarantee is measured at 1366x768, and two bars were 6px taller there than the
+   five buttons they replaced, so the desktop bar is tight on purpose. */
+.wyd-bar{ border:1px solid var(--g-line); border-radius:var(--g-radius); padding:.4rem .6rem .45rem;
+  background:var(--g-card2); display:flex; flex-direction:column; gap:.2rem; min-width:0; }
+.wyd-bar.off{ opacity:.5; }
+.wyd-bar .bar-top{ display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
+.wyd-bar .bar-lab{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:.95rem; color:var(--g-ink); }
+.wyd-bar .bar-lab-s{ display:none; }
+.wyd-bar .bar-val{ font-family:"Archivo Narrow",sans-serif; font-weight:700; font-size:1.05rem;
+  color:var(--g-warm); font-variant-numeric:tabular-nums; }
+.wyd-bar .bar-cap{ margin:0; font-size:.62rem; color:var(--g-dim); line-height:1.25; }
+.wyd-bar .bar-sub{ margin:0; font-size:.7rem; line-height:1.3; color:var(--g-muted); }
+.wyd-bar .btnx{ width:100%; }
+.wyd-bar .bar-go-row{ display:flex; gap:.5rem; align-items:center; }
+/* the range itself, drawn for a dark page in both engines */
+.wyd-bar .bar-range{ -webkit-appearance:none; appearance:none; width:100%; height:20px;
+  background:transparent; margin:0; cursor:pointer; }
+.wyd-bar .bar-range:disabled{ cursor:default; }
+/* P28: the track always spans 0 to 100; everything past what you are holding is dimmed, so the cap
+   is visible on the bar rather than only enforced when you let go. */
+.wyd-bar .bar-range::-webkit-slider-runnable-track{ height:8px; border-radius:4px;
+  border:1px solid var(--g-line);
+  background:linear-gradient(to right, var(--g-bg2) 0 var(--cap, 100%), transparent var(--cap, 100%) 100%); }
+.wyd-bar .bar-range::-moz-range-track{ height:8px; border-radius:4px;
+  border:1px solid var(--g-line);
+  background:linear-gradient(to right, var(--g-bg2) 0 var(--cap, 100%), transparent var(--cap, 100%) 100%); }
+.wyd-bar .bar-range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none;
+  width:22px; height:22px; margin-top:-8px; border-radius:50%;
+  background:var(--g-warm); border:2px solid var(--g-card); box-shadow:0 1px 4px rgba(0,0,0,.5); }
+.wyd-bar .bar-range::-moz-range-thumb{ width:20px; height:20px; border-radius:50%;
+  background:var(--g-warm); border:2px solid var(--g-card); }
+.wyd-bar[data-kind="give"] .bar-range::-webkit-slider-thumb{ background:var(--g-accent); }
+.wyd-bar[data-kind="give"] .bar-range::-moz-range-thumb{ background:var(--g-accent); }
+.wyd-bar[data-kind="give"] .bar-val{ color:var(--g-accent); }
+.wyd-bar .bar-range:focus-visible{ outline:2px solid var(--g-warm); outline-offset:3px; border-radius:6px; }
+@media (max-width:600px){
+  /* The phone dawn has to stay on one screen (p21-dawn-phone measures it), and two bars laid out
+     the desktop way were about 40px taller than the five buttons they replaced. So the name of the
+     bar goes (the button beside it already says "Groom her" or "Give blood"), and the live
+     percentage moves onto the slider's own row: label row, range row and button row become ONE. */
+  .wyd-bars{ grid-template-columns:1fr; gap:.35rem; }
+  .wyd-bar{ display:grid; grid-template-columns:1fr auto auto;
+    grid-template-areas:"range val go" "sub sub sub";
+    align-items:center; column-gap:.5rem; row-gap:.15rem; padding:.35rem .5rem .4rem; }
+  .wyd-bar .bar-top{ display:contents; }
+  .wyd-bar .bar-cap, .wyd-bar .bar-lab, .wyd-bar .bar-lab-s{ display:none; }   /* the bar's own end is the cap */
+  .wyd-bar .bar-range{ grid-area:range; }
+  .wyd-bar .bar-val{ grid-area:val; font-size:.88rem; }
+  .wyd-bar .btnx{ grid-area:go; width:auto; min-height:38px; padding:.35rem .65rem; font-size:.68rem; }
+  .wyd-bar .bar-sub{ grid-area:sub; font-size:.62rem; line-height:1.28;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+}
+@media (prefers-reduced-motion:reduce){ .wyd-bar .bar-range{ transition:none; } }
+
+
+/* P26 (Bryson, on the phone: "think of how we can condense it without confusing the user").
+   An unvisited roost card wore an UNKNOWN chip and then a line under it reading "not visited yet",
+   which is the same fact twice. The chip stays, the sentence goes, on phones only. */
+@media (max-width:600px){
+  .wyd-roostcard.unknown .rc-short{ display:none; }
+  /* the two bar buttons were 38px; the dawn now has the room to make them real tap targets */
+  .wyd-bar .btnx{ min-height:44px; }
+}
+
+
+
+
+
+
+/* P29: the popup's X, the tappable chips, and the beg scene's node states. */
+.wyd-modal__card{ position:relative; }
+.wyd-modal__x{ position:absolute; top:.4rem; right:.5rem; width:40px; height:40px; line-height:1;
+  background:transparent; border:0; color:var(--g-dim); font-size:1.1rem; cursor:pointer; border-radius:6px; }
+.wyd-modal__x:hover{ color:var(--g-ink); background:var(--g-bg2); }
+.wyd-modal__x:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+/* P29: these chips are buttons now, so they need a real tap area. Not the full 44px: a row of
+   44px chips would eat the phone dawn's whole height budget, and they sit in a scrolling row with
+   generous horizontal room. */
+.wyd-ptag.wyd-explain{ cursor:pointer; }
+@media (max-width:600px){
+  .wyd-ptag.wyd-explain{ min-height:32px; display:inline-flex; align-items:center; padding-top:.2rem; padding-bottom:.2rem; }
+}
+.wyd-ptag.wyd-explain:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+/* the beg: the bat being asked lights up, then either turns away or comes */
+.wyd-net .node.begasking circle{ stroke:var(--g-warm); stroke-width:5; }
+.wyd-net .node.begasking text{ fill:var(--g-warm); }
+.wyd-net .node.begno{ opacity:.3; }
+.wyd-net .node.begyes circle{ stroke:var(--g-accent); stroke-width:6; }
+.wyd-net .node.begyes text{ fill:var(--g-accent); font-weight:900; }
+.wyd-begline{ min-height:1.4em; font-weight:700; }
+@media (prefers-reduced-motion:reduce){ .wyd-net .node.begasking circle{ stroke-width:4; } }
+
+/* P29 (Bryson): Approach is the decision; flying home empty is never the better move while an
+   animal can still be approached, so it shrinks to a secondary control under it rather than
+   sitting beside it as an equal. It stays because it is the only way out once every animal is
+   locked or the dark hours are gone. */
+.wyd-cowpick{ display:grid; grid-template-columns:1fr; gap:.4rem; }
+.wyd-approachbtn{ font-size:1rem; padding:.85rem 1rem; letter-spacing:.06em; }
+.wyd-flyhomebtn{ font-size:.68rem; padding:.35rem .6rem; opacity:.75; justify-self:center;
+  min-height:0; border-style:dashed; }
+.wyd-flyhomebtn:hover{ opacity:1; }
+@media (max-width:600px){
+  .wyd-approachbtn{ font-size:.92rem; padding:.8rem .8rem; min-height:52px; }
+  .wyd-flyhomebtn{ font-size:.62rem; padding:.3rem .55rem; }
+}
+
+/* P28: the star on an animal somebody is already feeding from. It is a prompt to look, not a
+   warning, so it wears the warm colour rather than the alarm one. */
+.wyd-occstar{ margin:.25rem 0 0; font-size:.76rem; line-height:1.3; color:var(--g-warm); font-weight:700; }
+
+/* P28 (Bryson, playing on a phone).
+   1. The web had one height with nobody picked and a smaller one with a bat picked, so tapping a
+      bat made it jump and shrink. One variable drives both states, so it never moves.
+   2. The floating menu button overlapped the stamina cell by 8px: the HUD reserved 2.7rem on the
+      right but the button is 44px wide (it has to be, for the tap target).
+   3. The resting strip ran to three lines; it is one line, clipped, whatever the copy.
+   4. The Skill cell and the refuse warning must not wrap either. */
+@media (max-width:600px){
+  :root{ --wyd-netmax:min(165px, 21vh); }
+  /* the drawing is WIDTH-limited on a phone, so a taller box only adds empty space: the way to make
+     the web bigger is to give it more width. It bleeds into the scene's own padding, which is worth
+     about 10% more drawing for no height at all. */
+  .wyd-scene .wyd-net{ margin-left:-.9rem; margin-right:-.9rem; width:calc(100% + 1.8rem); border-radius:0; }
+  .wyd-occstar{ font-size:.7rem; }
+  /* the pasture's panel repeated, word for word, the box floating over the picked animal. One of
+     them had to go, and the floating one is the one attached to the thing you tapped. */
+  .wyd-cowpick ~ .wyd-intel, .wyd-cols .wyd-intel{ display:none; }
+  .wyd-friendstat{ margin:.15rem 0 .1rem; font-size:.78rem; color:var(--g-muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* P28: the friends stat is a new line in a budget that had none, so the header line above it and
+     the trait hint below both give a little. The hint keeps its full text on the chip's title. */
+  .wyd-scene h3.wyd-dawnh3.wyd-dawn--sel{ font-size:.92rem; margin:0 0 .1rem; }
+  /* P29: the tag chip opens its own explanation now, so the truncated sentence under the chips is
+     just a worse copy of it. */
+  .wyd-roost--sel .wyd-traithint{ display:none; }
+  .wyd-bar{ padding:.3rem .5rem .35rem; }
+  /* P28: the four encounter verbs are one line of label plus a small chance */
+  .wyd-verbs .btnx{ padding:.5rem .6rem; }
+  .wyd-verbs .btnx .sub{ font-size:.62rem; }
+  .wyd-ghud{ padding-right:3.7rem; }
+  .wyd-hudtip{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wyd-ghud .gstat.wyd-skillcell .gl{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wyd-scene .wyd-feedback, .wyd-dawnhead .wyd-story{ overflow-wrap:break-word; }
+}
+
+/* P27 (Bryson: "make the blood and stamina in the hud just a full bar, no longer 3 segments since
+   they are all points out of 100"). One cell that fills the cell it sits in, at every breakpoint
+   and inside the stage's foreignObject, so the meal bar over an animal matches the crop bar it
+   fills. The three-segment styles stay for the dark-hours pips, which really are countable. */
+.wyd-bloodbar.wyd-bar1, .wyd-pips.wyd-bar1{ width:100%; }
+.wyd-bloodbar.wyd-bar1 i, .wyd-pips.wyd-bar1 i{ width:auto; flex:1 1 auto; min-width:0; }
+/* the stamina cell used to colour the WHOLE pip when it was full and had no inner fill at all, so
+   as one continuous bar it read empty at anything under 100. The fill now comes from the <b>, the
+   way the blood bar has always done it. */
+.wyd-pips.wyd-bar1 i b{ position:absolute; inset:0; display:block; transform-origin:left;
+  background:var(--g-warm); }
+.wyd-pips.wyd-bar1 i.on{ background:var(--g-bg2); border-color:var(--g-line); }
+.wyd-pips.wyd-bar1.bad i b{ background:var(--g-accent); }
+@media (max-width:600px){
+  .wyd-bloodbar.wyd-bar1 i, .wyd-pips.wyd-bar1 i{ width:auto; }
+}
+
+/* P26 chips (seen in the phone shots: "32% TO CATCH HER CO" ran off the card, cut mid-word).
+   Long chip and short chip both sit in the DOM, the way the action buttons already carry .lbl and
+   .lbl-s; the phone shows the short one. The row still scrolls sideways when a bat wears many
+   chips, so it now fades at the right edge instead of ending in a hard cut. */
+.wyd-ptag .c-s{ display:none; }
+@media (max-width:600px){
+  .wyd-ptag .c-l{ display:none; }
+  .wyd-ptag .c-s{ display:inline; }
+  .wyd-roost--sel .wyd-ptags{ -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+    mask-image:linear-gradient(to right, #000 calc(100% - 18px), transparent 100%); }
+}
+
+/* P26: the phone web's type. The flat box renders at about 0.75, so 14 user units is a ~10.5px
+   name on screen, where the old square box gave 5px. Keyed on the class netSvg adds, not on a
+   media query, so the geometry in netBox() and the type here can never disagree. */
+.wyd-net-flat .node text{ font-size:14px; }
+.wyd-net-flat .node text.small{ font-size:11px; }
+.wyd-net-flat .you text{ font-size:12.5px; }
+.wyd-net-flat .node .beg{ font-size:11.5px; }
+.wyd-net-flat.wyd-net-many{ font-size:.9em; }
+/* P26: two phone buttons measured 40px tall, under the 44px minimum tap target. The compact
+   action grid is left alone; these are the full-width ones at the bottom of a scene. */
+@media (max-width:600px){
+  .wyd-choices .btnx, .wyd-sleeprow .btnx{ min-height:44px; }
+}
+
+/* ── P21 phones (Bryson: "you have to click a button like groom then scroll down to see it happen").
+   The web and all five actions now share one screen, in that order: the web stays FIRST (the grooming
+   and sharing animations play in it, so it must be the thing you are looking at when you tap), the
+   selected bat's card is squeezed to a name + bond bar + chips, and the five buttons become a compact
+   two-column grid of short name over cost. P14 moved the whole card above the web instead, which put
+   the 660px card between the reader and the animation. The long labels stay in the DOM for desktop. */
+.wyd-pacts .lbl-s, .wyd-pacts .sub-s{ display:none; }
+@media (max-width:600px){
+  .wyd-roost--sel{ gap:.3rem; }
+  .wyd-roost--sel .wyd-net{ flex:0 0 auto; min-height:0; }
+  .wyd-roost--sel .wyd-partner, .wyd-roost--sel .wyd-sleeprow{ flex:0 0 auto; }
+  /* P29 (Bryson: "upon default the network is not centered until you click on at least one bat").
+     The wrapper was flattened only in the picked state, so the web was laid out one way with nobody
+     picked (302px, pushed left inside a 335px card) and another way with a bat picked (332px, full
+     width). Flatten it in BOTH states: same width, same place, nothing jumps. */
+  .wyd-roost > div{ display:contents; }
+  /* P26 (Bryson: "the network is way too small to see"). This cap was the whole problem. The web
+     draws into netBox()'s wide phone viewBox now, which needs about 160px of height at a 302px
+     width before it stops shrinking the drawing to fit; at 146px it was rendering at 69%, and
+     against the old square box at 47%. 168px buys the full width-limited size for 22px of height,
+     which the phone dawn had spare (P25 measured 40 to 71px). */
+  .wyd-roost--sel .wyd-net{ order:0; max-height:var(--wyd-netmax); }
+  .wyd-roost--sel .wyd-netlegend{ order:0; }
+  .wyd-roost--sel .wyd-partner{ order:1; }             /* the card + actions, under the web */
+  .wyd-roost--sel .wyd-sleeprow{ order:2; margin-top:.35rem; }
+  /* the card: keep the name, the bond bar and the chips; the prose is desktop-only */
+  .wyd-roost--sel .wyd-partner{ padding:.45rem .6rem; width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
+  .wyd-roost--sel .wyd-partner h4{ font-size:1rem; margin:0; display:inline-block; }
+  .wyd-roost--sel .wyd-partner > .gl{ display:inline-block; margin-left:.45rem; font-size:.58rem; }
+  .wyd-roost--sel .wyd-partner .wyd-bondbar{ margin:.2rem 0 .25rem; }
+  .wyd-roost--sel .wyd-rescueline, .wyd-roost--sel .wyd-onedon{ display:none; }
+  .wyd-roost--sel .wyd-traithint{ margin:.2rem 0 .1rem !important; font-size:.76rem !important; }
+  .wyd-roost--sel .wyd-ptags{ margin:.15rem 0 .35rem; gap:.25rem; flex-wrap:nowrap;
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; padding-bottom:1px; }
+  .wyd-roost--sel .wyd-ptags::-webkit-scrollbar{ display:none; }
+  .wyd-roost--sel .wyd-ptag{ font-size:.6rem; padding:.1rem .35rem; flex:0 0 auto; white-space:nowrap; }
+  /* the actions: two columns, short name over cost, the odd fifth button spanning the row */
+  .wyd-roost--sel .wyd-pacts{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.35rem; }
+  .wyd-roost--sel .wyd-pacts .btnx{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:.1rem; text-align:center; padding:.4rem .3rem; min-height:44px; line-height:1.2; }
+  .wyd-roost--sel .wyd-pacts .btnx:nth-child(5){ grid-column:1 / -1; }
+  .wyd-roost--sel .wyd-pacts .lbl, .wyd-roost--sel .wyd-pacts .sub{ display:none; }
+  .wyd-roost--sel .wyd-pacts .lbl-s{ display:block; font-size:.72rem; font-weight:800; letter-spacing:.02em;
+    text-transform:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .wyd-roost--sel .wyd-pacts .sub-s{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    font-size:.56rem; font-weight:500; letter-spacing:.02em; line-height:1.25;
+    text-transform:none; color:var(--g-dim); overflow:hidden; max-width:100%; }
+  .wyd-roost--sel .wyd-pacts .btnx--solid .sub-s{ color:inherit; opacity:.85; }
+  /* what just happened, right under the buttons, at most two lines */
+  .wyd-roost--sel .wyd-feedback{ margin:.35rem 0 0; font-size:.78rem; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  /* the scene's own night label duplicates the HUD once a bat is picked */
+  .wyd-round.wyd-dawn--sel{ display:none; }
+  .wyd-scene h3.wyd-dawnh3.wyd-dawn--sel{ font-size:1.05rem; margin:0 0 .2rem; }
+  .wyd-dawnhead.wyd-dawn--sel .wyd-roostline{ font-size:.78rem; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  /* with a bat picked the room goes to the web and the buttons: the stamina sentence is the HUD's
+     stamina bar in words, and the who-needs-you chips are the pulsing rings in the web */
+  /* P28: the phone dawn's header is now ONE line, the friends stat, and it is the thing Bryson
+     asked to keep, so it survives the picked-a-bat trim that hid every other story line. */
+  .wyd-dawnhead.wyd-dawn--sel .wyd-story:not(.wyd-roostline):not(.wyd-friendstat){ display:none; }
+  .wyd-dawnhead.wyd-dawn--sel + .wyd-needs{ display:none; }
+}
+
+/* P15 (Bryson): phone HUD as an aligned grid. Col 1 = night over the 2x2 year/event icons; cols 2-3 = blood /
+   stamina over mite risk / skill over the score box; the ⋯ is a square in the very top right. */
+@media (max-width:600px){
+  .wyd-ghud{ grid-template-columns:4.4rem minmax(0,1fr) minmax(0,1fr); grid-auto-rows:auto; align-items:start; gap:.4rem .7rem; }
+  .wyd-ghud .gstat.wyd-c-night{ grid-column:1; grid-row:1; }
+  .wyd-ghud .gstat.wyd-c-blood{ grid-column:2; grid-row:1; }
+  .wyd-ghud .gstat.wyd-c-stam{ grid-column:3; grid-row:1; }
+  .wyd-ghud .gstat.wyd-c-mite{ grid-column:2; grid-row:2; }
+  .wyd-ghud .gstat.wyd-skillcell{ grid-column:3; grid-row:2; }
+  .wyd-ghud .gstat.wyd-evcell{ grid-column:1; grid-row:2 / 4; }
+  .wyd-ghud .gstat.wyd-scorecell{ grid-column:2 / 4; grid-row:3; flex-direction:row; justify-content:space-between; align-items:center; padding:.3rem .6rem; }
+  .wyd-ghud .gstat.wyd-scorecell .gv{ font-size:1.25rem; }
+  .wyd-ghud .gstat.wyd-hudstate{ grid-column:1 / 4; grid-row:4; }
+  .wyd-ghud .gstat.wyd-evcell .wyd-events{ display:grid; grid-template-columns:repeat(2, 26px); gap:.3rem; }
+  .wyd-ghud .gstat.wyd-evcell .wyd-evsep{ display:none; }
+  .wyd-ghud .gstat.wyd-ctrlcell{ top:.45rem; right:.55rem; }
+  .wyd-menubtn{ border-radius:6px; width:28px; height:28px; }
+  .wyd-bloodbar.wyd-hyg i{ width:100%; max-width:64px; }
+}
+/* P15: the phone menu popup is a plain vertical list of full-width buttons */
+.wyd-modal .wyd-menu{ flex-direction:column; gap:.5rem; }
+.wyd-modal .wyd-menu .btnx{ flex:1 1 auto; width:100%; min-width:0; margin-left:0; justify-content:flex-start; text-align:left; }
+
+/* P16 phones: the picked animal's card floats on the stage; the panel below is one title line */
+.wst-mobinfo{ display:none; }
+@media (max-width:600px){
+  .wst-mobinfo{ display:block; position:absolute; right:8px; top:8px; width:min(74%, 252px);   /* P17: top right, where the dark-hours box was */ padding:7px 9px; border-radius:8px;
+    background:rgba(8,12,20,.78); border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(2px); color:#e6e9ef; font-size:10px; line-height:1.3; }
+  .wst-mobname{ font-weight:800; font-size:12.5px; margin-bottom:5px; color:#fff; }
+  .wst-mobinfo .wyd-meters{ display:flex; flex-direction:column; gap:4px; margin:0; }
+  .wst-mobinfo .wyd-meter{ display:flex; flex-direction:row; align-items:center; gap:6px; min-width:0; }
+  .wst-mobinfo .wyd-meter .gl{ flex:0 0 auto; width:118px; font-size:11px; letter-spacing:.04em; color:#ccd4e0; white-space:nowrap; }
+  .wst-mobinfo .wyd-bloodbar{ gap:2px; } .wst-mobinfo .wyd-bloodbar i{ width:18px; height:10px; }
+  .wst-mobinfo .wyd-riskbar{ width:92px; height:9px; }
+  .wst-mobinfo .wyd-meternum{ display:none; }
+  .wst-mobwho{ margin-top:5px; font-size:9.5px; } .wst-mobwho.occ{ color:var(--g-warm); } .wst-mobwho.locked{ color:var(--g-accent-ink); }
+  .wyd-intel.wyd-partner[data-cow] .intel, .wyd-intel.wyd-partner[data-cow] .wyd-meternum, .wyd-intel.wyd-partner[data-cow] .wyd-meters--phone,
+  .wyd-intel.wyd-partner[data-cow] .cue, .wyd-intel.wyd-partner[data-cow] .wyd-bondbar{ display:none; }
+  .wyd-intel.wyd-partner[data-cow]{ padding:.5rem .75rem; }
+  .wyd-intel.wyd-partner[data-cow] h4{ font-size:.95rem; margin:0; }
+}
+
+/* P18 (Bryson): the sleep choice shows every roost as a compact tappable card; nothing lit until a pick */
+.wyd-roostcards--all{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:.6rem; }
+.wyd-roostcards--all .wyd-roostcard{ cursor:pointer; padding:.6rem .75rem; }
+.wyd-roostcards--all .wyd-roostcard .rc-name{ font-size:.98rem; }
+.wyd-roostcards--all .wyd-roostcard .rc-sub, .wyd-roostcards--all .wyd-roostcard .rc-rumor, .wyd-roostcards--all .wyd-roostcard .rc-haz{ font-size:.78rem; line-height:1.35; }
+.wyd-roostcards--all .wyd-roostcard:hover, .wyd-roostcards--all .wyd-roostcard:focus-visible{ border-color:var(--g-warm); outline:none; }
+.wyd-roostcards--all .wyd-roostcard.sel{ border-color:var(--g-warm); box-shadow:0 0 0 1px var(--g-warm) inset; }
+@media (max-width:600px){ .wyd-roostcards--all{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:.45rem; } .wyd-roostcards--all .wyd-roostcard .rc-sub, .wyd-roostcards--all .wyd-roostcard .rc-rumor{ display:none; } }
+
+/* P18: the roost cards stay one short row on a laptop (fiction clamped to one line) so the scene fits 768px */
+.wyd-roostcards--all .wyd-roostcard{ padding:.45rem .65rem; }
+.wyd-roostcards--all .wyd-roostcard .rc-sub{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wyd-roostcards--all .wyd-roostcard .rc-tags{ margin:.15rem 0; }
+.wyd-sleep{ margin-top:.5rem; }
+/* P18: trim the sleep-choice cards so the scene fits 768px on a laptop */
+.wyd-roostcards--all .wyd-roostcard{ padding:.3rem .6rem .35rem; }
+.wyd-roostcards--all .wyd-roostcard .rc-name{ font-size:.9rem; }
+.wyd-roostcards--all .wyd-roostcard .rc-rumor, .wyd-roostcards--all .wyd-roostcard .rc-haz{ font-size:.72rem; line-height:1.25; }
+.wyd-roostcards--all .wyd-roostcard .rc-tags{ margin:.1rem 0; }
+.wyd-roostcards--all .wyd-roostcard .rc-tags .wyd-ptag{ font-size:.52rem; padding:.1rem .35rem; }
+.wyd-sleep{ margin-top:.25rem; }
+.wyd-sleep + .wyd-choices{ margin-top:.5rem; }
+
+/* P19 (Bryson): roost cards on phones = centred name, tag, one short stat; stage labels name-only and smaller */
+.rc-short{ display:none; }
+@media (max-width:600px){
+  .wyd-roostcards--all{ grid-template-columns:repeat(var(--n, 3), minmax(0, 1fr)); gap:.4rem; }
+  .wyd-roostcards--all .wyd-roostcard{ text-align:center; padding:.5rem .4rem .55rem; display:flex; flex-direction:column; align-items:center; gap:.3rem; }
+  .wyd-roostcards--all .wyd-roostcard .rc-name{ font-size:.84rem; line-height:1.15; white-space:normal; }
+  .wyd-roostcards--all .wyd-roostcard .rc-tags{ display:flex; flex-wrap:wrap; justify-content:center; gap:.2rem; margin:0; }
+  .wyd-roostcards--all .wyd-roostcard .rc-tags .wyd-ptag{ font-size:.46rem; padding:.08rem .3rem; letter-spacing:.08em; }
+  .wyd-roostcards--all .wyd-roostcard .rc-sub, .wyd-roostcards--all .wyd-roostcard .rc-rumor{ display:none; }
+  .wyd-roostcards--all .wyd-roostcard .rc-short{ display:block; font-size:.7rem; color:var(--g-muted); line-height:1.3; }
+  .wyd-roostcards--all .wyd-roostcard .rc-haz{ font-size:.62rem; }
+  .wst-roostpick .wst-tag{ font-size:32px; stroke-width:5px; }   /* P20: the picture is 960 units wide, so 32 renders ~12px on a 375px phone */
+  .wyd-stage[data-nroosts="4"] .wst-roostpick .wst-tag{ font-size:26px; }
+}
+
+/* P22: the modal fills the VISIBLE viewport where dvh is supported, so a phone's browser chrome
+   never covers the card or its OK button (see the .wyd-modal rules above). */
+@supports (height:100dvh){
+  .wyd-modal{ height:100dvh; }
+  @media (max-width:600px){
+    .wyd-modal__card{ max-height:80dvh; }
+    /* P29: no fixed cap here either, for the same reason */
+  }
+}
+
+/* ── P25 clarity pass ───────────────────────────────────────────────────────────────────
+   Finding 4 and "the first five minutes": six unexplained quantities, with their
+   explanations hidden behind a hover a phone cannot perform. Every status-bar stat now
+   LOOKS explainable (a dotted underline under its label, like the P24 trait chips) and a
+   TAP writes its line into the strip. The strip rests on a prompt on night 1 only, so the
+   condensed screen keeps its height budget from night 2 on. */
+.wyd-ghud .gstat[data-tip] > .gl{ border-bottom:1px dotted var(--g-line2); padding-bottom:1px; }
+.wyd-ghud .gstat[data-tip]:hover > .gl, .wyd-ghud .gstat[data-tip]:focus-visible > .gl{ border-bottom-color:var(--g-warm); }
+.wyd-hudtip--rest{ font-style:italic; opacity:.75; }
+/* the small line under a status-bar bar that carries a threshold and its consequence */
+.wyd-substat{ font-size:.5rem; letter-spacing:.04em; text-transform:uppercase; font-weight:600; color:var(--g-dim); line-height:1; margin-top:-1px; }
+.wyd-ghud .gstat.wyd-c-mite{ min-width:112px; gap:.16rem; }
+/* finding 1: the Skill cell names the animal, so its label may be two words longer */
+.wyd-ghud .gstat.wyd-skillcell .gl{ white-space:normal; }
+.wyd-ghud .gstat.wyd-skillcell{ max-width:190px; }
+/* finding 2: an occupied animal's tag on the stage is a sentence, not the word "occupied" */
+.wyd-intel .cue.occ{ color:var(--g-warm); }
+.wyd-intel .wyd-occdeal{ font-size:.76rem; line-height:1.3; color:var(--g-muted); margin:.15rem 0 0; }
+/* finding 13: a meal that would overflow the crop says so where the meal is shown */
+.wyd-spill{ font-size:.76rem; line-height:1.3; color:var(--g-warm); margin:.1rem 0 0; }
+/* finding 5: what touching this bat risks, as a chip in the row she already has */
+.wyd-catchchip{ white-space:nowrap; }
+.wyd-ptag--why{ cursor:help; }
+/* finding 6: a year icon is a button, so it looks like one */
+.wyd-ev.year{ box-shadow:inset 0 0 0 1px var(--g-line2); }
+.wyd-ev.year::after{ content:""; position:absolute; inset:auto 0 2px 0; height:1px; margin:0 7px; background:var(--g-line2); }
+.wyd-ev.year{ position:relative; }
+.wyd-ev.year:hover, .wyd-ev.year:focus-visible{ box-shadow:inset 0 0 0 1px var(--g-warm); }
+/* the legend under the flight picture */
+.wyd-flightlegend{ font-size:.76rem; line-height:1.3; color:var(--g-dim); margin:.25rem 0 0; }
+@media (max-width:900px){
+  .wyd-ghud .gstat.wyd-skillcell{ max-width:none; }
+  .wyd-ghud .gstat.wyd-c-mite{ min-width:0; }
+  .wyd-substat{ font-size:.46rem; letter-spacing:.02em; }
+}
+/* P23/P24 phone dawn budget: the two lines P25 adds are already reachable on a phone by other
+   means, so neither is allowed to spend height here. The mite threshold is one tap away in the
+   status-bar strip, and every action button already carries the cough risk in its own cost line. */
+@media (max-width:600px){
+  .wyd-substat{ display:none; }
+  /* the mite threshold is one tap away in the status-bar strip, so it does not spend phone height */
+}
+/* P21: a tighter pasture intel panel on desktop so an occupied animal's extra lines still fit 768px */
+@media (min-width:601px){
+  .wyd-intel.wyd-partner[data-cow]{ padding:.7rem .9rem .75rem; }
+  .wyd-intel.wyd-partner[data-cow] h4{ font-size:1rem; margin-bottom:.15rem; }
+  .wyd-intel.wyd-partner[data-cow] .intel{ font-size:.86rem; line-height:1.4; margin-top:.25rem; }
+  .wyd-intel.wyd-partner[data-cow] .cue{ margin-top:.4rem; font-size:.84rem; }
+  .wyd-intel.wyd-partner[data-cow] .wyd-bondbar{ margin-top:.25rem; }
+  .wyd-intel.wyd-partner[data-cow] .wyd-meternum{ margin-top:.1rem; }
+}
+/* P21: on short desktop screens the animal's flavour sentence yields to the occupant lines */
+@media (min-width:601px) and (max-height:820px){
+  .wyd-intel.wyd-partner[data-cow] .intel{ display:none; }
+  .wyd-intel.wyd-partner[data-cow] .cue{ margin-top:.3rem; }
+  .wyd-cols{ gap:.8rem 1.2rem; }
+}
