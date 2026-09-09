@@ -184,7 +184,7 @@ gtag('config', 'G-MGSKT82EGR', { 'anonymize_ip': true});
 
 
 <div class="full-bleed">
-<link rel="stylesheet" href="assets/css/wyd.css?v=27">
+<link rel="stylesheet" href="assets/css/wyd.css?v=29">
 <div class="gpage theme-bat">
 
 <section class="g-hero">
@@ -200,7 +200,6 @@ you save. Survive <span class="wyd-n" data-n="BAT.nights" data-f="w">ten</span> 
 <a class="g-learnlink" href="learn-bat.html">Learn the real science →</a>
 </div>
 <p class="g-foot">Every run is recorded anonymously: your choices, never your name. The logs describe how people play and will one day let the other bats hunt with real players' strategies.</p>
-<p class="g-foot g-madeby">Made by Bryson Loflin, Carter Lab, Princeton. <span id="wyd-version">NIGHT FLIGHT</span>. Every number is sourced or flagged in <a href="#wyd-notes">How the odds work</a>.</p>
 </div>
 </section>
 
@@ -579,7 +578,6 @@ document.addEventListener("DOMContentLoaded", function(){
     w: function(v){ return WORDS[v] != null ? WORDS[v] : String(v); },
     W: function(v){ var s = F.w(v); return s.charAt(0).toUpperCase() + s.slice(1); }
   };
-  try{ var vEl = document.getElementById("wyd-version"); if(vEl) vEl.textContent = "NIGHT FLIGHT v" + GAME_VERSION + ", data " + DATA_VERSION; }catch(e){}
   var els = document.querySelectorAll(".wyd-n[data-n]");
   for(var i = 0; i < els.length; i++){
     var el = els[i], v = get(el.getAttribute("data-n")), f = F[el.getAttribute("data-f") || "n"];
@@ -593,13 +591,13 @@ document.addEventListener("DOMContentLoaded", function(){
 </div>
 </div>
 <script>window.WYD_SPECIES = "bat"; window.WYD_BOARD = "leaderboard_v2"; window.WYD_BOARD_OLD = "leaderboard";</script>
-<script src="assets/js/wyd-core.js?v=28"></script>
-<script src="assets/js/bat-data.js?v=28"></script>
-<script src="assets/js/bat-copy.js?v=28"></script>
-<script src="assets/js/bat-log.js?v=28"></script>
-<script src="assets/js/bat-sound.js?v=28"></script>
-<script src="assets/js/bat-stage.js?v=28"></script>
-<script src="assets/js/bat-game.js?v=28"></script>
+<script src="assets/js/wyd-core.js?v=29"></script>
+<script src="assets/js/bat-data.js?v=29"></script>
+<script src="assets/js/bat-copy.js?v=29"></script>
+<script src="assets/js/bat-log.js?v=29"></script>
+<script src="assets/js/bat-sound.js?v=29"></script>
+<script src="assets/js/bat-stage.js?v=29"></script>
+<script src="assets/js/bat-game.js?v=29"></script>
 
 
 

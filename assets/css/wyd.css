@@ -571,6 +571,12 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
 .wst-infobox .wyd-meter{ flex-direction:row; align-items:center; gap:10px; min-width:0; }
 .wst-infobox .wyd-meter .gl{ width:146px; font-size:18px; letter-spacing:.05em; color:#ccd4e0; white-space:nowrap; }
 .wst-infobox .wyd-meter .wyd-bloodbar{ width:auto; gap:4px; }
+/* P35 (Bryson: "their blood availability bar does not show above feed risk"). P27 made the meal ONE
+   bar (.wyd-bar1: container 100%, the single segment flex-fills, width:auto), and that later rule
+   beat the 48px segment above while the width:auto container just above beat the 100%, so inside
+   the card the bar had no width at all and drew as a 2px sliver. Same width as the bite bar. */
+.wst-infobox .wyd-meter .wyd-bloodbar.wyd-bar1{ width:172px; }
+.wst-infobox .wyd-bloodbar.wyd-bar1 i{ width:auto; height:17px; }
 .wst-infobox .wyd-bloodbar i{ width:48px; height:17px; }
 .wst-infobox .wyd-riskbar{ width:172px; height:17px; }
 .wst-you{ position:absolute; right:12px; top:10px; display:flex; flex-direction:column; gap:5px; padding:7px 9px;
@@ -1211,6 +1217,10 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
    why every scene reported a scrollable page even when the scene itself fit: 100vh of card plus
    the navbar and the container's own padding always overflowed by about 150 px. */
 .gpage.wyd-playing{ min-height:0; }
+/* P35: Quarto's page grid keeps a fixed 60px footer row (content-bottom to page-bottom) plus its
+   own bottom padding under the card even though the footer is hidden during play. Collapsed while
+   playing, so fitStage() can hand that room to the stage instead of leaving it empty. */
+#quarto-content:has(.gpage.wyd-playing){ grid-template-rows:[content-top] auto [content-bottom] 0 [page-bottom]; padding-bottom:0; }
 .gpage.wyd-playing .g-main{ padding-top:.7rem; padding-bottom:.7rem; }
 
 /* P11: the dawn panel's five action buttons three-up (they were three rows of two, taller than

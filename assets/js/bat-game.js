@@ -458,6 +458,48 @@ function ensureStage(G, opts){
   STAGE_KEY = st ? key : ""; STAGE_AT = null;
   return st;
 }
+/* P35 (Bryson, 2026-09-09: "the cattle in the feeding period look way too small, well everything in
+   that scene does"). The stage's height came from vh clamps tuned so the play column never scrolls
+   (P11, P27, P32): 161px at 1366x768, 346px at 1920x1080. bat-stage fits its 960x400 pasture to
+   that height and widens the view to fill the host, so on a 1178px host the cows drew at 40% and
+   86%. But those clamps left 150 to 235px UNUSED under the scene. The CSS height stays as the
+   floor; after every render of a stage scene (and on resize) the stage grows by the room the page
+   has spare, up to the height at which the whole composition fills the host's width (meet hosts)
+   or 360px on a phone (slice mode, which crops sky, not hooves). It never makes the page scroll. */
+const STAGE_AR = 960 / 400;   // bat-stage VW / VH
+let FIT_BUSY = false, FIT_KEY = "", FIT_H = 0;   // the ratchet: within one dealt pasture the stage may shrink, never re-grow
+function fitStage(){
+  if(FIT_BUSY) return;
+  const h = $("#wyd-stagehost"); if(!h || h.hidden) return;
+  const el = h.querySelector(".wyd-stage"); if(!el) return;
+  FIT_BUSY = true;
+  try{
+    if(FIT_KEY !== STAGE_KEY){ FIT_KEY = STAGE_KEY; FIT_H = 0; }
+    const was = el.style.height;
+    el.style.height = "";                                            // measure from the CSS floor
+    const base = el.getBoundingClientRect().height, w = el.clientWidth;
+    const narrow = matchMedia("(max-width:600px)").matches;          // = bat-stage NARROW_MQ
+    const cap = narrow ? 360 : Math.min(600, Math.round(w / STAGE_AR));
+    /* the room under the game card. NOT innerHeight - scrollHeight: Quarto pins #quarto-content to a
+       min-height of the viewport, so the document is always exactly one screen tall during play and
+       that difference reads 0 even with 235px of empty page under the card. */
+    const card = el.closest(".gpage") || h;
+    const spare = window.innerHeight - card.getBoundingClientRect().bottom - 8;   // negative = the page scrolls
+    let target = Math.round(Math.max(base, Math.min(cap, base + spare - 6)));
+    el.style.height = target > base + 1 ? target + "px" : "";
+    /* Quarto's page grid keeps its own room under the card (about 60px at 1366x768), so check the
+       page itself and give back exactly what overflowed: the play column must never scroll (P11) */
+    const over = document.documentElement.scrollHeight - window.innerHeight;
+    if(over > 0 && target > base){ target = Math.round(Math.max(base, target - over)); el.style.height = target > base + 1 ? target + "px" : ""; }
+    /* the panel under the stage grows when an animal is picked and changes again at the standoff and
+       the bite; the stage gives room once and keeps that height, rather than bouncing between scenes */
+    if(FIT_H && target > FIT_H){ target = FIT_H; el.style.height = target > base + 1 ? target + "px" : ""; }
+    FIT_H = target;
+    if(el.style.height !== was) window.dispatchEvent(new Event("resize"));      // bat-stage re-lays out on resize
+  } finally { FIT_BUSY = false; }
+}
+let FIT_RAF = 0;
+window.addEventListener("resize", ()=>{ if(FIT_RAF) return; FIT_RAF = requestAnimationFrame(()=>{ FIT_RAF = 0; fitStage(); }); });
 /* P29: a promise-shaped wait that goes through the timer registry, so a scene change cancels it
    and the beat token sees the change. bat-game had no sleep of its own; the stage's is private. */
 const waitMs = ms=> new Promise(r=> at(ms, r));
@@ -510,6 +552,7 @@ function renderScene(id, opts){
     if(b) b.onclick = ()=>pick(c);
   });
   if(sc.wire) sc.wire(G);
+  fitStage();                             // P35: the stage takes whatever room the page has spare
   wireSkillSrc(G);                        // P29: the animal's bite bar opens the breakdown
   if(sc.pops) sc.pops(G);                 // P9: the moment's popups (once each, G.pops remembers)
   if(!opts || opts.wipe !== false){
