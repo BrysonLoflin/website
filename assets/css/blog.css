@@ -1,0 +1,140 @@
+/* ============================================================================
+   blog.css — Field Notes: the post timeline, the post page, and the interactive
+   zone. Loaded only by blog.qmd and the posts (see their front matter).
+   Built 2026-09-04 (Bryson: "a nice and simplistic design where it showcases
+   blog posts across time, each post should have a title, date, TLDR, and body"
+   plus "an Interactive zone ... interactive visuals with some of my posts").
+   Everything here uses the site tokens from site.css, so it flips with the
+   ☀/☾ toggle without a second palette.
+   ============================================================================ */
+
+/* ── the timeline ──────────────────────────────────────────────────────────
+   One rail down the left, a year marker where the year changes, and a post per
+   entry. The rail is drawn on the list (not per post) so it runs unbroken. */
+.btl{ position:relative; margin:0; padding:0 0 0 clamp(1.4rem, 4vw, 3rem); list-style:none;
+  max-width:64rem; }
+.btl::before{ content:""; position:absolute; left:0; top:.55rem; bottom:0; width:1px;
+  background:linear-gradient(to bottom, var(--hair), var(--line) 12%, var(--line) 88%, transparent); }
+
+.btl__year{ position:relative; margin:2.9rem 0 1.1rem; font-family:"Archivo Narrow",sans-serif;
+  font-weight:700; font-size:.78rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--lamp); }
+.btl__year:first-child{ margin-top:0; }
+.btl__year::before{ content:""; position:absolute; left:calc(-1 * clamp(1.4rem, 4vw, 3rem)); top:50%;
+  width:11px; height:11px; margin:-5.5px 0 0 -5px; border-radius:50%;
+  background:var(--lamp); box-shadow:0 0 0 4px var(--cave); }
+
+.btl__post{ position:relative; padding:0 0 2.4rem; }
+.btl__post::before{ content:""; position:absolute; left:calc(-1 * clamp(1.4rem, 4vw, 3rem)); top:.62rem;
+  width:7px; height:7px; margin:0 0 0 -3px; border-radius:50%;
+  background:var(--cave); border:1px solid var(--membrane); box-shadow:0 0 0 3px var(--cave); }
+.btl__post:hover::before, .btl__post:focus-within::before{ background:var(--lamp); border-color:var(--lamp); }
+
+.btl__meta{ display:flex; align-items:baseline; gap:.9rem; flex-wrap:wrap;
+  font-family:"Archivo Narrow",sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--muted-dim); }
+.btl__meta .btl__dot{ color:var(--line); }
+.btl__meta .btl__izone{ color:var(--lamp); }
+
+.btl__title{ font-family:"Newsreader",Georgia,serif; font-weight:400;
+  font-size:clamp(1.4rem, 2.6vw, 1.95rem); line-height:1.2; color:var(--heading);
+  margin:.4rem 0 0; text-wrap:balance;
+  border:0; padding:0; }
+.btl__title a{ color:inherit; text-decoration:none; background-image:linear-gradient(var(--lamp), var(--lamp));
+  background-size:0% 2px; background-repeat:no-repeat; background-position:0 100%;
+  transition:background-size .28s ease, color .28s ease; }
+.btl__title a:hover, .btl__title a:focus-visible{ background-size:100% 2px; color:var(--heading); }
+.btl__title a:focus-visible{ outline:2px solid var(--lamp); outline-offset:4px; }
+
+.btl__tldr{ margin:.65rem 0 0; color:var(--muted); line-height:1.6; max-width:58ch; }
+.btl__tldr b{ font-family:"Archivo Narrow",sans-serif; font-size:.7rem; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--lamp); margin-right:.5rem;
+  white-space:nowrap; }
+
+.btl__more{ display:inline-block; margin-top:.8rem; font-family:"Archivo Narrow",sans-serif;
+  font-weight:700; font-size:.76rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--lamp); text-decoration:none; }
+.btl__more .ar{ display:inline-block; transition:transform .22s ease; }
+.btl__more:hover .ar, .btl__more:focus-visible .ar{ transform:translateX(5px); }
+
+.btl__empty{ color:var(--muted-dim); font-style:italic; }
+
+/* ── the post page ───────────────────────────────────────────────────────── */
+.bpost__meta{ font-family:"Archivo Narrow",sans-serif; font-size:.74rem; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--muted-dim); margin:0 0 .9rem; }
+.bpost__back{ display:inline-block; margin-bottom:2.4rem; font-family:"Archivo Narrow",sans-serif;
+  font-weight:700; font-size:.76rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--lamp); text-decoration:none; }
+.bpost__back .ar{ display:inline-block; transition:transform .22s ease; }
+.bpost__back:hover .ar{ transform:translateX(-5px); }
+
+/* the TLDR block that opens every post */
+.tldr{ margin:0 0 2.4rem; padding:1.1rem 1.3rem; border-left:3px solid var(--lamp);
+  background:var(--cave-2); border-radius:0 8px 8px 0; }
+.tldr > p{ margin:0; color:var(--text); line-height:1.6; }
+.tldr::before{ content:"TL;DR"; display:block; font-family:"Archivo Narrow",sans-serif;
+  font-size:.68rem; font-weight:700; letter-spacing:.2em; color:var(--lamp); margin-bottom:.4rem; }
+
+/* ── the interactive zone ────────────────────────────────────────────────
+   One <div class="izone" data-izone="NAME"></div> in a post; izone.js fills it.
+   Figure on top, controls under it, a live readout line at the bottom. */
+.izone{ margin:2.6rem 0; border:1px solid var(--line); border-radius:12px;
+  background:var(--cave-2); overflow:hidden; }
+.izone__head{ padding:1.05rem 1.3rem .8rem; border-bottom:1px solid var(--line); }
+.izone__eyebrow{ font-family:"Archivo Narrow",sans-serif; font-size:.66rem; font-weight:700;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--lamp); display:block; margin-bottom:.35rem; }
+.izone__title{ font-family:"Newsreader",Georgia,serif; font-weight:400; font-size:1.25rem;
+  line-height:1.25; color:var(--heading); margin:0; }
+.izone__intro{ margin:.5rem 0 0; color:var(--muted); font-size:.94rem; line-height:1.55; max-width:60ch; }
+
+.izone__fig{ position:relative; padding:1.1rem 1.3rem .2rem; }
+.izone__fig canvas{ display:block; width:100%; height:auto; }
+
+.izone__ctl{ display:grid; gap:1rem 1.6rem; padding:1rem 1.3rem 1.2rem;
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); }
+.izone__row label{ display:flex; align-items:baseline; justify-content:space-between; gap:1rem;
+  font-family:"Archivo Narrow",sans-serif; font-size:.74rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted-dim); margin-bottom:.35rem; }
+.izone__row label .v{ font-variant-numeric:tabular-nums; color:var(--lamp); letter-spacing:.04em; }
+.izone__row .hint{ display:block; margin-top:.3rem; font-size:.78rem; color:var(--muted-dim);
+  text-transform:none; letter-spacing:0; font-family:"Archivo",sans-serif; font-weight:400; line-height:1.4; }
+
+/* one range style for every zone, in both themes */
+.izone input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:22px;
+  background:transparent; cursor:pointer; margin:0; }
+.izone input[type=range]:focus-visible{ outline:2px solid var(--lamp); outline-offset:3px; border-radius:4px; }
+.izone input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:2px;
+  background:var(--line); }
+.izone input[type=range]::-moz-range-track{ height:4px; border-radius:2px; background:var(--line); }
+.izone input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none;
+  width:17px; height:17px; margin-top:-6.5px; border-radius:50%; background:var(--lamp);
+  border:2px solid var(--cave-2); box-shadow:0 1px 4px rgba(0,0,0,.45); }
+.izone input[type=range]::-moz-range-thumb{ width:17px; height:17px; border-radius:50%;
+  background:var(--lamp); border:2px solid var(--cave-2); box-shadow:0 1px 4px rgba(0,0,0,.45); }
+
+.izone__read{ padding:.95rem 1.3rem 1.1rem; border-top:1px solid var(--line);
+  color:var(--text); font-size:.95rem; line-height:1.6; }
+.izone__read b{ color:var(--lamp); font-variant-numeric:tabular-nums; }
+.izone__reset{ float:right; font-family:"Archivo Narrow",sans-serif; font-size:.68rem; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted-dim); background:none;
+  border:1px solid var(--line); border-radius:5px; padding:.25rem .6rem; cursor:pointer; margin-left:1rem; }
+.izone__reset:hover{ color:var(--lamp); border-color:var(--lamp); }
+
+.izone__note{ padding:0 1.3rem 1.1rem; margin:0; font-size:.82rem; color:var(--muted-dim); line-height:1.5; }
+.izone__fallback{ padding:1.3rem; color:var(--muted-dim); font-style:italic; }
+
+@media (max-width:640px){
+  .izone__ctl{ grid-template-columns:1fr; gap:.9rem; }
+  .izone__head, .izone__fig, .izone__ctl, .izone__read, .izone__note{ padding-left:1rem; padding-right:1rem; }
+}
+@media (prefers-reduced-motion:reduce){
+  .btl__title a, .btl__more .ar, .bpost__back .ar{ transition:none; }
+}
+
+/* ── light mode: the tokens flip in site.css, these are the few extra washes ── */
+:root[data-theme="light"] .izone{ background:rgba(31,44,27,.035); }
+:root[data-theme="light"] .tldr{ background:rgba(31,44,27,.05); }
+:root[data-theme="light"] .btl__year::before,
+:root[data-theme="light"] .btl__post::before{ box-shadow:0 0 0 4px var(--paper); }
+:root[data-theme="light"] .izone input[type=range]::-webkit-slider-thumb,
+:root[data-theme="light"] .izone input[type=range]::-moz-range-thumb{ border-color:#fff; }

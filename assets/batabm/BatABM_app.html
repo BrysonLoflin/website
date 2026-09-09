@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BatABM: vampire-bat colony merge simulator</title>
+<style>
+:root {
+  color-scheme: light;
+  --plane: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --ink-mute: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --hair: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.04);
+  --edge: #0072B2; --mover: #E77500; --resident: #ffffff; --male: #b8b8b4; --band: rgba(69,117,180,0.16); --line: #4575b4;
+  --source: #4E79A7; --tag-data: #1b7837; --tag-fit: #0072B2; --tag-guess: #b35806; --tag-brief: #762a83; --tag-lit: #00441b;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --ink-mute: #898781; --grid: #2c2c2a; --axis: #383835; --hair: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05); --resident: #24241f; --male: #5a5a56; } }
+:root[data-theme="dark"] { color-scheme: dark; --plane: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --ink-mute: #898781; --grid: #2c2c2a; --axis: #383835; --hair: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05); --resident: #24241f; --male: #5a5a56; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--plane); color: var(--ink); font: 13.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+.app { display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); grid-template-rows: auto 1fr; height: 100vh; }
+@media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); } aside { max-height: 42vh; border-right: 0; border-bottom: 1px solid var(--hair); } }
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-bottom: 1px solid var(--hair); background: var(--surface); flex-wrap: wrap; }
+h1 { font-size: 17px; font-weight: 600; margin: 0; }
+header .sub { color: var(--ink-mute); font-size: 12px; }
+header .right { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--ink-2); padding: 5px 10px; font: inherit; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--plane); }
+button.run { background: var(--mover); color: #fff; border: 0; border-radius: 6px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+button.run[disabled] { opacity: 0.5; cursor: default; }
+button.ghost { background: transparent; border: 1px solid var(--axis); color: var(--ink-2); border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+.progress { height: 4px; background: var(--wash); border-radius: 2px; width: 160px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--line); width: 0%; transition: width .15s; }
+aside { border-right: 1px solid var(--hair); overflow-y: scroll; overflow-x: hidden; scrollbar-gutter: stable; padding: 10px 14px 40px 12px; background: var(--surface); min-width: 0; }
+aside::-webkit-scrollbar { width: 10px; } aside::-webkit-scrollbar-thumb { background: var(--axis); border-radius: 5px; } aside::-webkit-scrollbar-track { background: transparent; }
+.dial .row1 { padding-right: 4px; }
+aside .card { overflow: hidden; }
+main { overflow-y: auto; overflow-x: hidden; padding: 12px 18px 40px; min-width: 0; }
+details.mod { border-bottom: 1px solid var(--hair); padding: 4px 0; }
+details.mod summary { cursor: pointer; font-weight: 600; font-size: 12.5px; text-transform: capitalize; color: var(--ink-2); padding: 4px 0; list-style: none; display: flex; justify-content: space-between; }
+details.mod summary::after { content: "+"; color: var(--ink-mute); }
+details.mod[open] summary::after { content: "–"; }
+.dial { padding: 5px 0 7px; border-top: 1px dashed var(--hair); }
+.dial .row1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dial label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.dial input[type=number] { width: 68px; flex: none; font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--axis); border-radius: 4px; background: var(--plane); color: var(--ink); }
+.dial input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--line); }
+.dial select { font: inherit; font-size: 12px; background: var(--plane); color: var(--ink); border: 1px solid var(--axis); border-radius: 4px; max-width: 118px; flex: none; }
+.tag { flex: none; }
+.dial .lab { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+.dial .meta { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+.dial.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { 0% { background: rgba(231,117,0,0.35); } 100% { background: transparent; } }
+.dial.hidden { display: none; }
+#finder select, #finder input { width: 100%; font: inherit; font-size: 12px; padding: 4px 6px; border: 1px solid var(--axis); border-radius: 4px; background: var(--plane); color: var(--ink); margin-top: 4px; }
+figure.fig { margin: 0; min-width: 0; cursor: help; }
+figure.fig figcaption { font-size: 11.5px; color: var(--ink-2); padding: 2px 4px 0; line-height: 1.35; }
+figure.fig figcaption b { color: var(--ink); }
+.walk h3 { font-size: 14px; margin: 16px 0 6px; }
+.walk p, .walk li { font-size: 13px; line-height: 1.5; max-width: 820px; }
+.walk ol li, .walk ul li { margin: 3px 0; }
+.walk .step { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; margin: 8px 0; max-width: 860px; }
+.walk .step .n { width: 28px; height: 28px; border-radius: 50%; background: var(--mover); color: #fff; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.walk button.jump { font: inherit; font-size: 11.5px; padding: 1px 7px; border: 1px solid var(--axis); border-radius: 10px; background: var(--plane); color: var(--ink-2); cursor: pointer; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.walk button.jump:hover { border-color: var(--mover); color: var(--mover); }
+.walk table { border-collapse: collapse; font-size: 12.5px; max-width: 860px; } .walk td, .walk th { padding: 4px 8px; border-bottom: 1px solid var(--hair); text-align: left; vertical-align: top; } .walk th { color: var(--ink-mute); font-weight: 600; }
+.placeholder { padding: 40px 20px; text-align: center; color: var(--ink-mute); font-size: 14px; }
+.note.stale { color: var(--mover); font-size: 12px; margin: 0 0 8px; }
+.cmp { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+.cmp label { display: flex; flex-direction: column; gap: 3px; } .cmp label > span:not(.sw) { display: inline-flex; gap: 4px; }
+.cmp select, .cmp input { font: inherit; font-size: 12px; padding: 3px 5px; border: 1px solid var(--axis); border-radius: 4px; background: var(--plane); color: var(--ink); max-width: 260px; }
+.cmp input[type=number] { width: 90px; }
+.cmp .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+#cmpTable td.d { font-variant-numeric: tabular-nums; }
+.walk .lead { font-size: 14px; max-width: 760px; margin: 2px 0 12px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.stepcard { position: relative; border: 1px solid var(--hair); border-radius: 8px; padding: 8px 10px 10px; background: var(--plane); }
+.stepcard svg { width: 100%; height: 70px; display: block; }
+.stepcard .n { position: absolute; top: 6px; left: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--mover); color: #fff; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.stepcard .t { font-size: 12.5px; color: var(--ink); margin-top: 6px; line-height: 1.35; }
+.cycle { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cycle .node { width: 118px; text-align: center; font-size: 11.5px; color: var(--ink-2); } .cycle .node svg { width: 44px; height: 44px; display: block; margin: 0 auto 2px; }
+.cycle .arrow { color: var(--ink-mute); font-size: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.walk .chips button.jump { display: flex; flex-direction: column; align-items: flex-start; padding: 5px 9px; border-radius: 8px; line-height: 1.25; }
+.walk .chips button.jump span { font-family: system-ui, sans-serif; font-size: 11px; color: var(--ink-mute); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 14px; font-size: 12px; color: var(--ink-2); } .swatches div { display: flex; align-items: center; gap: 6px; } .swatches svg { width: 60px; height: 20px; flex: none; } .swatches b { color: var(--ink); margin-right: 4px; }
+.dial .cav { font-size: 11px; color: var(--tag-guess); margin-top: 2px; }
+.tag { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 8px; color: #fff; line-height: 15px; vertical-align: middle; }
+.tag.data, .tag.calibrated { background: var(--tag-data); } .tag.fit, .tag.derived { background: var(--tag-fit); } .tag.guess { background: var(--tag-guess); } .tag.brief { background: var(--tag-brief); } .tag.literature { background: var(--tag-lit); }
+.dial.changed label { color: var(--mover); }
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+.tabs button { border: 1px solid var(--axis); background: transparent; color: var(--ink-2); border-radius: 6px; padding: 5px 12px; font: inherit; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--plane); border-color: var(--ink); }
+.panel { display: none; } .panel.active { display: block; }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.card h2 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--ink-2); }
+.card .note { font-size: 11.5px; color: var(--ink-mute); }
+.nets { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.net { position: relative; }
+.net canvas { width: 100%; height: 360px; display: block; background: var(--plane); border-radius: 6px; }
+.net .cap { position: absolute; top: 6px; left: 8px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.net .n { position: absolute; top: 6px; right: 8px; font-size: 11px; color: var(--ink-mute); }
+.tl { display: flex; align-items: center; gap: 10px; }
+.tl .track { flex: 1; position: relative; } .tl .track input[type=range] { width: 100%; accent-color: var(--mover); margin: 0; }
+.ticks { position: relative; height: 8px; margin: 0 6px; } .ticks span { position: absolute; top: 0; width: 2px; height: 8px; background: var(--mover); opacity: 0.6; } .ticks span.six { background: var(--ink-2); width: 0; border-left: 2px dotted var(--ink-2); }
+.tl .night { font-variant-numeric: tabular-nums; min-width: 150px; color: var(--ink-2); font-size: 12px; }
+svg.chart { width: 100%; height: 230px; display: block; }
+svg.chart text { font-size: 11px; fill: var(--ink-2); }
+svg.chart .axis line, svg.chart .axis path { stroke: var(--axis); }
+svg.chart .grid line { stroke: var(--grid); }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.kpis { display: flex; gap: 14px; flex-wrap: wrap; }
+.kpi { min-width: 150px; } .kpi .v { font-size: 20px; font-weight: 600; } .kpi .l { font-size: 11px; color: var(--ink-mute); }
+table.pt { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.pt th, table.pt td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+table.pt th { color: var(--ink-mute); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+svg.dag { width: 100%; height: 520px; }
+svg.dag text { font-size: 11.5px; fill: var(--ink); }
+.legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-2); flex-wrap: wrap; }
+.legend .k { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; border: 1px solid var(--ink-mute); }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--plane); padding: 6px 9px; border-radius: 5px; font-size: 11.5px; line-height: 1.4; display: none; z-index: 10; max-width: 380px; }
+.tip .tipHead { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+.tip .tipRow { margin-top: 3px; opacity: 0.92; }
+.tip .tag { vertical-align: 0; }
+.dial { padding: 4px 0 6px; }
+.dial input[type=range] { margin-top: 3px; }
+.scen { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 12px; }
+.scen label { display: flex; flex-direction: column; gap: 2px; color: var(--ink-2); }
+.scen input, .scen select { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--axis); border-radius: 4px; background: var(--plane); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>BatABM</h1><a id="homeLink" class="sub" href="https://brysonloflin.com/" hidden style="text-decoration:none">brysonloflin.com</a></div>
+  <div class="seg" id="scenSeg" role="group" aria-label="Scenario">
+    <button data-s="single" aria-pressed="false">Single colony</button>
+    <button data-s="merge" aria-pressed="true">Staged merge</button>
+    <button data-s="subgroups" aria-pressed="false">Subgroup seeding</button>
+  </div>
+  <div class="right">
+    <span id="status" class="sub"></span>
+    <div class="progress"><div id="prog"></div></div>
+    <label style="font-size:12px;color:var(--ink-2)">seeds <input id="nSeeds" type="number" min="1" max="50" value="4" style="width:52px;font:inherit"></label>
+    <button class="run" id="runBtn">Run</button>
+    <button class="ghost" id="stopBtn" hidden>Stop</button>
+    <button class="ghost" id="randBtn" title="random values for the behaviour, merge, schedule and reciprocity dials (engine-scale dials such as the base grooming rate stay put, so the run still finishes in seconds)">Randomize dials</button>
+    <button class="ghost" id="resetBtn">Reset dials</button>
+  </div>
+</header>
+<aside>
+  <div class="card" id="finder">
+    <h2>Find a dial</h2>
+    <select id="dialPick"><option value="">jump to a dial…</option></select>
+    <input id="dialSearch" type="search" placeholder="filter dials by name or meaning">
+  </div>
+  <div id="dials"></div>
+</aside>
+<main>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="false" data-t="walk">Walkthrough</button>
+    <button role="tab" aria-selected="true" data-t="colonies">Colonies</button>
+    <button role="tab" aria-selected="false" data-t="integration">Integration</button>
+    <button role="tab" aria-selected="false" data-t="colony">Colony metrics</button>
+    <button role="tab" aria-selected="false" data-t="compare">Compare</button>
+    <button role="tab" aria-selected="false" data-t="dag">Mechanism DAG</button>
+    <button role="tab" aria-selected="false" data-t="table">Parameter table</button>
+  </div>
+
+  <section class="panel walk" id="p-walk">
+    <div class="card">
+      <p class="lead">A colony of simulated bats, one night at a time. Use it to try out ways of introducing the Louisville females to the Princeton colony and see how fast each newcomer becomes part of the colony.</p>
+      <div class="steps">
+        <div class="stepcard"><svg viewBox="0 0 120 60"><rect x="4" y="18" width="34" height="24" rx="4" fill="none" stroke="#898781"/><rect x="42" y="18" width="34" height="24" rx="4" fill="#0b0b0b"/><rect x="80" y="18" width="34" height="24" rx="4" fill="none" stroke="#898781"/><text x="21" y="33" font-size="7" text-anchor="middle" fill="#52514e">single</text><text x="59" y="33" font-size="7" text-anchor="middle" fill="#fff">merge</text><text x="97" y="33" font-size="7" text-anchor="middle" fill="#52514e">groups</text></svg><div class="n">1</div><div class="t">Pick a scenario at the top.</div></div>
+        <div class="stepcard"><svg viewBox="0 0 120 60"><rect x="35" y="16" width="50" height="28" rx="6" fill="#E77500"/><text x="60" y="35" font-size="11" font-weight="600" text-anchor="middle" fill="#fff">Run</text><text x="18" y="35" font-size="8" text-anchor="middle" fill="#52514e">seeds 4</text></svg><div class="n">2</div><div class="t">Press Run. More seeds = more replicate colonies.</div></div>
+        <div class="stepcard"><svg viewBox="0 0 120 60"><g stroke="#0072B2" stroke-width="1.5" opacity="0.7"><line x1="20" y1="20" x2="45" y2="40"/><line x1="45" y1="40" x2="70" y2="18"/><line x1="70" y1="18" x2="95" y2="38"/><line x1="20" y1="20" x2="70" y2="18"/><line x1="45" y1="40" x2="95" y2="38"/></g><circle cx="20" cy="20" r="5" fill="#fff" stroke="#7a7a76"/><circle cx="45" cy="40" r="5" fill="#fff" stroke="#7a7a76"/><circle cx="70" cy="18" r="5" fill="#E77500" stroke="#7a7a76"/><circle cx="95" cy="38" r="5" fill="#b8b8b4" stroke="#7a7a76"/><line x1="10" y1="54" x2="110" y2="54" stroke="#c3c2b7"/><circle cx="60" cy="54" r="3" fill="#E77500"/></svg><div class="n">3</div><div class="t">Colonies tab: watch the networks join. Play the slider.</div></div>
+        <div class="stepcard"><svg viewBox="0 0 120 60"><path d="M12 45 C 40 44, 50 30, 108 22" fill="none" stroke="#4575b4" stroke-width="2"/><path d="M12 50 C 40 49, 50 38, 108 30 L108 14 C 50 22, 40 36, 12 40 Z" fill="#4575b4" opacity="0.15"/><line x1="12" y1="34" x2="108" y2="34" stroke="#898781" stroke-dasharray="3 2"/><line x1="12" y1="52" x2="108" y2="52" stroke="#c3c2b7"/><line x1="12" y1="10" x2="12" y2="52" stroke="#c3c2b7"/></svg><div class="n">4</div><div class="t">Integration tab: how each newcomer settles in, week by week.</div></div>
+        <div class="stepcard"><svg viewBox="0 0 120 60"><path d="M12 46 C 40 44, 55 30, 108 24" fill="none" stroke="#4575b4" stroke-width="2"/><path d="M12 48 C 40 47, 55 40, 108 36" fill="none" stroke="#d73027" stroke-width="2"/><line x1="12" y1="52" x2="108" y2="52" stroke="#c3c2b7"/><line x1="12" y1="10" x2="12" y2="52" stroke="#c3c2b7"/><text x="100" y="18" font-size="7" fill="#4575b4">A</text><text x="100" y="45" font-size="7" fill="#d73027">B</text></svg><div class="n">6</div><div class="t">Compare tab: one dial, two values, same seeds, curves overlaid.</div></div>
+        <div class="stepcard"><svg viewBox="0 0 120 60"><text x="10" y="22" font-size="8" font-family="monospace" fill="#E77500">ingroup_bias</text><line x1="10" y1="40" x2="110" y2="40" stroke="#c3c2b7" stroke-width="3" stroke-linecap="round"/><line x1="10" y1="40" x2="55" y2="40" stroke="#4575b4" stroke-width="3" stroke-linecap="round"/><circle cx="55" cy="40" r="6" fill="#4575b4"/></svg><div class="n">5</div><div class="t">Change a dial on the left, rerun, compare. Hover a dial for what it means.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Every night</h2>
+      <div class="cycle">
+        <div class="node"><svg viewBox="0 0 40 40"><rect x="7" y="9" width="26" height="24" rx="3" fill="none" stroke="#52514e"/><line x1="7" y1="16" x2="33" y2="16" stroke="#52514e"/><circle cx="20" cy="25" r="3" fill="#E77500"/></svg><div>transfers, fasting rota</div></div><div class="arrow">→</div>
+        <div class="node"><svg viewBox="0 0 40 40"><circle cx="14" cy="20" r="6" fill="#fff" stroke="#7a7a76"/><circle cx="27" cy="20" r="6" fill="#E77500" stroke="#7a7a76"/></svg><div>who sits together</div></div><div class="arrow">→</div>
+        <div class="node"><svg viewBox="0 0 40 40"><circle cx="12" cy="20" r="6" fill="#fff" stroke="#7a7a76"/><circle cx="28" cy="20" r="6" fill="#fff" stroke="#7a7a76"/><line x1="18" y1="20" x2="22" y2="20" stroke="#0072B2" stroke-width="4"/></svg><div>grooming, bouts and returns</div></div><div class="arrow">→</div>
+        <div class="node"><svg viewBox="0 0 40 40"><circle cx="12" cy="20" r="6" fill="#fff" stroke="#7a7a76"/><circle cx="28" cy="20" r="6" fill="#fff" stroke="#7a7a76"/><path d="M18 18 L22 20 L18 22 Z" fill="#E77500"/></svg><div>food to the fasted bat</div></div><div class="arrow">→</div>
+        <div class="node"><svg viewBox="0 0 40 40"><path d="M8 30 C 16 30, 22 12, 32 10" fill="none" stroke="#4575b4" stroke-width="2.5"/></svg><div>bonds grow or fade</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dials worth turning</h2>
+      <div class="chips">
+        <button class="jump" data-jump="transfer_gap_days">transfer_gap_days<span>nights between moves</span></button>
+        <button class="jump" data-jump="batch_size">batch_size<span>bats per move</span></button>
+        <button class="jump" data-jump="transfer_order">transfer_order<span>who goes first</span></button>
+        <button class="jump" data-jump="ingroup_bias">ingroup_bias<span>avoiding the other colony</span></button>
+        <button class="jump" data-jump="ingroup_fade_halflife">ingroup_fade_halflife<span>how long that lasts</span></button>
+        <button class="jump" data-jump="transfer_shock_size">transfer_shock_size<span>arrival slump</span></button>
+        <button class="jump" data-jump="pre_exposure_strength">pre_exposure_strength<span>hearing residents first</span></button>
+        <button class="jump" data-jump="bond_age_multiplier">bond_age_multiplier<span>new bonds grow faster</span></button>
+        <button class="jump" data-jump="kin_groom">kin_groom<span>kin groom more</span></button>
+        <button class="jump" data-jump="rel_growth_rate">rel_growth_rate<span>how fast bonds build</span></button>
+        <button class="jump" data-jump="integration_threshold">integration_threshold<span>the bar for "integrated"</span></button>
+        <button class="jump" data-jump="integration_measure">integration_measure<span>how it is scored</span></button>
+      </div>
+      <div class="legend" style="margin-top:8px"><span><span class="tag data">data</span> our datasets</span><span><span class="tag fit">fit</span> STRAND posterior</span><span><span class="tag calibrated">calibrated</span> tuned to Princeton</span><span><span class="tag literature">literature</span></span><span><span class="tag brief">brief</span> Bryson's spec</span><span><span class="tag guess">guess</span> reasoning in the hover card</span></div>
+    </div>
+    <div class="card">
+      <h2>Reading the charts</h2>
+      <div class="swatches">
+        <div><svg viewBox="0 0 60 20"><line x1="2" y1="10" x2="58" y2="10" stroke="#E77500" stroke-width="1.5" opacity="0.5"/></svg>one newcomer (seed 1)</div>
+        <div><svg viewBox="0 0 60 20"><rect x="2" y="4" width="56" height="12" fill="#4575b4" opacity="0.16"/><line x1="2" y1="10" x2="58" y2="10" stroke="#4575b4" stroke-width="2.5"/></svg>median over all newcomers and seeds, 5 to 95% band</div>
+        <div><svg viewBox="0 0 60 20"><line x1="2" y1="10" x2="58" y2="10" stroke="#898781" stroke-dasharray="4 3"/></svg>integration threshold</div>
+        <div><svg viewBox="0 0 60 20"><circle cx="30" cy="10" r="3" fill="#E77500" opacity="0.6"/></svg>one newcomer in one seed</div>
+        <div><svg viewBox="0 0 60 20"><line x1="30" y1="2" x2="30" y2="18" stroke="#E77500" opacity="0.5" stroke-width="2"/></svg>a transfer</div>
+        <div><svg viewBox="0 0 60 20"><line x1="30" y1="2" x2="30" y2="18" stroke="#52514e" stroke-dasharray="2 3" stroke-width="2"/></svg>six months</div>
+      </div>
+      <div class="swatches" style="margin-top:6px">
+        <div><b>integration</b> grooming a newcomer receives per resident around her, vs a typical resident. 1 = like a resident.</div>
+        <div><b>familiar share</b> of her grooming, the part that goes to her own Louisville bats.</div>
+        <div><b>density</b> pairs that groomed in the last 14 nights.</div>
+        <div><b>modularity Q</b> 0 = origins mixed, 0.3+ = two cliques.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="legend"><span>⚠ merge dials are guesses; replays of two real merges missed in opposite directions</span><span>⚠ true process, not what a camera records</span><span>⚠ if two designs differ by less than the band, they do not differ</span></div>
+      <p class="note" id="builtNote"></p>
+    </div>
+  </section>
+
+  <section class="panel active" id="p-colonies">
+    <div class="card">
+      <div class="tl"><button class="ghost" id="playBtn">Play</button><select id="speed" class="ghost" title="playback speed" style="padding:4px 6px"><option value="0.25">¼× speed</option><option value="0.5">½×</option><option value="1" selected>1× (25 nights/s)</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select><div class="track"><input type="range" id="scrub" min="1" max="1" value="1"><div class="ticks" id="ticks"></div></div><span class="night" id="nightLab">run to start</span></div>
+      <div class="legend" style="margin-top:6px"><span><span class="k" style="background:var(--mover)"></span>newcomer</span><span><span class="k" style="background:var(--resident)"></span>resident female</span><span><span class="k" style="background:var(--male)"></span>resident male</span><span><span class="k" style="border:0;border-radius:0;height:3px;width:18px;background:var(--edge);vertical-align:3px"></span>grooming, last 14 nights</span><span><span class="k" style="border:0;border-radius:0;width:2px;height:12px;background:var(--mover)"></span>transfer</span><span><span class="k" style="border:0;border-radius:0;width:0;height:12px;border-left:2px dotted var(--ink-2)"></span>six months</span></div>
+    </div>
+    <div class="nets" id="nets"></div>
+    <div class="card"><div class="kpis" id="kpis"></div></div>
+  </section>
+
+  <section class="panel" id="p-integration">
+    <div class="note stale" id="staleNote1" hidden>These curves are from the last run; settings have changed since. Press Run to refresh.</div>
+    <div class="card"><h2>How each newcomer settles in, week by week after her own arrival</h2>
+      <div class="charts"><figure class="fig"><svg class="chart" id="c-rel"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="c-par"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="c-fam"></svg><figcaption></figcaption></figure></div>
+      <div class="note" id="relNote">Received grooming is relative to the median resident's grooming received from other residents in the same week.</div>
+      <div class="note">All curves are the true process, not what a camera would record. Familiar share counts grooming to same-origin bats among everyone the mover groomed, in whichever enclosure she is.</div></div>
+    <div class="card"><h2>Does it matter when a bat is moved? Week-8 outcome by order of arrival</h2>
+      <div class="charts"><figure class="fig"><svg class="chart" id="c-rank"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="c-famrank"></svg><figcaption></figcaption></figure></div>
+      <div class="note">Week 8 is used because "weeks to threshold" is cut off for late movers (they have less follow-up).</div></div>
+  </section>
+
+  <section class="panel" id="p-colony">
+    <div class="note stale" id="staleNote2" hidden>These curves are from the last run; settings have changed since. Press Run to refresh.</div>
+    <div class="card"><h2>How connected each enclosure's network is over the whole run</h2><figure class="fig"><svg class="chart" id="c-dens" style="height:260px"></svg><figcaption></figcaption></figure></div>
+    <div class="card"><h2>How separated the two origins still are inside the Princeton enclosure</h2><figure class="fig"><svg class="chart" id="c-mod"></svg><figcaption></figcaption></figure></div>
+    <div class="card"><h2>Schedule</h2><div class="kpis" id="schedKpis"></div><div class="note">Duration counts from the first transfer to the last move; the six-month mark (dotted on the timeline) is the line the plan should stay under.</div></div>
+  </section>
+
+  <section class="panel" id="p-compare">
+    <div class="card">
+      <h2>Two values of one dial, everything else the same</h2>
+      <div class="cmp"><label>dial<select id="cmpDial"></select></label><label><span class="sw" style="background:#4575b4"></span>A<span id="cmpA"></span></label><label><span class="sw" style="background:#d73027"></span>B<span id="cmpB"></span></label><button class="run" id="cmpBtn">Compare</button><span id="cmpStatus" class="sub"></span></div>
+      <div class="note">Same scenario, same seeds (the box at the top), every other dial as currently set. Differences smaller than the bands are noise.</div>
+    </div>
+    <div id="cmpOut" hidden>
+      <div class="card"><h2>Outcome at week 8 and for the whole run (median over seeds)</h2><table class="pt" id="cmpTable"></table></div>
+      <div class="card"><h2>Newcomers, week by week after arrival</h2>
+        <div class="charts"><figure class="fig"><svg class="chart" id="x-rel"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="x-par"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="x-fam"></svg><figcaption></figcaption></figure></div></div>
+      <div class="card"><h2>Princeton enclosure over the run</h2>
+        <div class="charts"><figure class="fig"><svg class="chart" id="x-dens"></svg><figcaption></figcaption></figure><figure class="fig"><svg class="chart" id="x-mod"></svg><figcaption></figcaption></figure></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-dag">
+    <div class="card"><h2>Mechanism DAG: edges scale with their dial and vanish at zero</h2>
+      <svg class="dag" id="dag"></svg>
+      <div class="legend"><span><span class="k" style="background:#dfe7f2"></span>trait</span><span><span class="k" style="background:#f2e6d9"></span>state</span><span><span class="k" style="background:#fbe3cf"></span>treatment</span><span><span class="k" style="background:#ffffff"></span>behaviour</span></div>
+      <div class="note">Hover an arrow for half a second to read why the model has it and which dial scales it. Arrows thicken with their dial and vanish at zero.</div></div>
+  </section>
+
+  <section class="panel" id="p-table">
+    <div class="card"><h2>Parameter table (from params/parameter_table.csv)</h2><div style="max-height:70vh;overflow:auto"><table class="pt" id="ptab"></table></div></div>
+  </section>
+
+</main>
+</div>
+<div class="tip" id="tip"></div>
+
+<script id="engine-src">
+/* BatABM engine, JavaScript mirror of R/batabm (true process only; observation stays in R).
+   Mirrors step.R, colony.R, state.R, calendar.R, scenario.R and the true-process metrics.
+   Parity with the R engine is distributional (different RNG streams): see R/parity_test.R.
+   No dependencies. Works in a browser and in jsc. */
+(function (root) {
+  "use strict";
+
+  // ---- RNG: mulberry32 + Box-Muller + Poisson (Knuth / PTRS) ----
+  function RNG(seed) { this.s = (seed >>> 0) || 1; this.spare = null; }
+  RNG.prototype.next = function () {
+    let t = (this.s += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  RNG.prototype.norm = function () {
+    if (this.spare !== null) { const v = this.spare; this.spare = null; return v; }
+    let u = 0, v = 0; while (u === 0) u = this.next(); v = this.next();
+    const r = Math.sqrt(-2 * Math.log(u)); this.spare = r * Math.sin(2 * Math.PI * v); return r * Math.cos(2 * Math.PI * v);
+  };
+  RNG.prototype.pois = function (lam) {
+    if (!(lam > 0)) return 0;
+    if (lam < 30) { const L = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= this.next(); } while (p > L); return k - 1; }
+    // PTRS (Hormann 1993)
+    const slam = Math.sqrt(lam), loglam = Math.log(lam), b = 0.931 + 2.53 * slam, a = -0.059 + 0.02483 * b, invalpha = 1.1239 + 1.1328 / (b - 3.4), vr = 0.9277 - 3.6224 / (b - 2);
+    for (;;) {
+      const U = this.next() - 0.5, V = this.next(), us = 0.5 - Math.abs(U), k = Math.floor((2 * a / us + b) * U + lam + 0.43);
+      if (us >= 0.07 && V <= vr) return k;
+      if (k < 0 || (us < 0.013 && V > us)) continue;
+      if (Math.log(V) + Math.log(invalpha) - Math.log(a / (us * us) + b) <= -lam + k * loglam - lgamma(k + 1)) return k;
+    }
+  };
+  RNG.prototype.lnorm = function (meanlog, sdlog) { return Math.exp(meanlog + sdlog * this.norm()); };
+  RNG.prototype.shuffle = function (arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(this.next() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function lgamma(x) { // Lanczos
+    const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+    x -= 1; let a = c[0]; const t = x + g + 0.5; for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  const plogis = x => 1 / (1 + Math.exp(-x)), logit = p => Math.log(p / (1 - p));
+  const median = a => { const b = a.filter(Number.isFinite).sort((x, y) => x - y); if (!b.length) return NaN; const m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  const quantile = (a, q) => { const b = a.filter(Number.isFinite).sort((x, y) => x - y); if (!b.length) return NaN; const h = (b.length - 1) * q, lo = Math.floor(h); return lo + 1 < b.length ? b[lo] + (h - lo) * (b[lo + 1] - b[lo]) : b[lo]; };
+  const mean = a => { const b = a.filter(Number.isFinite); return b.length ? b.reduce((s, x) => s + x, 0) / b.length : NaN; };
+  const sd = a => { const b = a.filter(Number.isFinite), m = mean(b); return Math.sqrt(b.reduce((s, x) => s + (x - m) * (x - m), 0) / (b.length - 1)); };
+
+  // ---- parameters ----
+  // rows: [{name, value, ...}] from parameter_table.csv; numeric strings become numbers, TRUE/FALSE booleans
+  function readParams(rows, overrides) {
+    const p = {};
+    for (const r of rows) { const v = r.value; const num = Number(v); p[r.name] = (v === "" || v == null) ? null : (!Number.isNaN(num) && v !== true && v !== false && String(v).trim() !== "") ? num : (v === "TRUE" ? true : v === "FALSE" ? false : v); }
+    if (overrides) for (const k in overrides) p[k] = overrides[k];
+    return p;
+  }
+
+  // ---- colony ----
+  function drawDyad(n, sdv, rho, rng, zBase, cross) {
+    const sym = new Float64Array(n * n), ind = new Float64Array(n * n), z = new Float64Array(n * n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const v = rng.norm(); sym[i * n + j] = v; sym[j * n + i] = v; }
+    for (let k = 0; k < n * n; k++) ind[k] = rng.norm();
+    rho = Math.max(-1, Math.min(1, rho));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i === j) continue; const k = i * n + j;
+      let v = rho >= 0 ? Math.sqrt(rho) * sym[k] + Math.sqrt(1 - rho) * ind[k] : Math.sqrt(-rho) * (sym[k] - sym[j * n + i]) + Math.sqrt(1 + rho) * ind[k];
+      if (zBase && cross) v = cross * zBase[k] + Math.sqrt(1 - cross * cross) * v;
+      z[k] = v;
+    }
+    const eff = new Float64Array(n * n); for (let k = 0; k < n * n; k++) eff[k] = sdv * z[k];
+    return { effect: eff, z: z };
+  }
+
+  // spec: {ids, sex, origin, enclosure, kinship (n*n array, already standardised) }
+  function makeColony(spec, params, seed) {
+    const p = Object.assign({}, params), n = spec.ids.length, rng = new RNG(seed);
+    const es = p.effect_scale;
+    for (const nm of ["actor_sd_groom", "receiver_sd_groom", "dyad_sd_groom", "actor_sd_share", "receiver_sd_share", "dyad_sd_share", "actor_sd_aggr", "receiver_sd_aggr", "dyad_sd_aggr"]) p[nm] *= es;
+    const za = new Float64Array(n), zb = new Float64Array(n), zs = new Float64Array(n);
+    for (let i = 0; i < n; i++) { za[i] = rng.norm(); zb[i] = rng.norm(); zs[i] = rng.norm(); }
+    const gr = p.generalized_recip_groom; for (let i = 0; i < n; i++) zb[i] = gr * za[i] + Math.sqrt(1 - gr * gr) * zb[i];
+    const cx = p.cross_behaviour_corr, mix = (z1, z2) => cx * z1 + Math.sqrt(1 - cx * cx) * z2;
+    const actor = { groom: new Float64Array(n), share: new Float64Array(n), aggr: new Float64Array(n) };
+    const receiver = { groom: new Float64Array(n), share: new Float64Array(n), aggr: new Float64Array(n) };
+    for (let i = 0; i < n; i++) { actor.groom[i] = p.actor_sd_groom * za[i]; actor.share[i] = p.actor_sd_share * mix(za[i], rng.norm()); actor.aggr[i] = p.actor_sd_aggr * rng.norm(); }
+    const gs = p.generalized_recip_share;
+    for (let i = 0; i < n; i++) { receiver.groom[i] = p.receiver_sd_groom * zb[i]; const zbs = gs * (actor.share[i] / p.actor_sd_share) + Math.sqrt(1 - gs * gs) * rng.norm(); receiver.share[i] = p.receiver_sd_share * (Number.isFinite(zbs) ? zbs : rng.norm()); receiver.aggr[i] = p.receiver_sd_aggr * rng.norm(); }
+    const dg = drawDyad(n, p.dyad_sd_groom, p.dyad_recip_groom, rng), ds = drawDyad(n, p.dyad_sd_share, p.dyad_recip_share, rng, dg.z, cx), da = drawDyad(n, p.dyad_sd_aggr, 0, rng);
+    const soc = new Float64Array(n); for (let i = 0; i < n; i++) soc[i] = p.sociability_sd * zs[i];
+    const K = spec.kinship ? Float64Array.from(spec.kinship) : new Float64Array(n * n);
+    return { ids: spec.ids.slice(), n, sex: spec.sex.slice(), origin: spec.origin.slice(), enclosure0: spec.enclosure.slice(), K, actor, receiver, dyad: { groom: dg.effect, share: ds.effect, aggr: da.effect }, sociability: soc, seed };
+  }
+
+  // ---- state ----
+  function initState(colony, params, R0) {
+    const n = colony.n, z = () => new Float64Array(n * n);
+    const R = z(); if (R0) for (let k = 0; k < n * n; k++) R[k] = R0[k] * params.familiarity_carryover;
+    const bondAge = new Float64Array(n * n).fill(NaN); if (R0) for (let k = 0; k < n * n; k++) if (R0[k] !== 0) bondAge[k] = params.bond_age_days;
+    return { day: 0, R, Mg: z(), Ms: z(), bondAge, enclosure: colony.enclosure0.slice(), arrival: new Float64Array(n).fill(-Infinity), familiar: new Uint8Array(n * n), preExposed: new Uint8Array(n * n) };
+  }
+
+  // ---- calendar ----
+  function makeCalendar(nNights, bats, params, transfers, seed, start) {
+    const rng = new RNG(seed), p = params, order = rng.shuffle(bats), cal = [];
+    let k = 0;
+    for (let t = 0; t < nNights; t++) {
+      const night = start + t, wk = (night - 1) % 7, row = { night, surveillance: wk < p.surveillance_days_per_week, fasted: [], transfers: [] };
+      if (p.fasting_on && wk < p.fast_nights_per_week) { for (let b = 0; b < p.fast_bats_per_night; b++) row.fasted.push(order[(k + b) % order.length]); k += p.fast_bats_per_night; }
+      if (transfers) for (const tr of transfers) if (tr.night === night) row.transfers.push(tr);
+      cal.push(row);
+    }
+    return cal;
+  }
+
+  // ---- one night (mirror of step_night) ----
+  function shockVec(state, p) {
+    const n = state.arrival.length, s = new Float64Array(n);
+    for (let i = 0; i < n; i++) { if (!Number.isFinite(state.arrival[i])) { s[i] = 0; continue; } const d = Math.max(state.day - state.arrival[i], 0); s[i] = -Math.log(1 - p.transfer_shock_size) * Math.exp(-d / Math.max(p.transfer_shock_days, 1e-9)); }
+    return s;
+  }
+  function stepNight(state, colony, p, calRow, rng, out) {
+    const n = colony.n, ids = colony.ids, idx = colony._idx || (colony._idx = Object.fromEntries(ids.map((id, i) => [id, i])));
+    state.day += 1; const t = state.day;
+    const kinG = p.kin_groom * p.effect_scale, kinS = p.kin_share * p.effect_scale, kinX = p.kin_aggr * p.effect_scale;
+    // 0. calendar
+    for (const tr of calRow.transfers) {
+      const b = idx[tr.bat]; state.enclosure[b] = tr.to; state.arrival[b] = t;
+      if (p.pre_exposure_mechanism === "head_start" && p.pre_exposure_strength > 0) {
+        let any = false; for (let j = 0; j < n; j++) if (state.preExposed[b * n + j]) { any = true; state.R[b * n + j] += p.pre_exposure_strength; state.R[j * n + b] += p.pre_exposure_strength; state.preExposed[b * n + j] = 0; }
+      }
+    }
+    const delta = rng.norm() * p.day_sd, shock = shockVec(state, p);
+    // 1. association
+    const A = new Uint8Array(n * n), sinceArr = new Float64Array(n); for (let i = 0; i < n; i++) sinceArr[i] = t - state.arrival[i];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      if (state.enclosure[i] !== state.enclosure[j]) continue;
+      const sm = Math.min(sinceArr[i], sinceArr[j]), fade = Number.isFinite(sm) ? Math.pow(2, -Math.max(sm, 0) / p.ingroup_fade_halflife) : 0;
+      const sameOrigin = colony.origin[i] === colony.origin[j];
+      let pre = 0; if (p.pre_exposure_mechanism === "preference" && (state.preExposed[i * n + j] || state.preExposed[j * n + i])) pre = p.pre_exposure_strength;
+      const eta = p.assoc_base + p.assoc_by_relationship * (state.R[i * n + j] + state.R[j * n + i]) / 2 + colony.sociability[i] + colony.sociability[j] - p.ingroup_bias * (sameOrigin ? 0 : 1) * fade + pre - shock[i] - shock[j];
+      if (rng.next() < plogis(eta)) { A[i * n + j] = 1; A[j * n + i] = 1; }
+    }
+    // 2. grooming: initiated bouts, then bout-level responses
+    const nightPair = new Float64Array(n * n); for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const v = rng.norm() * p.night_pair_sd; nightPair[i * n + j] = v; nightPair[j * n + i] = v; }
+    const gsec = new Float32Array(n * n), nb = new Int32Array(n * n);
+    let Rbar = 0, nTog = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j && state.enclosure[i] === state.enclosure[j]) { Rbar += state.R[i * n + j]; nTog++; } Rbar = nTog ? Rbar / nTog : 0;
+    const logRate = Math.log(p.groom_rate_night);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i === j || !A[i * n + j]) continue; const k = i * n + j;
+      const eta = logRate + colony.actor.groom[i] + colony.receiver.groom[j] + colony.dyad.groom[k] + kinG * colony.K[k] + p.relationship_effect * state.R[k] + p.groom_reciprocity_lag * state.Mg[k] + delta + nightPair[k] - shock[i];
+      const c = rng.pois(Math.exp(eta)); nb[k] = c;
+      for (let b = 0; b < c; b++) gsec[k] += Math.min(rng.lnorm(p.groom_dur_meanlog, p.groom_dur_sdlog), p.groom_dur_max);
+    }
+    let nInit = 0, nResp = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const c = nb[i * n + j]; if (!c) continue; nInit += c;
+      const pr = plogis(logit(p.bout_recip_base) + p.bout_recip_by_relationship * (state.R[j * n + i] - Rbar));
+      for (let b = 0; b < c; b++) if (rng.next() < pr) { nResp++; gsec[j * n + i] += Math.min(rng.lnorm(p.groom_dur_meanlog, p.groom_dur_sdlog), p.groom_dur_max); }
+    }
+    // 3. aggression
+    const nx = new Int32Array(n * n);
+    if (p.aggr_rate_night > 0) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i === j || !A[i * n + j]) continue; const k = i * n + j;
+      nx[k] = rng.pois(Math.exp(Math.log(p.aggr_rate_night) + colony.actor.aggr[i] + colony.receiver.aggr[j] + colony.dyad.aggr[k] + kinX * colony.K[k] + delta));
+    }
+    // 4. donations to fasted bats
+    const don = new Uint8Array(n * n), donations = [];
+    for (const fb of calRow.fasted) {
+      const j = idx[fb]; if (j == null) continue;
+      for (let i = 0; i < n; i++) {
+        if (i === j || state.enclosure[i] !== state.enclosure[j]) continue; const k = i * n + j;
+        const gate = state.R[k] >= p.stage_threshold_share ? 0 : -3;
+        const eta = logit(p.p_donate_base) + colony.actor.share[i] + colony.receiver.share[j] + colony.dyad.share[k] + kinS * colony.K[k] + p.share_relationship * state.R[k] + p.groom_to_share * state.Mg[k] + p.share_reciprocity * state.Ms[k] + gate - shock[i];
+        if (rng.next() < plogis(eta)) { don[k] = 1; donations.push({ night: t, actor: ids[i], receiver: ids[j], dur_s: rng.lnorm(p.donation_dur_meanlog, p.donation_dur_sdlog) }); }
+      }
+    }
+    // 5. update
+    const decay = Math.pow(2, -1 / p.rel_decay_halflife), kmem = p.groom_memory_days;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i === j) continue; const k = i * n + j, kt = j * n + i;
+      const gh = gsec[k] / 3600, ght = gsec[kt] / 3600;
+      const newPair = Number.isNaN(state.bondAge[k]) || state.bondAge[k] < p.bond_age_days;
+      let gain = p.rel_growth_rate * (1 + p.bond_age_multiplier * (newPair ? 1 : 0)) * (gh + p.rel_receive_weight * ght + p.rel_share_weight * don[k]);
+      gain *= Math.max(1 - state.R[k] / p.rel_max, 0);
+      let Rn = state.R[k] * decay + gain - p.aggr_suppression * nx[k];
+      state.R[k] = Math.min(Math.max(Rn, -p.rel_max), p.rel_max);
+      const interacted = (gh + ght + don[k] + don[kt]) > 0;
+      state.bondAge[k] = Number.isNaN(state.bondAge[k]) ? (interacted ? 0 : NaN) : state.bondAge[k] + 1;
+      state.Mg[k] = state.Mg[k] * (1 - 1 / kmem) + ght;        // what i received from j
+      state.Ms[k] = state.Ms[k] * (1 - 1 / kmem) + don[kt];
+    }
+    if (out) { out.gsec.push(gsec); out.nx.push(nx); out.donations.push(...donations); out.assoc.push(A); out.nights.push(t); out.bouts.push([nInit, nResp]); }
+    return state;
+  }
+
+  function runSim(colony, state, params, calendar, seed, out) {
+    const rng = new RNG(seed);
+    out = out || { gsec: [], nx: [], donations: [], assoc: [], nights: [], bouts: [], enclosure: [] };
+    for (const row of calendar) { stepNight(state, colony, params, row, rng, out); out.enclosure.push(state.enclosure.slice()); }
+    out.state = state; out.colony = colony; out.params = params;
+    return out;
+  }
+
+  // ---- scenarios ----
+  function standardiseBlock(mat, n) { const off = []; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) off.push(mat[i * n + j]); const m = mean(off), s = sd(off); const outm = new Float64Array(n * n); if (s > 0) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) outm[i * n + j] = (mat[i * n + j] - m) / s; return outm; }
+
+  // resident: {ids, sex, origin, kinship (raw n*n or null)}; returns {colony, residents, incoming}
+  function makeMergeColony(params, seed, resident, nIncoming, incomingOrigin, kinMode) {
+    const rng = new RNG(seed + 777), inc = []; for (let i = 1; i <= nIncoming; i++) inc.push("L" + String(i).padStart(2, "0"));
+    const ids = resident.ids.concat(inc), n = ids.length, nr = resident.ids.length, K = new Float64Array(n * n);
+    if (resident.kinship) { const Kr = standardiseBlock(resident.kinship, nr); for (let i = 0; i < nr; i++) for (let j = 0; j < nr; j++) K[i * n + j] = Kr[i * nr + j]; }
+    if (kinMode === "synthetic_sibs") { const grp = rng.shuffle(Array.from({ length: nIncoming }, (_, i) => Math.floor(i / 3))); for (let a = 0; a < nIncoming; a++) for (let b = 0; b < nIncoming; b++) if (a !== b && grp[a] === grp[b]) K[(nr + a) * n + nr + b] = 0.5 / 0.10; }
+    const spec = { ids, sex: resident.sex.concat(inc.map(() => "f")), origin: resident.origin.concat(inc.map(() => incomingOrigin || "louisville")), enclosure: resident.ids.map(() => "resident").concat(inc.map(() => "source")), kinship: K };
+    return { colony: makeColony(spec, params, seed), residents: resident.ids.slice(), incoming: inc };
+  }
+
+  function outDegree(out, colony, bats, nightFrom, nightTo) {
+    const n = colony.n, idx = colony._idx, res = {}; for (const b of bats) res[b] = new Set();
+    for (let r = 0; r < out.nights.length; r++) { const t = out.nights[r]; if (t < nightFrom || t > nightTo) continue; const g = out.gsec[r]; for (const b of bats) { const i = idx[b]; for (let j = 0; j < n; j++) if (g[i * n + j] > 0) res[b].add(j); } }
+    const o = {}; for (const b of bats) o[b] = res[b].size; return o;
+  }
+
+  function planTransfers(outPre, mc, params, order, gap, batch, startNight, seed) {
+    const rng = new RNG(seed + 99), inc = mc.incoming, colony = mc.colony, n = colony.n, idx = colony._idx;
+    let ord;
+    if (order === "random") ord = rng.shuffle(inc);
+    else if (order === "most_social" || order === "least_social") { const od = outDegree(outPre, colony, inc, -Infinity, Infinity); const key = inc.map(b => [b, od[b] + rng.next() * 1e-6]); key.sort((a, b) => order === "most_social" ? b[1] - a[1] : a[1] - b[1]); ord = key.map(k => k[0]); }
+    else if (order === "familiar_rich") {
+      const R = outPre.state.R; let left = inc.slice(); const done = [];
+      const rowSum = b => left.reduce((s, c) => s + Math.max(R[idx[b] * n + idx[c]], 0), 0);
+      let first = left[0], best = -1; for (const b of left) { const v = rowSum(b); if (v > best) { best = v; first = b; } }
+      done.push(first); left = left.filter(x => x !== first);
+      while (left.length) { let nb = left[0], bs = -1; for (const b of left) { const v = done.reduce((s, d) => s + Math.max(R[idx[b] * n + idx[d]], 0), 0) + rng.next() * 1e-6; if (v > bs) { bs = v; nb = b; } } done.push(nb); left = left.filter(x => x !== nb); }
+      ord = done;
+    } else throw new Error("unknown order " + order);
+    return ord.map((b, i) => ({ night: startNight + Math.floor(i / batch) * gap, bat: b, to: "resident", rank: i + 1 }));
+  }
+
+  function planSubgroups(mc, params, kGroups, mHosts, roundNights, hostsFrom, reuseHosts, startNight, seed) {
+    const rng = new RNG(seed + 55), movers = rng.shuffle(mc.incoming), nRounds = Math.ceil(movers.length / kGroups), out = []; let hosted = [], doneMovers = [];
+    for (let r = 0; r < nRounds; r++) {
+      const t0 = startNight + r * roundNights, mv = movers.slice(r * kGroups, (r + 1) * kGroups);
+      let pool = hostsFrom === "all_present" ? mc.residents.concat(doneMovers) : mc.residents.slice();
+      if (!reuseHosts) { const fresh = pool.filter(b => !hosted.includes(b)); if (fresh.length >= mv.length * mHosts) pool = fresh; else hosted = []; }
+      const hosts = rng.shuffle(pool).slice(0, Math.min(mv.length * mHosts, pool.length)); hosted = hosted.concat(hosts);
+      mv.forEach((m, g) => { const hg = hosts.slice(g * mHosts, (g + 1) * mHosts), enc = "g" + (g + 1), rank = r * kGroups + g + 1; for (const b of [m].concat(hg)) { out.push({ night: t0, bat: b, to: enc, rank, round: r + 1 }); out.push({ night: t0 + roundNights, bat: b, to: "resident", rank, round: r + 1 }); } });
+      doneMovers = doneMovers.concat(mv);
+    }
+    return out;
+  }
+
+  function preExposureMatrix(mc, nHeard, choose, outPre, transfers, seed) {
+    const rng = new RNG(seed + 31), n = mc.colony.n, idx = mc.colony._idx, M = new Uint8Array(n * n);
+    for (const m of mc.incoming) {
+      let heard;
+      if (choose === "random") heard = rng.shuffle(mc.residents).slice(0, nHeard);
+      else if (choose === "most_social") { const od = outDegree(outPre, mc.colony, mc.residents, -Infinity, Infinity); heard = mc.residents.slice().sort((a, b) => od[b] - od[a] || rng.next() - 0.5).slice(0, nHeard); }
+      else if (choose === "hosts") { const r = transfers.find(x => x.bat === m && x.to !== "resident"); heard = r ? transfers.filter(x => x.night === r.night && x.to === r.to && x.bat !== m).map(x => x.bat) : []; }
+      else heard = [];
+      for (const h of heard) M[idx[m] * n + idx[h]] = 1;
+    }
+    return M;
+  }
+
+  // cfg: {scenario: "single"|"merge"|"subgroups", pre, post, order, gap, batch, kGroups, mHosts, roundNights, hostsFrom, reuseHosts, preExposure: {nHeard, choose} | null}
+  function runScenario(mc, params, cfg, seed) {
+    const colony = mc.colony, p = params;
+    if (cfg.scenario === "single") {
+      const cal = makeCalendar(cfg.nights, colony.ids, p, null, seed, 1);
+      const out = runSim(colony, initState(colony, p, cfg.R0 || null), p, cal, seed);
+      out.transfers = []; out.pre = cfg.nights; out.incoming = []; out.residents = colony.ids.slice(); return out;
+    }
+    const pre = cfg.pre, post = cfg.post;
+    const st = initState(colony, p); for (let i = 0; i < colony.n; i++) for (let j = 0; j < colony.n; j++) if (i !== j && colony.origin[i] === colony.origin[j]) st.familiar[i * colony.n + j] = 1;
+    const out1 = runSim(colony, st, p, makeCalendar(pre, colony.ids, p, null, seed, 1), seed);
+    let tr, trFull = null;
+    if (cfg.scenario === "merge") tr = planTransfers(out1, mc, p, cfg.order, cfg.gap, cfg.batch, pre + 1, seed);
+    else { trFull = planSubgroups(mc, p, cfg.kGroups, cfg.mHosts, cfg.roundNights, cfg.hostsFrom || "residents", cfg.reuseHosts !== false, pre + 1, seed); const seen = new Set(); tr = trFull.filter(x => mc.incoming.includes(x.bat) && x.to !== "resident" && !seen.has(x.bat) && seen.add(x.bat)).map(x => ({ night: x.night, bat: x.bat, to: x.to, rank: x.rank })); }
+    if (cfg.preExposure && p.pre_exposure_strength > 0) out1.state.preExposed = preExposureMatrix(mc, cfg.preExposure.nHeard, cfg.preExposure.choose, out1, trFull || tr, seed);
+    const applied = (trFull || tr).slice().sort((a, b) => a.night - b.night);
+    const lastNight = Math.max(...applied.map(x => x.night)), n2 = lastNight - pre + post;
+    const out = runSim(colony, out1.state, p, makeCalendar(n2, colony.ids, p, applied, seed + 1000, pre + 1), seed + 1, out1);
+    out.transfers = tr; out.transfersFull = trFull; out.pre = pre; out.incoming = mc.incoming; out.residents = mc.residents;
+    return out;
+  }
+
+  // ---- true-process metrics (mirror of metrics_merge.R) ----
+  function rowIndex(out, night) { return night - out.nights[0]; }
+
+  function moverMetrics(out, weekLen) {
+    weekLen = weekLen || 7; const colony = out.colony, n = colony.n, idx = colony._idx, res = out.residents, resIdx = res.map(b => idx[b]), isRes = new Uint8Array(n); resIdx.forEach(i => isRes[i] = 1);
+    const last = out.nights[out.nights.length - 1], rows = [];
+    for (const tr of out.transfers) {
+      const m = idx[tr.bat], a = tr.night, wkMax = Math.floor((last - a + 1) / weekLen); const partners = new Set(); let donated = false;
+      for (let w = 1; w <= wkMax; w++) {
+        const n0 = a + (w - 1) * weekLen, n1 = n0 + weekLen - 1; const ref = new Float64Array(n), refDen = new Float64Array(n); let got = 0, fam = 0, tot = 0, avail = 0;
+        for (let t = n0; t <= n1; t++) {
+          const r = rowIndex(out, t), g = out.gsec[r], enc = out.enclosure[r];
+          // residents per enclosure tonight -> residents co-housed with each bat (self excluded); mirrors n_res_co in metrics_merge.R
+          const cnt = {}; for (const i of resIdx) cnt[enc[i]] = (cnt[enc[i]] || 0) + 1;
+          for (const j of resIdx) refDen[j] += (cnt[enc[j]] || 0) - 1;
+          avail += (cnt[enc[m]] || 0) - (isRes[m] ? 1 : 0);
+          for (const i of resIdx) for (const j of resIdx) if (i !== j) ref[j] += g[i * n + j];
+          for (const i of resIdx) { got += g[i * n + m]; if (g[i * n + m] > 0 || g[m * n + i] > 0) partners.add(i); }
+          // familiar share: grooming given to same-origin bats among everyone the mover groomed (grooming implies co-housing)
+          for (let j = 0; j < n; j++) { if (j === m) continue; const v = g[m * n + j]; if (!v) continue; tot += v; if (colony.origin[j] === colony.origin[m]) fam += v; }
+        }
+        for (const d of out.donations) if (d.receiver === tr.bat && d.night >= a && d.night <= n1) donated = true;
+        const refMed = median(resIdx.map(j => ref[j]));
+        const pa = resIdx.filter(j => refDen[j] > 0).map(j => ref[j] / refDen[j]); const refAvail = pa.length ? median(pa) : NaN;
+        const perAvail = avail > 0 ? got / avail : NaN;
+        rows.push({ mover: tr.bat, rank: tr.rank, arrival: a, week: w, received_s: got, received_rel: refMed > 0 ? got / refMed : NaN,
+                    received_per_avail: perAvail, received_rel_avail: (refAvail > 0 && Number.isFinite(perAvail)) ? perAvail / refAvail : NaN,
+                    partners: partners.size, familiar_share: tot > 0 ? fam / tot : NaN, donated });
+      }
+    }
+    return rows;
+  }
+
+  function summariseMovers(mm, threshold) {
+    const by = {}; for (const r of mm) (by[r.mover] = by[r.mover] || []).push(r);
+    return Object.keys(by).map(mv => { const x = by[mv].sort((a, b) => a.week - b.week); const hit = x.find(r => r.received_rel >= threshold), hitA = x.find(r => r.received_rel_avail >= threshold), don = x.find(r => r.donated), w8 = x.find(r => r.week === 8); const f4 = x.filter(r => r.week <= 4 && Number.isFinite(r.familiar_share)).map(r => r.familiar_share);
+      return { mover: mv, rank: x[0].rank, arrival: x[0].arrival, weeks_to_threshold: hit ? hit.week : NaN, weeks_to_threshold_avail: hitA ? hitA.week : NaN, weeks_to_first_donation: don ? don.week : NaN, partners_week8: w8 ? w8.partners : NaN, received_rel_week8: w8 ? w8.received_rel : NaN, received_rel_avail_week8: w8 ? w8.received_rel_avail : NaN, followup_weeks: x[x.length - 1].week, familiar_share_first4: f4.length ? mean(f4) : NaN }; });
+  }
+
+  // density / reciprocity / origin modularity per window, per enclosure
+  function colonyMetrics(out, window) {
+    window = window || 14; const colony = out.colony, n = colony.n, rows = [];
+    for (let r = 0; r < out.nights.length; r++) {
+      const e = out.nights[r]; if (e % window !== 0) continue;
+      const enc = out.enclosure[r], encs = Array.from(new Set(enc));
+      for (const en of encs) {
+        const present = []; for (let i = 0; i < n; i++) if (enc[i] === en) present.push(i); if (present.length < 3) continue;
+        const m = present.length, M = new Float64Array(m * m);
+        for (let rr = Math.max(0, r - window + 1); rr <= r; rr++) { const g = out.gsec[rr]; for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) if (a !== b) M[a * m + b] += g[present[a] * n + present[b]]; }
+        const up = [], upT = []; let dens = 0, cnt = 0; for (let a = 0; a < m; a++) for (let b = a + 1; b < m; b++) { const u = M[a * m + b] + M[b * m + a]; up.push(M[a * m + b]); upT.push(M[b * m + a]); if (u > 0) dens++; cnt++; }
+        const recip = sd(up) > 0 && sd(upT) > 0 ? corr(up, upT) : NaN;
+        const origin = present.map(i => colony.origin[i]); let mod = NaN;
+        if (new Set(origin).size > 1 && dens > 0) mod = modularity(M, m, origin);
+        rows.push({ enclosure: en, night_end: e, n_bats: m, density: dens / cnt, reciprocity: recip, modularity: mod });
+      }
+    }
+    return rows;
+  }
+  function corr(x, y) { const mx = mean(x), my = mean(y); let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < x.length; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; } return sxy / Math.sqrt(sxx * syy); }
+  function modularity(M, m, membership) { // Newman Q on the symmetrised weighted graph
+    const W = new Float64Array(m * m); let tot = 0; const k = new Float64Array(m);
+    for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) if (a !== b) { W[a * m + b] = M[a * m + b] + M[b * m + a]; }
+    for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) { k[a] += W[a * m + b]; tot += W[a * m + b]; }
+    let Q = 0; for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) if (membership[a] === membership[b]) Q += W[a * m + b] - k[a] * k[b] / tot;
+    return Q / tot;
+  }
+
+  // face-validity style summaries on the TRUE process over a night range (per directed dyad among bats present together)
+  function trueSummaries(out, nightFrom, nightTo, hoursPerNight) {
+    const colony = out.colony, n = colony.n; const tot = new Float64Array(n * n); let nights = 0;
+    for (let r = 0; r < out.nights.length; r++) { const t = out.nights[r]; if (t < nightFrom || t > nightTo) continue; nights++; const g = out.gsec[r]; for (let k = 0; k < n * n; k++) tot[k] += g[k]; }
+    const encEnd = out.enclosure[rowIndex(out, nightTo)]; const dy = [], und = [], outdeg = new Map();
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { if (i === j || encEnd[i] !== encEnd[j]) continue; dy.push(tot[i * n + j]); if (tot[i * n + j] > 0) outdeg.set(i, (outdeg.get(i) || 0) + 1); if (i < j) und.push([tot[i * n + j], tot[j * n + i]]); }
+    const pairs = und.filter(u => u[0] + u[1] > 0);
+    return { groom_rate_per_dyad_hour: mean(dy) / (nights * hoursPerNight), zero_dyad_share: mean(dy.map(v => v === 0 ? 1 : 0)), bidirectional_share: mean(pairs.map(u => (u[0] > 0 && u[1] > 0) ? 1 : 0)), lopsided_share: mean(pairs.map(u => Math.max(u[0], u[1]) / (u[0] + u[1]) > 0.8 ? 1 : 0)), outdegree_median: median(Array.from(outdeg.values())), n_nights: nights };
+  }
+
+  const API = { RNG, readParams, makeColony, initState, makeCalendar, stepNight, runSim, makeMergeColony, planTransfers, planSubgroups, preExposureMatrix, runScenario, moverMetrics, summariseMovers, colonyMetrics, trueSummaries, median, quantile, mean, sd, standardiseBlock };
+  root.BatABM = API;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+<script>
+const DATA = {"built":"2026-09-09 11:57","params":[{"name":"n_resident_females","module":"colonies","value":"19","default":"19","range":"10-40","unit":"bats","source_type":"data","source":"RFID feeder visits Feb-Jul 2026 (STRAND/BigBatProject/Inputs/RFID_Princeton) joined to RFID/Pit_Tags.xlsx; Juice died after Jul 2026","rationale":"22 tagged bats read Feb-Jul 2026 (Mochi absent since Aug 2025); minus Juice = 21; minus Frodo and Wrath (males) = 19 females. Confirm with Bryson."},{"name":"n_incoming_females","module":"colonies","value":"25","default":"25","range":"20-30","unit":"bats","source_type":"guess","source":"Project brief (40-60 mixed-sex Louisville bats)","rationale":"Sex ratio unknown; assume about half female. Sweep 20-30."},{"name":"groom_rate_base","module":"grooming","value":"2.77","default":"2.77","range":"0.5-5","unit":"s per directed dyad-hour","source_type":"data","source":"Data/2025/d_2025_clean.csv, Princeton_Surveillance, 24 dates 2025-05-03 to 2025-10-01","rationale":"Recomputed on the 16 scored nights 2025-05-27 to 2025-07-09 only: 8 later dates carry effort rows but zero scored behaviour and were diluting the earlier numbers"},{"name":"p_groom_dyad_day","module":"grooming","value":"0.125","default":"0.125","range":"0.03-0.2","unit":"prob per dyad-night (median 4.5 h watched)","source_type":"data","source":"same","rationale":"Recomputed on the 16 scored nights 2025-05-27 to 2025-07-09 only: 8 later dates carry effort rows but zero scored behaviour and were diluting the earlier numbers"},{"name":"zero_dyad_share","module":"validation target","value":"0.4","default":"0.40","range":"","unit":"share","source_type":"data","source":"same","rationale":"directed dyads with zero grooming over 16 scored nights. Recomputed on the 16 scored nights 2025-05-27 to 2025-07-09 only: 8 later dates carry effort rows but zero scored behaviour and were diluting the earlier numbers"},{"name":"bidirectional_share","module":"validation target","value":"0.76","default":"0.76","range":"","unit":"share","source_type":"data","source":"same","rationale":"of pairs with any grooming, both directions > 0. Recomputed on the 16 scored nights 2025-05-27 to 2025-07-09 only: 8 later dates carry effort rows but zero scored behaviour and were diluting the earlier numbers"},{"name":"lopsided_share","module":"validation target","value":"0.36","default":"0.36 (pairs) / 0.255 (30-day windows)","range":"","unit":"share","source_type":"data","source":"same; Panama post-merge from defection_analysis/REPORT.md section 2","rationale":"Recomputed on the 16 scored nights 2025-05-27 to 2025-07-09 only: 8 later dates carry effort rows but zero scored behaviour and were diluting the earlier numbers OPEN: stage-1 engine gives 0.53-0.57 at matched rate; candidates are observation effort (sim 58 vs real 72 dyad-hours) and independent direction noise; test with a matched-effort run."},{"name":"outdegree_median","module":"validation target","value":"14","default":"14","range":"","unit":"partners groomed > 0","source_type":"data","source":"same","rationale":"IQR 11.5-16.5 of 22 possible partners"},{"name":"within_night_mutuality","module":"grooming","value":"0.32","default":"0.32","range":"0-0.6","unit":"share of bouts overlapping an opposite-direction bout","source_type":"data","source":"defection_analysis/REPORT.md section 3: 31.8% vs 12.3% null; same-night both directions 49.8% post-merge Panama (section 4)","rationale":"Strength of the shared night-pair term. 0 removes the edge. Calibrate so the simulated overlap share matches 0.32."},{"name":"groom_reciprocity_lag","module":"grooming","value":"0","default":"0","range":"0-1","unit":"standardised effect of partner's grooming over the memory window","source_type":"data","source":"defection_analysis/REPORT.md section 4: cross-day coupling about 0, partner-specific response bounded below about 6%","rationale":"Default 0 because the data show none. Positive-control sweeps inject nonzero values to test STRAND recovery."},{"name":"groom_memory_days","module":"grooming","value":"7","default":"7","range":"1-30","unit":"days","source_type":"guess","source":"REPORT section 4: within-pair cross-correlation flat beyond lag 0","rationale":"Window over which received grooming counts as 'recent'. No data pin it; sweep."},{"name":"share_reciprocity","module":"food sharing","value":"1","default":"1.0","range":"0-2","unit":"log-odds per SD of food received from partner","source_type":"literature","source":"Carter & Wilkinson 2013 Proc B 280:20122573: food received best predictor of food given, 8.5x relatedness","rationale":"Placeholder magnitude until calibrated on 2015 and 2025 fasting data. Caveat: REPORT section 5 shows trial-order permutation reproduces the pattern, so it may be a stable dyad effect rather than contingency; the model keeps both as separate dials."},{"name":"groom_to_share","module":"food sharing","value":"0.25","default":"0.25","range":"0-2","unit":"log-odds per SD of grooming the fasted bat gave the donor","source_type":"calibrated","source":"Stage-5 fasting grid, R/stage5_fasting_calibration.R and model_outputs/stage5/fasting_grid.csv (2026-09-09): Princeton colony with the real rota, 2 seeds, scored against Panama 2026 post-merge trials (86 trials, ~20 partners present): P(donate) per opportunity 0.085, P(no donor) 0.22, P(donate | prior grooming 3+ s/h) / P(donate | none) = 3.1","rationale":"With 1.0 the gradient stayed at 6-7x even at the weakest relationship effect; 0.25 gives 4.5x. Data: donor-to-fasted prior grooming raises the log-odds of donating by 0.35 per log unit (Panama 2026, p = 0.03); the fasted bat's grooming of the donor 0.16 (ns)."},{"name":"p_donate_base","module":"food sharing","value":"0.025","default":"0.025","range":"0.05-0.25","unit":"prob per present partner per 1-h fasting trial","source_type":"calibrated","source":"Stage-5 fasting grid, R/stage5_fasting_calibration.R and model_outputs/stage5/fasting_grid.csv (2026-09-09): Princeton colony with the real rota, 2 seeds, scored against Panama 2026 post-merge trials (86 trials, ~20 partners present): P(donate) per opportunity 0.085, P(no donor) 0.22, P(donate | prior grooming 3+ s/h) / P(donate | none) = 3.1","rationale":"Grid best (0.02, share_relationship 0.25, gate 0, groom_to_share 0.25) gave P(donate) 0.071 vs 0.085, donors per trial 1.4 vs 1.7, P(no donor) 0.23 vs 0.22, gradient 4.5 vs 3.1; 0.025 is the linear nudge toward 0.085 (P(donate) scales with the base at fixed other dials). The earlier 0.05 came from small-cage trials with one donor present, a different regime (Princeton 2025: 0.31 per opportunity with 1-2 partners)."},{"name":"donation_seconds","module":"food sharing","value":"245","default":"245","range":"60-600","unit":"s per donation event","source_type":"data","source":"same","rationale":"mean Mouthlicking seconds when > 0 (OSU 244, Princeton 245)"},{"name":"kin_groom","module":"kinship","value":"1.2","default":"1.2","range":"0-1","unit":"log-odds per SD relatedness","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"kinship coefficient, groom_nonfasted: 1.21 (90% CI -0.50 to 2.82). Wide; sweep 0-2. Check whether that fit standardised the GRM."},{"name":"kin_share","module":"kinship","value":"1.1","default":"1.1","range":"0-1","unit":"log-odds per SD relatedness","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"kinship coefficient, feed_fasted: 1.14 (-0.62 to 2.84). Wide; sweep 0-2."},{"name":"kin_aggr","module":"aggression","value":"0","default":"0","range":"0-1","unit":"log-odds per SD relatedness","source_type":"literature","source":"Crisp, Brent & Carter 2021 R Soc Open Sci 8:210266: competitive interactions not predicted by kinship (p > 0.2)","rationale":"Default 0, edge fades from the DAG."},{"name":"kin_incoming_mode","module":"kinship","value":"unknown","default":"unknown (sweep)","range":"known / unknown / sweep","unit":"toggle","source_type":"brief","source":"Louisville relatedness unknown until about summer 2027","rationale":"When unknown, draw kinship from a stylised inbred-colony distribution and sweep its mean."},{"name":"kinship_matrix_resident","module":"kinship","value":"grm","default":"inputs/princeton_relatedness/relatedness_clean_OSU.csv, column Relatedness (GRM off-diagonal), standardised","range":"Relatedness | KINSHIP (KING) | Distance","unit":"matrix","source_type":"data","source":"Sydney Decker (OSU) genetics via Haley Gmutza, 2026-09-08: three methods for 22 bats (Wrath absent). Relationship_Matrix.txt is identical to the Data/2025 copy the STRAND scripts read.","rationale":"GRM chosen: it is what the fits use and it tracks genetic distance best (r = -0.79; KING vs GRM only 0.6). KING values are almost all negative (mean -0.43, min -1.09), outside its normal range, so it is used only as a rank toggle. Few close kin: 3 pairs above 0.25 (Kazul-Frodo, Lurch-Ghost, Nymph-Lurch). Daine has an anomalous diagonal (1.23 vs colony 1.8-3.0) and high kinship with many bats; possible sample-quality artefact, flagged. Absolute scale unknown until the software is confirmed."},{"name":"actor_sd_groom","module":"effects","value":"1.39","default":"1.39","range":"0-2","unit":"SD on logit scale","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"focal effects sd, groom_nonfasted (90% CI 0.96-1.88)"},{"name":"receiver_sd_groom","module":"effects","value":"1.13","default":"1.13","range":"0-2","unit":"SD on logit scale","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"target effects sd, groom_nonfasted (0.75-1.55)"},{"name":"dyad_sd_groom","module":"effects","value":"1","default":"1.0 (fit: 3.09)","range":"0-2","unit":"SD on logit scale","source_type":"derived","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"The fit's dyadic sd (3.09, CI 2.75-3.42) is the whole persistent pair difference. The engine splits that into the relationship value R (initialised from the observed network) plus this residual dyad effect, so the two must not both carry the full 3.09. 1.0 is a labelled split; the recovery check will test whether STRAND still returns ~3 from simulated data."},{"name":"actor_sd_share","module":"effects","value":"1.96","default":"1.96","range":"0-2","unit":"SD on logit scale","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"focal effects sd, feed_fasted (1.32-2.62)"},{"name":"receiver_sd_share","module":"effects","value":"1.11","default":"1.11","range":"0-2","unit":"SD on logit scale","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"target effects sd, feed_fasted (0.55-1.70)"},{"name":"dyad_sd_share","module":"effects","value":"1.5","default":"1.5 (fit: 3.98)","range":"0-2","unit":"SD on logit scale","source_type":"derived","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Same split as dyad_sd_groom; fit gives 3.98 (3.61-4.33)."},{"name":"cross_behaviour_corr","module":"effects","value":"0.28","default":"0.28","range":"-1 to 1","unit":"correlation of actor and dyad effects between grooming and sharing","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Dyadic reciprocity feed_fasted i->j vs groom_nonfasted i->j = 0.28 (0.18-0.39). Actor-level cross correlation was ~0.04, so the engine applies this to dyad effects and, as a simplification, to actor effects too."},{"name":"day_sd","module":"day effect","value":"0.5","default":"0.5","range":"0-1","unit":"SD of colony-wide log-rate multiplier per night","source_type":"data","source":"sd of log nightly grooming rate across the 16 scored 2025 nights = 0.74, which includes sampling noise","rationale":"0.5 is below the 0.74 upper bound; calibrate."},{"name":"sociability_sd","module":"association","value":"0.5","default":"0.5","range":"0-1.5","unit":"SD of per-bat log target-degree","source_type":"guess","source":"Princeton out-degree IQR 11.5-16.5 of 22","rationale":"Calibrate so simulated out-degree spread matches."},{"name":"lopsidedness_tolerance","module":"relationship","value":"","default":"1 (no penalty)","range":"0-1","unit":"","source_type":"data","source":"REPORT sections 2 and 4: lopsided spells persist for months with no detectable repayment or punishment","rationale":"Default: asymmetry does not itself change behaviour. Dial < 1 makes the giver withdraw."},{"name":"rel_growth_rate","module":"relationship","value":"4","default":"4","range":"0.01-0.3","unit":"R units per hour of grooming given","source_type":"calibrated","source":"Stage-1 calibration grid, R/calibrate_stage1.R and model_outputs/stage1/calibration_grid.csv (2026-09-08)","rationale":"Grid preferred 4 over 1 (bonds need to form within weeks); with rel_max 1.5 the median R sits near 1.3 and almost no dyad is pinned at the ceiling."},{"name":"rel_decay_halflife","module":"relationship","value":"90","default":"90","range":"14-365","unit":"days","source_type":"guess","source":"Ripperger et al. 2019 Curr Biol: lab bonds persisted in the wild; REPORT section 2: zero runs of 100+ nights inside live relationships","rationale":"Slow decay; sweep."},{"name":"stage_threshold_groom","module":"relationship","value":"","default":"guess","range":"","unit":"relationship units","source_type":"guess","source":"Carter et al. 2020: cluster, then groom, then share","rationale":"Thresholds on R at which a pair starts grooming and starts sharing; the app shows them as a staircase."},{"name":"stage_threshold_share","module":"relationship","value":"0","default":"0","range":"","unit":"R units","source_type":"calibrated","source":"Stage-5 fasting grid, R/stage5_fasting_calibration.R and model_outputs/stage5/fasting_grid.csv (2026-09-09): Princeton colony with the real rota, 2 seeds, scored against Panama 2026 post-merge trials (86 trials, ~20 partners present): P(donate) per opportunity 0.085, P(no donor) 0.22, P(donate | prior grooming 3+ s/h) / P(donate | none) = 3.1","rationale":"Any gate above 0 (donation rare below an R threshold) made P(donate | no prior grooming) collapse (0.002-0.008 vs the observed 0.06) and the gradient 20-100x. The staged-formation finding (Carter et al. 2020) is carried by the relationship and grooming terms instead; the gate stays as a dial at 0."},{"name":"familiarity_carryover","module":"relationship","value":"1","default":"1.0","range":"0-1","unit":"share of pre-transfer relationship value carried into the new colony","source_type":"literature","source":"Ripperger et al. 2019; Razik et al. 2022","rationale":"1 means familiar bonds arrive intact."},{"name":"ingroup_bias","module":"merge","value":"0.5","default":"0.5","range":"0-1","unit":"extra log-odds of associating with own-origin bats","source_type":"guess","source":"Retrodict against familiar vs new pairs in Data/2026 (Panama merge 2024-06-27) and Data/2017","rationale":"Placeholder."},{"name":"ingroup_fade_halflife","module":"merge","value":"60","default":"60","range":"14-365","unit":"days","source_type":"guess","source":"same","rationale":""},{"name":"transfer_shock_size","module":"merge","value":"0.5","default":"0.5","range":"0-1","unit":"fractional reduction of the mover's actor rates on arrival","source_type":"guess","source":"No direct measurement. Retrodict from the first weeks of arrivals in Data/2017 and the five 2025 arrivals in Data/2026 (derive arrival from presence dates, not the familiar column)","rationale":"Placeholder."},{"name":"transfer_shock_days","module":"merge","value":"14","default":"14","range":"0-60","unit":"days","source_type":"guess","source":"same","rationale":""},{"name":"pre_exposure_strength","module":"acoustic","value":"0","default":"0","range":"0-1","unit":"head start in relationship value or association preference","source_type":"guess","source":"No data. Carter & Wilkinson 2016 Anim Behav 116:45 shows contact calls attract past food-sharing partners, so calls carry individual identity","rationale":"Default 0 (edge absent). Three protocols proposed in the sketch."},{"name":"pre_exposure_mechanism","module":"acoustic","value":"head_start","default":"head_start","range":"head_start / preference","unit":"toggle","source_type":"brief","source":"","rationale":"Two candidate mechanisms; both built, default head_start."},{"name":"aggr_rate_base","module":"aggression","value":"0.04","default":"0.04","range":"0-0.2","unit":"share of directed dyads with any aggression over 5 months","source_type":"data","source":"d_2025_clean surveillance: 96% of directed dyads had zero aggression; Crisp et al. 2021: median 46 competitive feeder interactions per bat over 70 nights","rationale":"Surveillance under-scores aggression (brief). Optional module."},{"name":"aggr_suppression","module":"aggression","value":"0","default":"0","range":"0-1","unit":"reduction in affiliation for a pair after aggression","source_type":"literature","source":"Crisp et al. 2021: rank uncorrelated with grooming (r = 0.15) or sharing (r = -0.04)","rationale":"Default 0, edge fades."},{"name":"fasting_regime","module":"observation","value":"rota","default":"FastingSchedule.csv pattern","range":"","unit":"schedule","source_type":"data","source":"RFID/FastingSchedule.csv 2026-03-16 to 2026-07-07: 3 bats per day in 1-h slots, about 4 days per week, each bat about every 2 weeks","rationale":"Stylised default reproduces this rota; observed rota can be loaded directly."},{"name":"surveillance_hours_week","module":"observation","value":"4.5","default":"4.5","range":"1-20","unit":"hours","source_type":"data","source":"2025 surveillance: 24 dates over 22 weeks, median 14405 sample s (about 4 h) per dyad-day","rationale":"median 4.5 h of merged video per scored night, one night per week in practice"},{"name":"detection_prob","module":"observation","value":"0.9","default":"0.9","range":"0.5-1","unit":"prob a real bout is scored","source_type":"guess","source":"Data/2025/unattributed_events.csv: 11 grooming events could not be attributed; scorer miss rate unknown","rationale":"Sweep; matched-null checks use it."},{"name":"association_mode","module":"observation","value":"video_cluster","default":"video_cluster","range":"video_cluster / rfid_cofeed / roost_rfid","unit":"toggle","source_type":"brief","source":"RFID/Cofeeding_Association.R defines co-feeding as same feeder within 5-min bouts against a 300x day-shift permutation null","rationale":"Changes only the observation layer, not the mechanism."},{"name":"transfer_gap_days","module":"schedule","value":"14","default":"14","range":"7-42","unit":"days","source_type":"brief","source":"Primary grid 7, 14, 21; sensitivity 28-42","rationale":""},{"name":"batch_size","module":"schedule","value":"1","default":"1","range":"1-3","unit":"bats per transfer","source_type":"brief","source":"","rationale":""},{"name":"transfer_order","module":"schedule","value":"random","default":"random","range":"random / most_social_first / least_social_first / familiar_rich_first","unit":"toggle","source_type":"brief","source":"","rationale":""},{"name":"integration_threshold","module":"metrics","value":"0.5","default":"0.5","range":"0.25-1","unit":"fraction of resident median grooming received","source_type":"guess","source":"","rationale":"Defines 'integrated'. Ask Bryson."},{"name":"six_month_mark","module":"metrics","value":"182","default":"182","range":"","unit":"days","source_type":"brief","source":"","rationale":"Drawn on every duration plot."},{"name":"dyad_recip_groom","module":"effects","value":"0.91","default":"0.91","range":"-1 to 1","unit":"corr(d_ij, d_ji)","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Dyadic reciprocity groom_nonfasted i->j vs j->i = 0.91 (0.89-0.94)"},{"name":"dyad_recip_share","module":"effects","value":"0.38","default":"0.38","range":"-1 to 1","unit":"corr(d_ij, d_ji)","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Dyadic reciprocity feed_fasted i->j vs j->i = 0.38 (0.26-0.50)"},{"name":"actor_sd_aggr","module":"effects","value":"0.5","default":"0.5","range":"0-2","unit":"SD on log-rate scale","source_type":"guess","source":"","rationale":"Aggression is too sparse in 2025 to fit; placeholder"},{"name":"receiver_sd_aggr","module":"effects","value":"0.5","default":"0.5","range":"0-2","unit":"SD on log-rate scale","source_type":"guess","source":"","rationale":"placeholder"},{"name":"dyad_sd_aggr","module":"effects","value":"0.5","default":"0.5","range":"0-2","unit":"SD on log-rate scale","source_type":"guess","source":"","rationale":"placeholder"},{"name":"night_hours","module":"engine","value":"12","default":"12","range":"8-14","unit":"hours of activity per night","source_type":"guess","source":"","rationale":"Bouts are placed uniformly over this window; observation samples part of it."},{"name":"assoc_base","module":"association","value":"0.6","default":"0.6","range":"-3 to 1","unit":"logit P(two present bats are together on a night) at zero effects","source_type":"calibrated","source":"Joint sweep assoc_base {0, 0.6, 1.2} x groom_rate_night {0.02, 0.03, 0.04}, 3 seeds, burn-in 88 nights, 2026-09-09 (after the association-draw fix)","rationale":"logit(0.65) so that ~70% of co-housed pairs are together on a night. With the corrected draw the network was too sparse at the target rate; 0.6 with groom_rate_night 0.02 gives rate 3.06 vs 2.77, P(any) 0.126 vs 0.125, bidirectional 0.79 vs 0.76, lopsided 0.38 vs 0.36, but zero-dyad share 0.51 vs 0.40 and out-degree 10 vs 14 (OPEN: grooming still concentrates on too few pairs). No roost-association data pinned yet."},{"name":"assoc_by_relationship","module":"engine","value":"0.5","default":"0.5","range":"","unit":"","source_type":"guess","source":"","rationale":"log-odds of association per unit of mean R_ij, R_ji"},{"name":"groom_rate_night","module":"grooming","value":"0.02","default":"0.02","range":"0.01-1","unit":"expected bouts per associated directed dyad-night at zero effects","source_type":"calibrated","source":"Stage-1 calibration grid, R/calibrate_stage1.R and model_outputs/stage1/calibration_grid.csv (2026-09-08)","rationale":"Re-checked 2026-09-09 after the association-draw fix with assoc_base 0.6: rate 3.06 s per dyad-hour vs 2.77; see assoc_base for the remaining sparsity mismatch."},{"name":"night_pair_sd","module":"grooming","value":"0.5","default":"0.5","range":"0-2","unit":"sd of the shared night-pair term (log-rate)","source_type":"guess","source":"","rationale":"Produces same-night coupling of the two directions; calibrate so both-directions-same-night ~ 0.50 (Panama)."},{"name":"groom_dur_meanlog","module":"grooming","value":"3.27","default":"3.27","range":"","unit":"log seconds","source_type":"data","source":"Raw 2025 surveillance events (1,574 grooming bouts): median 22 s, mean 57.7 s","rationale":"lognormal meanlog"},{"name":"groom_dur_sdlog","module":"grooming","value":"1.2","default":"1.2","range":"","unit":"log seconds","source_type":"data","source":"same","rationale":"lognormal sdlog"},{"name":"aggr_rate_night","module":"aggression","value":"0.01","default":"0.01","range":"0-0.2","unit":"expected events per associated directed dyad-night","source_type":"data","source":"27 aggression events over 16 scored nights among 462 directed dyads","rationale":"~1.7 events per colony-night / (462 x 0.35 associated)"},{"name":"aggr_dur_meanlog","module":"aggression","value":"1.19","default":"1.19","range":"","unit":"log seconds","source_type":"data","source":"27 raw events: median 2 s","rationale":""},{"name":"aggr_dur_sdlog","module":"aggression","value":"0.99","default":"0.99","range":"","unit":"log seconds","source_type":"data","source":"same","rationale":""},{"name":"share_relationship","module":"food sharing","value":"0.25","default":"0.25","range":"0-2","unit":"log-odds per unit R_ij","source_type":"calibrated","source":"Stage-5 fasting grid, R/stage5_fasting_calibration.R and model_outputs/stage5/fasting_grid.csv (2026-09-09): Princeton colony with the real rota, 2 seeds, scored against Panama 2026 post-merge trials (86 trials, ~20 partners present): P(donate) per opportunity 0.085, P(no donor) 0.22, P(donate | prior grooming 3+ s/h) / P(donate | none) = 3.1","rationale":"1.0 made the prior-grooming gradient 12-24x; 0.25-0.5 give 4-7x against the observed 3.1x (Panama) once groom_to_share is also lowered. Whole grid in 06_fasting_calibration.png."},{"name":"donation_dur_meanlog","module":"food sharing","value":"4.76","default":"4.76","range":"","unit":"log seconds","source_type":"data","source":"Princeton 2025 small-cage trials (43 donations, R/stage5_fasting_calibration.R)","rationale":"meanlog 4.76, sdlog 1.30 (median 110 s, mean 252 s). Panama 2026 donations are shorter: meanlog 3.42, sdlog 1.68 (median 34 s); the resident colony's own values are used."},{"name":"donation_dur_sdlog","module":"food sharing","value":"1.3","default":"1.3","range":"","unit":"log seconds","source_type":"data","source":"Princeton 2025 small-cage trials (43 donations)","rationale":"See donation_dur_meanlog."},{"name":"bond_age_multiplier","module":"relationship","value":"1.6","default":"1.6","range":"0-3","unit":"extra growth for pairs younger than bond_age_days","source_type":"literature","source":"BigBatProject LongitudinalGroomingPersistence: month-to-month persistence OR ~2.6 for new dyads vs ~1.2 old","rationale":"OR ratio 2.6/1.2 - 1 ~ 1.2; rounded up. Guess mapping."},{"name":"bond_age_days","module":"relationship","value":"60","default":"60","range":"14-180","unit":"days","source_type":"guess","source":"","rationale":"Age below which a pair counts as new"},{"name":"rel_receive_weight","module":"relationship","value":"1","default":"1.0","range":"0-1","unit":"weight of grooming received relative to given in R growth","source_type":"derived","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Dyadic reciprocity 0.91 says the persistent pair term is nearly symmetric, so R_ij grows equally from grooming given and received; lowered lopsidedness from 0.61 to 0.57 with bidirectional share up to 0.71."},{"name":"rel_share_weight","module":"relationship","value":"0.2","default":"0.2","range":"0-1","unit":"R gain per donation event","source_type":"guess","source":"","rationale":""},{"name":"relationship_effect","module":"engine","value":"1","default":"1","range":"","unit":"","source_type":"guess","source":"","rationale":"added by 01_engine_rows.R; fill in"},{"name":"fasting_on","module":"observation","value":"TRUE","default":"TRUE","range":"TRUE/FALSE","unit":"toggle","source_type":"brief","source":"","rationale":""},{"name":"fast_bats_per_night","module":"observation","value":"3","default":"3","range":"1-5","unit":"bats","source_type":"data","source":"RFID/FastingSchedule.csv","rationale":""},{"name":"fast_nights_per_week","module":"observation","value":"4","default":"4","range":"1-7","unit":"nights","source_type":"data","source":"RFID/FastingSchedule.csv","rationale":""},{"name":"trial_hours","module":"observation","value":"1","default":"1","range":"0.5-2","unit":"hours","source_type":"data","source":"Fasting trials are 1-h windows (Data/2025 README)","rationale":""},{"name":"surveillance_days_per_week","module":"observation","value":"1","default":"1","range":"1-7","unit":"nights","source_type":"data","source":"2025 practice: one scored night per week","rationale":""},{"name":"detection_prob_aggr","module":"observation","value":"0.5","default":"0.5","range":"0.2-1","unit":"prob","source_type":"guess","source":"brief: aggression is barely scored","rationale":""},{"name":"rel_max","module":"relationship","value":"2.5","default":"2.5","range":"1-5","unit":"R units (log-rate)","source_type":"calibrated","source":"Stage-1 calibration grid, R/calibrate_stage1.R and model_outputs/stage1/calibration_grid.csv (2026-09-08)","rationale":"3 let the grooming-R feedback pin most dyads at the ceiling in the transient grid; at equilibrium 2.5 (12x base rate for the strongest bond) beat 1.5 on bidirectional and lopsided shares with no dyad pinned."},{"name":"groom_dur_max","module":"grooming","value":"900","default":"900","range":"300-1800","unit":"seconds","source_type":"guess","source":"Raw 2025 bouts: 95th percentile 239 s","rationale":"Cap on a single simulated bout so lognormal tails cannot make 30-min bouts."},{"name":"effect_scale","module":"effects","value":"0.5","default":"0.5","range":"0.2-1.5","unit":"multiplier on all actor/receiver/dyad SDs","source_type":"calibrated","source":"Stage-1 calibration grid, R/calibrate_stage1.R and model_outputs/stage1/calibration_grid.csv (2026-09-08)","rationale":"At 1.0 the logit-scale fit SDs over-disperse the log-rate engine (zero-dyad share 0.5+, out-degree 10); 0.5 matches zero share and out-degree. Also multiplies the fit kinship coefficients (kin_groom, kin_share, kin_aggr): at the raw 1.2 the exponentiated centred covariate inflated colony grooming 4.6x; at 0.6 the rate matches with out-degree 10-12."},{"name":"generalized_recip_groom","module":"effects","value":"0.76","default":"0.76","range":"-1 to 1","unit":"corr(actor_i, receiver_i)","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Generalized reciprocity groom_nonfasted (out) vs (in) = 0.76 (0.57-0.93): bats that groom more are groomed more."},{"name":"generalized_recip_share","module":"effects","value":"0.25","default":"0.25","range":"-1 to 1","unit":"corr(actor_i, receiver_i)","source_type":"fit","source":"STRAND fit_summary_2025 (BigBatProject/model_outputs), posterior median; layer groom_nonfasted = 2025 surveillance grooming, feed_fasted = fasting mouthlicking","rationale":"Generalized reciprocity feed_fasted (out) vs (in) = 0.25 (-0.11 to 0.61)."},{"name":"bout_recip_base","module":"grooming","value":"0.42","default":"0.42","range":"0-1","unit":"prob an initiated bout draws a response bout","source_type":"data","source":"defection_analysis/REPORT.md (Panama 2026 event file, 10,012 bouts): 31.8% of grooming bouts overlap an opposite-direction bout; of the non-simultaneous bouts 26% are returned within 30 s","rationale":"Solved jointly with bout_sim_share from the two published shares: q = 0.51 responses per initiated bout, 47% simultaneous, reproduces 0.318 and 0.26 under idealised bookkeeping; in the engine the relationship term raises the realised response rate, so 0.42 / 0.42 were set to land on the observed 0.32 / 0.26."},{"name":"bout_sim_share","module":"grooming","value":"0.42","default":"0.42","range":"0-1","unit":"share of responses that overlap the initiating bout","source_type":"data","source":"defection_analysis/REPORT.md (Panama 2026 event file, 10,012 bouts): 31.8% of grooming bouts overlap an opposite-direction bout; of the non-simultaneous bouts 26% are returned within 30 s","rationale":"See bout_recip_base."},{"name":"bout_recip_by_relationship","module":"grooming","value":"0.5","default":"0.5","range":"0-2","unit":"log-odds of response per unit of R_ji above the colony mean","source_type":"guess","source":"","rationale":"Stronger bonds reciprocate more inside the bout; untested, sweep."},{"name":"bout_return_window","module":"grooming","value":"30","default":"30","range":"10-120","unit":"seconds","source_type":"data","source":"defection_analysis/REPORT.md (Panama 2026 event file, 10,012 bouts): 31.8% of grooming bouts overlap an opposite-direction bout; of the non-simultaneous bouts 26% are returned within 30 s","rationale":"Window used in the report."},{"name":"pre_transfer_nights","module":"schedule","value":"84","default":"84","range":"28-180","unit":"nights","source_type":"guess","source":"brief: fasting trials and surveillance on the incoming females before any transfer","rationale":"12 weeks of pre-transfer observation on both colonies; also the burn-in that gives the source colony its own network."},{"name":"post_transfer_nights","module":"schedule","value":"60","default":"60","range":"28-180","unit":"nights","source_type":"guess","source":"","rationale":"Nights simulated after the last transfer so the last mover has an integration window."},{"name":"n_replicates","module":"metrics","value":"8","default":"8","range":"4-200","unit":"seeds","source_type":"guess","source":"","rationale":"Replicate seeds per scenario in the stage scripts; Della sweeps use more."},{"name":"integration_measure","module":"metrics","value":"per_available_resident","default":"per_available_resident","range":"per_available_resident | resident_median","unit":"toggle","source_type":"guess","source":"Session-3 handoff: the resident-median measure breaks for subgroup designs (with 5 hosts x 4 groups one resident is left in the main enclosure)","rationale":"per_available_resident = grooming received per resident-night co-housed, relative to the same quantity for the median resident in her own enclosure; resident_median = the original measure (seconds received relative to the median resident's total). Both are always computed; this picks the headline in the stage scripts and the app."}],"resident":{"ids":["Alana","Beast","Creep","Daine","Enoby","Ghost","Honey","Ichor","Kazul","Lurch","Nymph","Occam","Quark","Rouge","Shego","Teeth","Vashu","Yikes","Zubat","Frodo","Wrath"],"sex":["f","f","f","f","f","f","f","f","f","f","f","f","f","f","f","f","f","f","f","m","m"],"origin":["princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton","princeton"],"kinship":[2.2667,-0.133349,-0.123365,-0.106681,-0.064064,-0.178805,0.173148,-0.111712,0.0245989,-0.191043,-0.160951,-0.116767,-0.103685,-0.0661155,-0.0376559,-0.112931,-0.112998,0.23387,-0.00711952,-0.0418873,-0.06536828,-0.133349,2.57708,-0.102621,-0.0650779,-0.141002,-0.00298819,-0.0127956,0.0735265,-0.170994,-0.0394821,-0.00748637,-0.105629,-0.119609,-0.117995,-0.142471,-0.0475942,-0.169448,-0.101475,-0.0656153,-0.208056,-0.06536828,-0.123365,-0.102621,2.42988,0.161016,0.039095,-0.132965,-0.165225,-0.140888,-0.0965059,-0.169169,-0.157651,-0.0864854,-0.0266236,0.0415092,0.051035,-0.0212274,0.0238283,-0.139483,-0.094272,-0.0373786,-0.06536828,-0.106681,-0.0650779,0.161016,1.23447,-0.0230437,-0.0381966,-0.105493,-0.108398,-0.129409,-0.143281,-0.0874486,-0.0889885,0.00131842,0.0314737,0.14226,0.237438,0.027648,-0.104836,-0.11003,-0.0545879,-0.06536828,-0.064064,-0.141002,0.039095,-0.0230437,2.97524,-0.239944,-0.141178,-0.165799,-0.0780055,-0.230439,-0.19866,-0.0285037,-0.0328263,0.0560972,0.142605,-0.129563,0.0820888,-0.0878573,-0.165972,0.0296422,-0.06536828,-0.178805,-0.00298819,-0.132965,-0.0381966,-0.239944,2.11142,0.018374,-0.00821566,-0.221714,0.289217,0.246497,-0.146145,-0.00798386,-0.10037,-0.0737881,0.0674247,-0.224143,-0.12968,-0.0779352,-0.279436,-0.06536828,0.173148,-0.0127956,-0.165225,-0.105493,-0.141178,0.018374,2.19106,-0.0811458,-0.0876369,-0.121273,-0.018558,-0.170148,-0.0861757,-0.0929298,-0.142795,-0.0462926,-0.215138,0.109179,-0.0183335,-0.178659,-0.06536828,-0.111712,0.0735265,-0.140888,-0.108398,-0.165799,-0.00821566,-0.0811458,2.0267,-0.116273,0.142721,0.0298455,0.023703,-0.0884199,-0.116824,-0.191763,-0.0425915,-0.119345,-0.0811049,0.022108,-0.148966,-0.06536828,0.0245989,-0.170994,-0.0965059,-0.129409,-0.0780055,-0.221714,-0.0876369,-0.116273,2.64324,-0.174242,-0.176897,-0.102028,-0.154087,-0.106868,-0.0716323,-0.182074,-0.0888423,-0.0489294,0.0308354,0.304498,-0.06536828,-0.191043,-0.0394821,-0.169169,-0.143281,-0.230439,0.289217,-0.121273,0.142721,-0.174242,2.75942,0.278284,-0.0405268,-0.1443,-0.139544,-0.191092,-0.090738,-0.204158,-0.149633,-0.0576208,-0.2318,-0.06536828,-0.160951,-0.00748637,-0.157651,-0.0874486,-0.19866,0.246497,-0.018558,0.0298455,-0.176897,0.278284,2.53068,-0.12832,-0.112927,-0.145473,-0.149619,-0.0386264,-0.227236,-0.144201,-0.0952756,-0.227341,-0.06536828,-0.116767,-0.105629,-0.0864854,-0.0889885,-0.0285037,-0.146145,-0.170148,0.023703,-0.102028,-0.0405268,-0.12832,2.82356,-0.00656435,-0.0617416,-0.0515486,-0.104934,0.120717,-0.103153,-0.031781,-0.102876,-0.06536828,-0.103685,-0.119609,-0.0266236,0.00131842,-0.0328263,-0.00798386,-0.0861757,-0.0884199,-0.154087,-0.1443,-0.112927,-0.00656435,2.41184,0.0996638,-0.00036108,-0.0197386,-0.0122065,-0.117311,-0.158105,-0.0967088,-0.06536828,-0.0661155,-0.117995,0.0415092,0.0314737,0.0560972,-0.10037,-0.0929298,-0.116824,-0.106868,-0.139544,-0.145473,-0.0617416,0.0996638,1.968604,0.0431535,-0.00126447,0.0192181,-0.104774,-0.140011,-0.00815457,-0.06536828,-0.0376559,-0.142471,0.051035,0.14226,0.142605,-0.0737881,-0.142795,-0.191763,-0.0716323,-0.191092,-0.149619,-0.0515486,-0.00036108,0.0431535,2.1735,-0.058817,0.0359564,-0.0852951,-0.161213,0.0272488,-0.06536828,-0.112931,-0.0475942,-0.0212274,0.237438,-0.129563,0.0674247,-0.0462926,-0.0425915,-0.182074,-0.090738,-0.0386264,-0.104934,-0.0197386,-0.00126447,-0.058817,1.81393,-0.0662545,-0.0815918,-0.0608232,-0.145584,-0.06536828,-0.112998,-0.169448,0.0238283,0.027648,0.0820888,-0.224143,-0.215138,-0.119345,-0.0888423,-0.204158,-0.227236,0.120717,-0.0122065,0.0192181,0.0359564,-0.0662545,3.03308,-0.120302,-0.110222,0.0111319,-0.06536828,0.23387,-0.101475,-0.139483,-0.104836,-0.0878573,-0.12968,0.109179,-0.0811049,-0.0489294,-0.149633,-0.144201,-0.103153,-0.117311,-0.104774,-0.0852951,-0.0815918,-0.120302,2.47878,-0.0209456,-0.0881555,-0.06536828,-0.00711952,-0.0656153,-0.094272,-0.11003,-0.165972,-0.0779352,-0.0183335,0.022108,0.0308354,-0.0576208,-0.0952756,-0.031781,-0.158105,-0.140011,-0.161213,-0.0608232,-0.110222,-0.0209456,2.11332,-0.0607915,-0.06536828,-0.0418873,-0.208056,-0.0373786,-0.0545879,0.0296422,-0.279436,-0.178659,-0.148966,0.304498,-0.2318,-0.227341,-0.102876,-0.0967088,-0.00815457,0.0272488,-0.145584,0.0111319,-0.0881555,-0.0607915,2.65372,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828,-0.06536828]},"dag":{"nodes":[{"id":"kin","label":"kinship","x":0.08,"y":0.2,"kind":"trait","what":"Genetic relatedness of a pair, fixed for the run. Residents use the GRM from Sydney Decker's genotyping (standardised); incoming bats are unknown (zero) or synthetic sibling trios, a toggle. Vampire bats groom and feed kin more, but non-kin bonds carry most of the sharing."},{"id":"origin","label":"colony of origin","x":0.08,"y":0.5,"kind":"trait","what":"Which colony a bat came from: Princeton resident or Louisville newcomer. Two bats from the same origin are 'familiar'; it also decides who the in-group bias applies to after a merge."},{"id":"tst","label":"time since transfer","x":0.08,"y":0.8,"kind":"state","what":"Nights since a bat was last moved. Drives the transfer shock (a temporary drop in her activity) and the fade of the in-group bias. Residents who never moved have no shock."},{"id":"pre","label":"acoustic pre-exposure","x":0.28,"y":0.92,"kind":"treatment","what":"The proposed manipulation: let a mover hear a few residents before she is moved. Modelled as a head start on those bonds, or as a preference to sit with them (toggle). Off by default because no protocol exists yet."},{"id":"actor","label":"actor effect","x":0.3,"y":0.08,"kind":"trait","what":"Each bat's fixed tendency to GIVE grooming, food or aggression, regardless of partner (the social-relations 'focal' effect STRAND estimates). Drawn once per seed from the fitted spread."},{"id":"receiver","label":"receiver effect","x":0.48,"y":0.08,"kind":"trait","what":"Each bat's fixed tendency to RECEIVE grooming, food or aggression (the 'target' effect). Correlated with the actor effect at the fitted generalised-reciprocity value: bats that groom more are groomed more."},{"id":"dyad","label":"dyad effect","x":0.66,"y":0.08,"kind":"trait","what":"A fixed pair-specific affinity beyond both bats' tendencies, with the fitted reciprocity correlation between the two directions (0.91 for grooming). The fit's dyadic variance is split between this and the relationship value."},{"id":"day","label":"day effect","x":0.84,"y":0.08,"kind":"state","what":"A colony-wide multiplier drawn fresh each night: some nights everyone grooms more. Makes the two directions of a pair rise and fall together on the same night, as in the data."},{"id":"R","label":"relationship R_ij (bond age)","x":0.3,"y":0.5,"kind":"state","what":"The model's hidden number for how much bat i invests in bat j. It grows with grooming given and received (faster for young bonds, up to a ceiling), decays slowly when nothing happens, and raises association, grooming and donation. Never observed directly; STRAND's dyadic effect is the closest measurement."},{"id":"assoc","label":"association","x":0.48,"y":0.33,"kind":"behaviour","what":"Whether two co-housed bats are together tonight (roosting cluster). Grooming, aggression and sharing only happen between bats that are together. The lab measures it three ways (video clustering, feeder RFID, roost RFID); modelled simply."},{"id":"groom","label":"grooming","x":0.66,"y":0.4,"kind":"behaviour","what":"Allogrooming bouts, the main social currency: initiated bouts per pair per night plus answered bouts (often simultaneous). Scored in seconds from surveillance video; the lab's STRAND models fit it as seconds per sampled second."},{"id":"aggr","label":"aggression","x":0.84,"y":0.6,"kind":"behaviour","what":"Fights and displacements. Optional module, off by default: the lab barely scores it and Crisp et al. 2021 found a weak hierarchy unrelated to grooming or kinship."},{"id":"hunger","label":"fasted state","x":0.66,"y":0.85,"kind":"state","what":"Whether a bat has been fasted tonight by the rota (3 bats per night, 4 nights a week, each bat about every two weeks). Only a fasted bat can receive food, inside her one-hour trial."},{"id":"share","label":"food sharing","x":0.84,"y":0.85,"kind":"behaviour","what":"Regurgitated blood given to a fasted bat (mouthlicking). The costly currency: donations follow the relationship and recent grooming, and kinship on top. Calibrated to the Panama 2026 trials (about 1 in 12 present partners donates)."},{"id":"mem","label":"recent grooming received","x":0.48,"y":0.62,"kind":"state","what":"A short memory (about a week) of what each partner groomed this bat recently. It feeds food sharing (recent grooming from the fasted bat raises donating) and, if the across-night reciprocity dial is above 0, grooming back."}],"edges":[{"from":"kin","to":"groom","dial":"kin_groom","why":"Related bats groom each other more (Carter & Wilkinson 2013); the 2025 Princeton STRAND fit puts it at 1.2 log-odds per SD of relatedness with a wide interval. The Gamboa replay suggests this is too strong as a rate effect."},{"from":"kin","to":"share","dial":"kin_share","why":"Kinship raises food sharing on top of the grooming relationship (Wilkinson 1984; Carter & Wilkinson 2013); fit coefficient 1.1 per SD, wide interval."},{"from":"kin","to":"aggr","dial":"kin_aggr","why":"Placeholder only: Crisp, Brent & Carter 2021 found competition was not predicted by kinship, so the default is 0 and the arrow is normally absent."},{"from":"origin","to":"assoc","dial":"ingroup_bias","why":"After a merge, bats keep sitting with their own group first and the preference fades with time (in-group bias). A guess: the Panama 2024 and Gamboa 2016 merges disagree about its size."},{"from":"tst","to":"assoc","dial":"transfer_shock_size","why":"A just-moved bat is less active for a couple of weeks (transfer shock), so she associates less. A guess; no data on the first nights after a transfer yet."},{"from":"tst","to":"groom","dial":"transfer_shock_size","why":"The same transfer shock lowers the mover's grooming rate while it lasts. A guess."},{"from":"pre","to":"R","dial":"pre_exposure_strength","why":"Hearing residents before the move is modelled as a head start on the bonds with those bats (vocal convergence forms with relationships, Vrtilek et al. 2025). No lab protocol yet; default 0."},{"from":"pre","to":"assoc","dial":"pre_exposure_strength","why":"The alternative reading of the same idea: a preference to sit with the bats she heard (toggle pre_exposure_mechanism = preference). Default 0."},{"from":"actor","to":"groom","dial":"actor_sd_groom","why":"Bats differ consistently in how much they groom others (STRAND focal-effect sd 1.39 in the 2025 fit, scaled by effect_scale)."},{"from":"receiver","to":"groom","dial":"receiver_sd_groom","why":"Bats differ in how much grooming they attract (STRAND target-effect sd 1.13)."},{"from":"dyad","to":"groom","dial":"dyad_sd_groom","why":"Pairs have their own persistent affinity beyond both bats' tendencies (dyadic sd 3.09 in the fit, split between the relationship value and this residual)."},{"from":"actor","to":"share","dial":"actor_sd_share","why":"Bats differ as donors (focal-effect sd 1.96 for fasting-trial sharing)."},{"from":"receiver","to":"share","dial":"receiver_sd_share","why":"Bats differ as recipients (target-effect sd 1.11)."},{"from":"dyad","to":"share","dial":"dyad_sd_share","why":"Pair-specific sharing beyond both bats' tendencies (dyadic sd 3.98 in the fit; same split as grooming)."},{"from":"actor","to":"aggr","dial":"actor_sd_aggr","why":"Placeholder: aggression is too sparse in 2025 to fit individual differences; the module is off by default."},{"from":"day","to":"groom","dial":"day_sd","why":"Some nights the whole colony grooms more (sd of the log nightly rate was 0.74 across the 16 scored 2025 nights, which includes sampling noise; 0.5 used)."},{"from":"day","to":"aggr","dial":"day_sd","why":"The same colony-wide night effect is applied to aggression."},{"from":"R","to":"assoc","dial":"assoc_by_relationship","why":"Bonded bats roost together more. A guess until the roost-RFID association data are used for calibration."},{"from":"R","to":"groom","dial":"relationship_effect","why":"Grooming follows relationship strength; with the reverse arrow this is the loop that lets bonds persist (new relationships build through grooming, Carter et al. 2020)."},{"from":"R","to":"share","dial":"share_relationship","why":"Food sharing follows the bond: prior help predicts donations more than kinship (Carter & Wilkinson 2013). Calibrated to 0.25 against the Panama 2026 trials."},{"from":"assoc","to":"groom","dial":"groom_rate_night","why":"Only bats that are together can groom. The base bout rate is calibrated so surveillance grooming matches 2.77 s per dyad-hour (Princeton 2025)."},{"from":"assoc","to":"aggr","dial":"aggr_rate_night","why":"Aggression needs proximity too. 27 events over 16 scored nights in 2025; module off by default (rate 0.01)."},{"from":"groom","to":"R","dial":"rel_growth_rate","why":"Grooming builds the bond, given and received (new pairs cluster, then groom, then share; Carter et al. 2020). Calibrated so bonds form within weeks."},{"from":"share","to":"R","dial":"rel_share_weight","why":"A donation also strengthens the bond. A guess (0.2 per donation)."},{"from":"aggr","to":"R","dial":"aggr_suppression","why":"Aggression could erode a bond. Default 0: Crisp et al. 2021 found rank uncorrelated with grooming and sharing."},{"from":"groom","to":"mem","dial":"groom_memory_days","why":"Bats carry a short memory of grooming recently received from each partner (about a week; a guess)."},{"from":"mem","to":"groom","dial":"groom_reciprocity_lag","why":"Across-night reciprocity. The defection analysis found no cross-day coupling in five datasets, so the default is 0 and the arrow is normally absent."},{"from":"mem","to":"share","dial":"groom_to_share","why":"Recent grooming from the fasted bat raises the chance of donating to her (Panama 2026: +0.35 log-odds per log unit of prior grooming). Calibrated to 0.25."},{"from":"hunger","to":"share","dial":"p_donate_base","why":"Only a fasted bat receives food, inside her one-hour trial. Base donation chance calibrated to 0.085 per present partner per trial (Panama 2026)."},{"from":"groom","to":"groom","dial":"bout_recip_base","self":true,"why":"A grooming bout is often answered on the spot: a third of bouts overlap an opposite-direction bout and a quarter of the rest are returned within 30 s (Panama event file, defection analysis)."}]}};
+const B = BatABM;
+const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
+const tip = $("#tip");
+function showTip(e, html) { tip.innerHTML = html; tip.style.display = "block"; moveTip(e); }
+function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - 380) + "px"; tip.style.top = (e.clientY + 12) + "px"; }
+function hideTip() { tip.style.display = "none"; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---- dials ----
+const STRING_OPTS = { pre_exposure_mechanism: ["head_start", "preference"], transfer_order: ["random", "most_social", "least_social", "familiar_rich"], kin_incoming_mode: ["unknown", "synthetic_sibs"], association_mode: ["video_cluster", "rfid_cofeed", "roost_rfid"], fasting_regime: ["rota"], kinship_matrix_resident: ["grm"], integration_measure: ["per_available_resident", "resident_median"] };
+const HIDE = new Set(["transfer_gap_days", "batch_size", "transfer_order", "pre_transfer_nights", "post_transfer_nights", "n_incoming_females", "groom_rate_base", "p_groom_dyad_day", "zero_dyad_share", "bidirectional_share", "lopsided_share", "outdegree_median", "within_night_mutuality", "donation_seconds", "aggr_rate_base", "n_resident_females", "lopsidedness_tolerance", "stage_threshold_groom", "six_month_mark", "association_mode", "fasting_regime", "kinship_matrix_resident"]);
+const MODULE_ORDER = ["schedule", "merge", "acoustic", "grooming", "relationship", "food sharing", "aggression", "effects", "kinship", "association", "day effect", "engine", "observation", "colonies", "metrics"];
+// plain-English label for every dial (the code name stays; this line sits under it and feeds the finder)
+const LABELS = {
+  transfer_gap_days: "nights between transfer batches", batch_size: "bats moved per transfer", transfer_order: "who is moved first", pre_transfer_nights: "nights both colonies live apart before the first move", post_transfer_nights: "nights simulated after the last move",
+  ingroup_bias: "how much bats avoid the other colony at first (log-odds)", ingroup_fade_halflife: "nights until that avoidance halves", transfer_shock_size: "how much a mover's rates drop on arrival (0 = none, 1 = all)", transfer_shock_days: "nights for the arrival shock to fade",
+  pre_exposure_strength: "head start on bonds with residents a mover heard beforehand", pre_exposure_mechanism: "head start on the bond, or a preference to sit together",
+  groom_reciprocity_lag: "how much a partner's recent grooming raises grooming back across nights", groom_memory_days: "nights over which recent grooming is remembered", groom_rate_night: "baseline grooming bouts a bat starts per partner per night", night_pair_sd: "night-to-night wobble shared by a pair", groom_dur_meanlog: "typical bout length (log seconds)", groom_dur_sdlog: "spread of bout lengths (log seconds)", groom_dur_max: "cap on one bout (seconds)", bout_recip_base: "chance a bout is answered by a bout back", bout_sim_share: "share of answers that overlap the first bout", bout_recip_by_relationship: "how much a stronger bond raises the answer chance", bout_return_window: "seconds within which a non-overlapping answer starts",
+  rel_growth_rate: "bond strength gained per hour of grooming", rel_decay_halflife: "nights for an untended bond to halve", stage_threshold_share: "bond strength below which donating is rare (0 = no gate)", familiarity_carryover: "share of a pre-transfer bond that survives the move", bond_age_multiplier: "extra growth for bonds younger than bond_age_days", bond_age_days: "nights a bond counts as new", rel_receive_weight: "weight of grooming received vs given in bond growth", rel_share_weight: "bond gained per donation", rel_max: "ceiling on bond strength",
+  share_reciprocity: "how much food received from a partner raises donating to her", groom_to_share: "how much a fasted bat's recent grooming of the donor raises donating", p_donate_base: "baseline chance a present partner donates in a trial", share_relationship: "how much bond strength raises donating", donation_dur_meanlog: "typical donation length (log seconds)", donation_dur_sdlog: "spread of donation lengths",
+  aggr_suppression: "bond lost per aggressive event", aggr_rate_night: "baseline aggression events per partner per night (0 = module off)", aggr_dur_meanlog: "typical fight length (log seconds)", aggr_dur_sdlog: "spread of fight lengths",
+  actor_sd_groom: "how much bats differ in grooming given", receiver_sd_groom: "how much bats differ in grooming received", dyad_sd_groom: "how much pairs differ beyond their bond", actor_sd_share: "how much bats differ as donors", receiver_sd_share: "how much bats differ as recipients", dyad_sd_share: "how much pairs differ in sharing beyond their bond", cross_behaviour_corr: "correlation between grooming and sharing tendencies", dyad_recip_groom: "correlation of a pair's two grooming directions", dyad_recip_share: "correlation of a pair's two sharing directions", actor_sd_aggr: "how much bats differ in aggression given", receiver_sd_aggr: "how much bats differ in aggression received", dyad_sd_aggr: "how much pairs differ in aggression", effect_scale: "multiplier on all those individual and pair differences", generalized_recip_groom: "do bats that groom more also get groomed more (corr)", generalized_recip_share: "do bats that donate more also receive more (corr)",
+  kin_groom: "how much relatedness raises grooming (per SD)", kin_share: "how much relatedness raises donating (per SD)", kin_aggr: "how much relatedness changes aggression", kin_incoming_mode: "incoming kinship: unknown (zero) or synthetic sibling trios",
+  sociability_sd: "how much bats differ in how many partners they sit with", assoc_base: "baseline chance two co-housed bats are together on a night (log-odds)", assoc_by_relationship: "how much a bond raises being together", relationship_effect: "how much a bond raises grooming",
+  day_sd: "night-to-night wobble shared by the whole colony", night_hours: "hours of activity per night",
+  surveillance_hours_week: "hours of surveillance video scored per week (R exports only)", surveillance_days_per_week: "nights per week with surveillance (R exports only)", detection_prob: "chance a real grooming bout is scored (R exports only)", detection_prob_aggr: "chance a real fight is scored (R exports only)", fasting_on: "run the fasting rota", fast_bats_per_night: "bats fasted per trial night", fast_nights_per_week: "trial nights per week", trial_hours: "length of one fasting trial",
+  n_incoming_females: "incoming Louisville females", integration_threshold: "fraction of a resident's grooming that counts as integrated", integration_measure: "how integration is scored", n_replicates: "seeds used by the R stage scripts"
+};
+const KEY_DIALS = ["transfer_gap_days", "batch_size", "transfer_order", "ingroup_bias", "ingroup_fade_halflife", "transfer_shock_size", "pre_exposure_strength", "bond_age_multiplier", "kin_groom", "rel_growth_rate", "integration_threshold", "integration_measure"];
+const defaults = B.readParams(DATA.params);
+let params = Object.assign({}, defaults);
+const rowByName = Object.fromEntries(DATA.params.map(r => [r.name, r]));
+function parseRange(r, v) {
+  const m = /^\s*(-?[\d.]+)\s*(?:-|to)\s*(-?[\d.]+)/.exec(r || "");
+  if (m) return [Number(m[1]), Number(m[2])];
+  if (typeof v === "number") { if (v === 0) return [0, 1]; const a = Math.abs(v); return v < 0 ? [-4 * a, a] : [0, 4 * a]; }
+  return [0, 1];
+}
+function buildDials() {
+  const host = $("#dials"); host.innerHTML = "";
+  const mods = {}; for (const r of DATA.params) { if (HIDE.has(r.name)) continue; (mods[r.module] = mods[r.module] || []).push(r); }
+  const order = MODULE_ORDER.concat(Object.keys(mods).filter(m => !MODULE_ORDER.includes(m)));
+  for (const mod of order) {
+    if (!mods[mod]) continue;
+    const det = document.createElement("details"); det.className = "mod"; det.open = ["schedule", "merge", "acoustic", "grooming", "relationship"].includes(mod);
+    det.innerHTML = `<summary>${esc(mod)}</summary>`;
+    for (const r of mods[mod]) det.appendChild(dialEl(r));
+    host.appendChild(det);
+  }
+  buildFinder(mods, order);
+  if ($("#cmpDial")) buildCompare();
+}
+// ---- dial finder: grouped dropdown + text filter; jumping opens the module, scrolls and flashes the dial ----
+function buildFinder(mods, order) {
+  const sel = $("#dialPick"); const opt = r => `<option value="${esc(r.name)}">${esc(r.name)}: ${esc(LABELS[r.name] || r.unit || "")}</option>`;
+  const scenNames = Object.keys(SCEN_KEY).filter(n => n !== "nights_single");
+  sel.innerHTML = `<option value="">jump to a dial…</option><optgroup label="most used">${KEY_DIALS.filter(n => rowByName[n] || SCEN_ROWS[n]).map(n => opt(scenRow(n))).join("")}</optgroup><optgroup label="scenario">${scenNames.map(n => opt(scenRow(n))).join("")}</optgroup>` +
+    order.filter(m => mods[m]).map(m => `<optgroup label="${esc(m)}">${mods[m].map(opt).join("")}</optgroup>`).join("");
+  sel.onchange = () => { if (sel.value) jumpToDial(sel.value); sel.value = ""; };
+  const search = $("#dialSearch");
+  search.oninput = () => filterDials(search.value);
+}
+function filterDials(q) {
+  q = (q || "").trim().toLowerCase();
+  $$("#dials .dial").forEach(d => { const r = rowByName[d.dataset.name] || SCEN_ROWS[d.dataset.name]; if (!r) return; const hay = `${r.name} ${LABELS[r.name] || ""} ${r.unit || ""} ${r.module} ${r.source_type}`.toLowerCase(); d.classList.toggle("hidden", q !== "" && !hay.includes(q)); });
+  $$("#dials details.mod").forEach(det => { const vis = det.querySelectorAll(".dial:not(.hidden)").length; det.style.display = q !== "" && vis === 0 ? "none" : ""; if (q !== "" && vis) det.open = true; });
+}
+function jumpToDial(name) {
+  $("#dialSearch").value = ""; filterDials("");
+  const d = $(`#dials .dial[data-name="${name}"]`); if (!d) return;
+  const det = d.closest("details"); if (det) det.open = true;
+  d.scrollIntoView({ block: "center", behavior: "smooth" });
+  d.classList.remove("flash"); void d.offsetWidth; d.classList.add("flash");
+}
+function dialEl(r) { return makeDial(r, () => params[r.name], v => { params[r.name] = v; drawDag(); markStale(); }, () => defaults[r.name], STRING_OPTS[r.name]); }
+// one compact dial: name, source tag, value control, slider; meaning / unit / default / source / rationale in the 0.5-s hover card.
+// `r` is a parameter-table row or a synthetic row with the same fields; get/set read and write the live value.
+function intLike(r, dv, lo, hi) { return r.step === 1 || (Number.isInteger(Number(r.default)) && Number.isInteger(dv) && (hi - lo) >= 5 && /night|day|bat|seed|group|batch|partner|hour|window|seconds/i.test((r.unit || "") + " " + r.name)); }
+function makeDial(r, get, set, getDefault, strOpts) {
+  const v = get(), d = document.createElement("div"); d.className = "dial"; d.dataset.name = r.name;
+  let ctl;   // the source tag is not shown on the row (Bryson, 2026-09-09); it lives in the hover card and the table
+
+  if (typeof v === "boolean") ctl = `<input type="checkbox" ${v ? "checked" : ""} data-kind="bool">`;
+  else if (typeof v === "string" || strOpts) { const opts = strOpts || [v]; ctl = `<select data-kind="str">${opts.map(o => `<option ${String(o) === String(v) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`; }
+  else { const [lo, hi] = parseRange(r.range, v); const isInt = intLike(r, getDefault(), lo, hi); const step = r.step || (isInt ? 1 : Math.max((hi - lo) / 200, 1e-4)); d.dataset.int = isInt ? "1" : ""; ctl = `<input type="number" value="${v}" step="${+step.toPrecision(2)}" data-kind="num"><input type="range" min="${lo}" max="${hi}" step="${+step.toPrecision(2)}" value="${v}">`; }
+  d.innerHTML = `<div class="row1"><label>${esc(r.name)}</label>${ctl.split("<input type=\"range\"")[0]}</div>${ctl.includes("type=\"range\"") ? "<input type=\"range\"" + ctl.split("<input type=\"range\"")[1] : ""}`;
+  const num = d.querySelector("input[type=number]"), rng = d.querySelector("input[type=range]"), sel = d.querySelector("select"), chk = d.querySelector("input[type=checkbox]");
+  const apply = val => { set(val); d.classList.toggle("changed", val !== getDefault()); };
+  const fix = x => d.dataset.int ? Math.round(x) : x;
+  if (num) { num.oninput = () => { const x = fix(Number(num.value)); if (Number.isFinite(x)) { rng.value = x; apply(x); } }; num.onchange = () => { if (d.dataset.int) num.value = Math.round(Number(num.value)); }; rng.oninput = () => { const x = fix(Number(rng.value)); num.value = x; apply(x); }; }
+  if (sel) sel.onchange = () => apply(typeof v === "boolean" ? sel.value === "true" : sel.value);
+  if (chk) chk.onchange = () => apply(chk.checked);
+  d.classList.toggle("changed", v !== getDefault());
+  const card = () => `<div class="tipHead">${esc(LABELS[r.name] || r.name)}</div><div class="tipRow"><b>${esc(r.name)}</b>${r.unit ? ` · ${esc(r.unit)}` : ""} · default ${esc(r.default)}${get() !== getDefault() ? ` · now ${esc(get())}` : ""}${r.range ? ` · range ${esc(r.range)}` : ""}</div><div class="tipRow"><span class="tag ${esc(r.source_type)}">${esc(r.source_type)}</span> ${esc(r.source || "")}</div>${r.rationale ? `<div class="tipRow">${esc(r.rationale)}</div>` : ""}`;
+  hoverCard(d, card);
+  return d;
+}
+// tooltip that opens after HOVER_MS of hovering and follows the pointer; leaving cancels or closes it
+const HOVER_MS = 500;
+function hoverCard(el, html) {
+  let timer = null, last = null, open = false;
+  el.addEventListener("mouseenter", e => { last = e; timer = setTimeout(() => { open = true; showTip(last, typeof html === "function" ? html() : html); }, HOVER_MS); });
+  el.addEventListener("mousemove", e => { last = e; if (open) moveTip(e); });
+  el.addEventListener("mouseleave", () => { clearTimeout(timer); timer = null; open = false; hideTip(); });
+}
+// random value inside a dial's own range (numbers), a random option (selects), a coin flip (checkboxes)
+function randomValue(r, dv, strOpts) {
+  if (typeof dv === "boolean") return Math.random() < 0.5;
+  if (typeof dv === "string" || strOpts) { const o = strOpts || [dv]; return o[Math.floor(Math.random() * o.length)]; }
+  const [lo, hi] = parseRange(r.range, dv);
+  // every number is drawn log-uniformly within 2x of its default (table ranges span 10-50x for sweeps, and
+  // several dials feed back into the number of grooming bouts, which is what run time scales with)
+  let x;
+  if (dv > 0) { const a = Math.max(lo, dv / 2), b = Math.min(hi, dv * 2); x = a >= b ? a : Math.exp(Math.log(a) + Math.random() * (Math.log(b) - Math.log(a))); }
+  else if (dv === 0) x = lo + Math.random() * (hi - lo) * 0.25;   // dials that are off by default get switched on gently
+  else x = lo + Math.random() * (hi - lo);
+  return intLike(r, dv, lo, hi) ? Math.round(x) : +x.toPrecision(3);
+}
+// dials that set the engine's scale (base bout rate, bond growth and ceiling, effect spreads, night length,
+// bout lengths) multiply the number of simulated bouts, so a random draw there can make one run take minutes
+// and lock the page; Randomize leaves them alone and draws the behavioural, merge, schedule and reciprocity dials
+// groom_reciprocity_lag is also skipped: its memory term is unbounded (hours received over the memory window, not
+// standardised as the table's unit says), so even 0.25 runs away into millions of bouts; the data say 0 anyway
+const RANDOM_SKIP = new Set(["groom_reciprocity_lag", "groom_rate_night", "rel_growth_rate", "rel_max", "effect_scale", "relationship_effect", "assoc_base", "assoc_by_relationship", "night_hours", "groom_dur_meanlog", "groom_dur_sdlog", "groom_dur_max", "night_pair_sd",
+  "actor_sd_groom", "receiver_sd_groom", "dyad_sd_groom", "actor_sd_share", "receiver_sd_share", "dyad_sd_share", "actor_sd_aggr", "receiver_sd_aggr", "dyad_sd_aggr", "aggr_rate_night", "aggr_dur_meanlog", "aggr_dur_sdlog", "n_replicates"]);
+function randomizeDials() {
+  for (const r of DATA.params) { if (HIDE.has(r.name) || RANDOM_SKIP.has(r.name)) continue; const dv = defaults[r.name]; if (dv == null || dv === "") continue; params[r.name] = randomValue(r, dv, STRING_OPTS[r.name]); }
+  for (const name of scenNames()) { const key = SCEN_KEY[name], r = scenRow(name); let opts = SCEN_OPTS[name]; if (name === "pre_exposure_chosen_how" && scenario === "merge") opts = ["random", "most_social"];
+    let v = randomValue(r, SCEN_DEFAULTS[key], opts); if (name === "n_incoming_females") v = Math.max(3, Math.min(25, v)); if (name === "reuse_hosts" && typeof v === "string") v = v === "true"; scen[key] = v; }
+  // keep the whole schedule under ~300 nights so a randomised run still finishes in seconds
+  if (scenario === "merge") { const k = Math.ceil(scen.nIncoming / Math.max(1, scen.batch)); scen.gap = Math.max(1, Math.min(scen.gap, Math.floor(300 / k))); }
+  if (scenario === "subgroups") { const rounds = Math.ceil(scen.nIncoming / Math.max(1, scen.kGroups)); scen.roundNights = Math.max(7, Math.min(scen.roundNights, Math.floor(300 / rounds))); }
+  scen.pre = Math.min(scen.pre, 90); scen.post = Math.min(scen.post, 60);
+  buildDials(); scenarioCard(); drawDag(); markStale(); $("#status").textContent = "dials randomised: press Run";
+}
+function resetDials() { params = Object.assign({}, defaults); buildDials(); scenarioCard(); drawDag(); }
+
+// ---- scenario controls (rendered at the top of the dial panel) ----
+let scenario = "merge";
+// scenario settings drive the run (the table rows of the same name are hidden in the dial list to avoid two copies);
+// defaults come from the table where a row exists
+const SCEN_DEFAULTS = { nights: 180, nIncoming: defaults.n_incoming_females, pre: defaults.pre_transfer_nights, post: defaults.post_transfer_nights, order: defaults.transfer_order, gap: defaults.transfer_gap_days, batch: defaults.batch_size, kGroups: 4, mHosts: 5, roundNights: 28, hostsFrom: "residents", reuseHosts: true, preNHeard: 3, preChoose: "hosts" };
+const scen = Object.assign({}, SCEN_DEFAULTS);
+const syn = (name, meaning, unit, range, source_type, source, rationale, step) => ({ name, unit, range, source_type, source, rationale, default: String(SCEN_DEFAULTS[SCEN_KEY[name]]), step, synthetic: true, meaning });
+const SCEN_KEY = { nights_single: "nights", n_incoming_females: "nIncoming", pre_transfer_nights: "pre", post_transfer_nights: "post", transfer_gap_days: "gap", batch_size: "batch", transfer_order: "order", groups_per_round: "kGroups", hosts_per_group: "mHosts", round_nights: "roundNights", hosts_from: "hostsFrom", reuse_hosts: "reuseHosts", pre_exposure_bats_heard: "preNHeard", pre_exposure_chosen_how: "preChoose" };
+const SCEN_ROWS = {
+  nights_single: syn("nights_single", "nights simulated", "nights", "30-720", "guess", "", "Single-colony run length; the Princeton colony alone, no transfers.", 1),
+  groups_per_round: syn("groups_per_round", "parallel small groups per round (one mover each)", "groups", "1-8", "guess", "Nakul's design leaves the group count open", "How many newcomers are seeded at once, each in her own small group.", 1),
+  hosts_per_group: syn("hosts_per_group", "residents housed with each newcomer", "bats", "1-10", "brief", "Nakul: at least 3, preferably 5 original-colony bats per group", "", 1),
+  round_nights: syn("round_nights", "nights a round lasts before everyone joins the main colony", "nights", "7-84", "brief", "Nakul: groups can last any time up to 2 months", "", 1),
+  hosts_from: syn("hosts_from", "who can host: original residents only, or earlier movers too", "toggle", "", "guess", "", "residents = original-colony bats only; all_present = earlier movers may host later ones."),
+  reuse_hosts: syn("reuse_hosts", "may a resident host again before every resident has hosted", "toggle", "", "guess", "", ""),
+  pre_exposure_bats_heard: syn("pre_exposure_bats_heard", "residents each mover hears before she moves (acoustic pre-exposure)", "bats", "0-10", "guess", "No lab protocol yet; default assumption 3-5, the hosts", "Only acts when pre_exposure_strength (acoustic module) is above 0.", 1),
+  pre_exposure_chosen_how: syn("pre_exposure_chosen_how", "which residents she hears", "toggle", "", "guess", "", "hosts = her own subgroup hosts; random; most_social = highest resident out-degree in the pre phase. Only acts when pre_exposure_strength is above 0.")
+};
+for (const k in SCEN_ROWS) LABELS[k] = SCEN_ROWS[k].meaning;
+const SCEN_OPTS = { transfer_order: ["random", "most_social", "least_social", "familiar_rich"], hosts_from: ["residents", "all_present"], reuse_hosts: ["true", "false"], pre_exposure_chosen_how: ["hosts", "random", "most_social"] };
+function scenRow(name) { const r = rowByName[name] || SCEN_ROWS[name]; return Object.assign({}, r, { step: r.step || (name === "n_incoming_females" || name === "batch_size" ? 1 : r.step) }); }
+function scenNames() {
+  return scenario === "single" ? ["nights_single"]
+    : scenario === "merge" ? ["n_incoming_females", "transfer_gap_days", "batch_size", "transfer_order", "pre_transfer_nights", "post_transfer_nights", "pre_exposure_bats_heard", "pre_exposure_chosen_how"]
+    : ["n_incoming_females", "groups_per_round", "hosts_per_group", "round_nights", "hosts_from", "reuse_hosts", "pre_transfer_nights", "post_transfer_nights", "pre_exposure_bats_heard", "pre_exposure_chosen_how"];
+}
+function scenarioCard() {
+  let el = $("#scenCard"); if (!el) { el = document.createElement("div"); el.id = "scenCard"; el.className = "card"; $("#dials").prepend(el); }
+  const names = scenNames();
+  el.innerHTML = `<h2>Scenario: ${scenario === "single" ? "single colony" : scenario === "merge" ? "staged merge" : "subgroup seeding"}</h2>`;
+  for (const name of names) {
+    const key = SCEN_KEY[name], r = scenRow(name);
+    let opts = SCEN_OPTS[name]; if (name === "pre_exposure_chosen_how" && scenario === "merge") opts = ["random", "most_social"];
+    el.appendChild(makeDial(r, () => scen[key], v => { scen[key] = v; markStale(); }, () => SCEN_DEFAULTS[key], opts));
+  }
+}
+$("#scenSeg").querySelectorAll("button").forEach(b => b.onclick = () => { scenario = b.dataset.s; $("#scenSeg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); if (scenario === "subgroups" && !["hosts", "random", "most_social"].includes(scen.preChoose)) scen.preChoose = "hosts"; if (scenario === "merge" && scen.preChoose === "hosts") scen.preChoose = "random"; scenarioCard(); markStale(); buildCompare(); });
+
+// ---- running ----
+let RUN = null;   // {seed1: out, mm: [], ms: [], cm: [], transfers, pre, sixMonth, lastNight}
+function cfgNow() {
+  const c = Object.assign({ scenario }, scen);
+  c.preExposure = (scenario !== "single" && scen.preNHeard > 0) ? { nHeard: scen.preNHeard, choose: scen.preChoose } : null;
+  return c;
+}
+function makeMC(seed) {
+  if (scenario === "single") { const ids = DATA.resident.ids, n = ids.length, K = B.standardiseBlock(DATA.resident.kinship, n); const col = B.makeColony({ ids, sex: DATA.resident.sex, origin: DATA.resident.origin, enclosure: ids.map(() => "resident"), kinship: K }, params, seed); return { colony: col, residents: ids.slice(), incoming: [] }; }
+  return B.makeMergeColony(params, seed, DATA.resident, scen.nIncoming, "louisville", params.kin_incoming_mode);
+}
+// Simulations run in a Web Worker so the page never freezes (a run can take seconds to a minute); the worker is
+// built from the engine's own script text. Stop terminates it. Falls back to the main thread if workers are blocked.
+const workerMain = function () {
+  self.onmessage = function (e) {
+    const m = e.data, B = BatABM, p = m.params, cfg = m.cfg, scenario = cfg.scenario;
+    const makeMC = seed => {
+      if (scenario === "single") { const ids = m.resident.ids, n = ids.length, K = B.standardiseBlock(m.resident.kinship, n); const col = B.makeColony({ ids, sex: m.resident.sex, origin: m.resident.origin, enclosure: ids.map(() => "resident"), kinship: K }, p, seed); return { colony: col, residents: ids.slice(), incoming: [] }; }
+      return B.makeMergeColony(p, seed, m.resident, cfg.nIncoming, "louisville", p.kin_incoming_mode);
+    };
+    const R = { mm: [], ms: [], cm: [], seeds: m.nSeeds };
+    for (let s = 1; s <= m.nSeeds; s++) {
+      self.postMessage({ type: "progress", seed: s, n: m.nSeeds });
+      const mc = makeMC(s), out = B.runScenario(mc, p, cfg, s);
+      if (scenario !== "single") { const mm = B.moverMetrics(out, 7); mm.forEach(r => r.seed = s); R.mm.push(...mm); const ms = B.summariseMovers(mm, p.integration_threshold); ms.forEach(r => r.seed = s); R.ms.push(...ms); }
+      const cm = B.colonyMetrics(out, 14); cm.forEach(r => r.seed = s); R.cm.push(...cm);
+      if (s === 1) { R.transfers = out.transfers; R.transfersFull = out.transfersFull; R.pre = out.pre; R.lastNight = out.nights[out.nights.length - 1];
+        R.seed1 = { nights: out.nights, enclosure: out.enclosure, gsec: out.gsec, donations: out.donations, incoming: out.incoming, residents: out.residents, colony: { ids: out.colony.ids, n: out.colony.n, sex: out.colony.sex, origin: out.colony.origin } }; }
+    }
+    self.postMessage({ type: "done", R });
+  };
+};
+let WORKER_URL = null, ACTIVE = null;
+function workerUrl() { if (!WORKER_URL) WORKER_URL = URL.createObjectURL(new Blob([document.getElementById("engine-src").textContent, "\n(", workerMain.toString(), ")();"], { type: "text/javascript" })); return WORKER_URL; }
+function simulateSeeds(nSeeds, onProgress) {
+  const cfg = cfgNow(), plain = Object.assign({}, params);
+  return new Promise((resolve, reject) => {
+    let w;
+    try { w = new Worker(workerUrl()); } catch (err) { return simulateSeedsInline(nSeeds, onProgress).then(resolve, reject); }
+    ACTIVE = { w, reject }; $("#stopBtn").hidden = false;
+    w.onmessage = e => { const m = e.data; if (m.type === "progress") { if (onProgress) onProgress(m.seed, m.n); } else if (m.type === "done") { const R = m.R; R.layout = layoutNodes(R.seed1); w.terminate(); ACTIVE = null; $("#stopBtn").hidden = true; resolve(R); } };
+    w.onerror = err => { w.terminate(); ACTIVE = null; $("#stopBtn").hidden = true; reject(err); };
+    w.postMessage({ params: plain, cfg, resident: DATA.resident, nSeeds });
+  });
+}
+function stopRun() { if (!ACTIVE) return; ACTIVE.w.terminate(); const rej = ACTIVE.reject; ACTIVE = null; $("#stopBtn").hidden = true; rej(new Error("stopped")); }
+$("#stopBtn").onclick = stopRun;
+// main-thread fallback (same bookkeeping as the worker)
+async function simulateSeedsInline(nSeeds, onProgress) {
+  const cfg = cfgNow(), R = { mm: [], ms: [], cm: [], seeds: nSeeds };
+  for (let s = 1; s <= nSeeds; s++) {
+    if (onProgress) onProgress(s, nSeeds);
+    await new Promise(r => setTimeout(r, 10));
+    const mc = makeMC(s), out = B.runScenario(mc, params, cfg, s);
+    if (scenario !== "single") { const mm = B.moverMetrics(out, 7); mm.forEach(r => r.seed = s); R.mm.push(...mm); const ms = B.summariseMovers(mm, params.integration_threshold); ms.forEach(r => r.seed = s); R.ms.push(...ms); }
+    const cm = B.colonyMetrics(out, 14); cm.forEach(r => r.seed = s); R.cm.push(...cm);
+    if (s === 1) { R.seed1 = out; R.transfers = out.transfers; R.transfersFull = out.transfersFull; R.pre = out.pre; R.lastNight = out.nights[out.nights.length - 1]; R.layout = layoutNodes(out); }
+    else { out.gsec = null; out.assoc = null; }
+  }
+  return R;
+}
+async function run() {
+  if (ACTIVE) return;
+  const btn = $("#runBtn"); btn.disabled = true; $("#cmpBtn").disabled = true; const nSeeds = Math.max(1, Number($("#nSeeds").value) || 1); const t0 = performance.now();
+  let R;
+  try { R = await simulateSeeds(nSeeds, (s, n) => { $("#status").textContent = `seed ${s} / ${n}`; $("#prog").style.width = ((s - 1) / n * 100) + "%"; }); }
+  catch (err) { btn.disabled = false; $("#cmpBtn").disabled = false; $("#prog").style.width = "0%"; $("#status").textContent = err.message === "stopped" ? "stopped" : "run failed: " + err.message; return; }
+  RUN = R;
+  $("#prog").style.width = "100%"; $("#status").textContent = `${nSeeds} seed${nSeeds > 1 ? "s" : ""} in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+  btn.disabled = false; $("#cmpBtn").disabled = false; STALE = false; $$(".stale").forEach(x => x.hidden = true);
+  setupTimeline(); drawAll();
+  if ($("#p-walk").classList.contains("active")) showTab("colonies");   // a first run from the walkthrough lands on the networks
+}
+$("#runBtn").onclick = run;
+$("#resetBtn").onclick = () => { resetDials(); Object.assign(scen, SCEN_DEFAULTS); scenarioCard(); markStale(); };
+$("#randBtn").onclick = randomizeDials;
+
+// ---- network layout (simple force embedding on the whole-run grooming graph) ----
+function layoutNodes(out) {
+  const n = out.colony.n, W = new Float64Array(n * n);
+  for (const g of out.gsec) for (let k = 0; k < n * n; k++) W[k] += g[k];
+  const x = new Float64Array(n), y = new Float64Array(n), rng = new B.RNG(3);
+  for (let i = 0; i < n; i++) { const a = 2 * Math.PI * i / n; x[i] = Math.cos(a) + 0.1 * rng.norm(); y[i] = Math.sin(a) + 0.1 * rng.norm(); }
+  let maxw = 0; for (let k = 0; k < n * n; k++) maxw = Math.max(maxw, W[k] + W[(k % n) * n + Math.floor(k / n)]);
+  for (let it = 0; it < 300; it++) {
+    const fx = new Float64Array(n), fy = new Float64Array(n), T = 0.05 * (1 - it / 300) + 0.005;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i === j) continue; let dx = x[i] - x[j], dy = y[i] - y[j], d2 = dx * dx + dy * dy + 1e-4, d = Math.sqrt(d2);
+      const rep = 0.02 / d2, w = Math.sqrt((W[i * n + j] + W[j * n + i]) / (maxw || 1)), att = 0.9 * w * d;
+      fx[i] += (rep - att) * dx / d; fy[i] += (rep - att) * dy / d;
+    }
+    for (let i = 0; i < n; i++) { const f = Math.hypot(fx[i], fy[i]) || 1; const st = Math.min(f, T); x[i] += fx[i] / f * st; y[i] += fy[i] / f * st; }
+  }
+  return { x, y };
+}
+
+// ---- starting state: shown before any run and whenever a setting changes ----
+// The Colonies tab then shows every bat in its starting enclosure (no grooming yet), the planned
+// transfer schedule on the timeline, and a stale note until Run is pressed again.
+let STALE = true;
+function plannedSchedule() {
+  if (scenario === "single") return { moves: [], last: scen.nights, pre: scen.nights, label: `${scen.nights} nights, no transfers` };
+  const pre = scen.pre;
+  if (scenario === "merge") { const k = Math.ceil(scen.nIncoming / Math.max(1, scen.batch)); const moves = Array.from({ length: k }, (_, i) => pre + 1 + i * scen.gap); return { moves, pre, last: moves[moves.length - 1], label: `${scen.nIncoming} newcomers in ${k} batch${k > 1 ? "es" : ""} of ${scen.batch}, one every ${scen.gap} nights (${scen.order.replace("_", " ")} order)` }; }
+  const rounds = Math.ceil(scen.nIncoming / Math.max(1, scen.kGroups)); const moves = Array.from({ length: rounds }, (_, i) => pre + 1 + i * scen.roundNights); const last = pre + 1 + rounds * scen.roundNights;
+  return { moves, pre, last, label: `${rounds} rounds of ${scen.kGroups} small groups (1 newcomer + ${scen.mHosts} hosts) lasting ${scen.roundNights} nights each` };
+}
+function markStale() { STALE = true; if (RUN) $("#status").textContent = "settings changed since the last run: press Run"; $$(".stale").forEach(x => x.hidden = !RUN); drawPreview(); }
+function drawPreview() {
+  const host = $("#nets"); if (!host) return;
+  const mc = makeMC(1), colony = mc.colony, n = colony.n, enc0 = colony.enclosure0;
+  const encs = Array.from(new Set(enc0)).sort((a, b) => (a === "resident" ? -1 : b === "resident" ? 1 : a < b ? -1 : 1));
+  const lab = e => e === "resident" ? "Princeton colony" : e === "source" ? "Louisville females (source)" : "small group " + e.slice(1);
+  host.innerHTML = encs.map(e => `<div class="net"><canvas></canvas><div class="cap"></div><div class="n"></div></div>`).join(""); host.dataset.key = "preview";
+  const css = getComputedStyle(document.documentElement);
+  encs.forEach((e, ei) => {
+    const div = host.children[ei], cv = div.querySelector("canvas"), dpr = window.devicePixelRatio || 1; cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+    const present = []; for (let i = 0; i < n; i++) if (enc0[i] === e) present.push(i);
+    div.querySelector(".cap").textContent = lab(e) + " · start"; div.querySelector(".n").textContent = present.length + " bats, no grooming yet";
+    const w = cv.clientWidth, h = cv.clientHeight, cx = w / 2, cy = h / 2, R = Math.max(10, Math.min(w, h) / 2 - 34);
+    if (!w || !h) return;   // tab hidden: showTab("colonies") redraws
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = css.getPropertyValue("--grid"); ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    present.forEach((i, k) => { const a = 2 * Math.PI * k / present.length - Math.PI / 2, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a); const isMover = mc.incoming.includes(colony.ids[i]);
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * Math.PI); ctx.fillStyle = isMover ? css.getPropertyValue("--mover") : colony.sex[i] === "m" ? css.getPropertyValue("--male") : css.getPropertyValue("--resident"); ctx.fill(); ctx.strokeStyle = "#7a7a76"; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.fillStyle = css.getPropertyValue("--ink-2"); ctx.font = "9.5px system-ui"; ctx.textAlign = Math.cos(a) < -0.2 ? "right" : Math.cos(a) > 0.2 ? "center" : "center"; ctx.fillText(colony.ids[i], x + 11 * Math.cos(a), y + 11 * Math.sin(a) + 3); });
+    ctx.textAlign = "left";
+    cv.onmousemove = null; cv.onmouseleave = null;
+  });
+  const plan = plannedSchedule(); const s = $("#scrub"); s.min = 1; s.max = Math.max(2, plan.last + (scenario === "single" ? 0 : scen.post)); s.value = 1; s.oninput = null;
+  const tk = $("#ticks"); const pct = x => ((x - 1) / Math.max(s.max - 1, 1) * 100).toFixed(2) + "%";
+  tk.innerHTML = plan.moves.map(x => `<span style="left:${pct(x)}" title="planned move, night ${x}"></span>`).join("") + (plan.moves.length ? `<span class="six" style="left:${pct(plan.pre + params.six_month_mark)}" title="six months after the first transfer"></span>` : "");
+  const dur = plan.moves.length ? plan.last - plan.moves[0] : 0;
+  $("#nightLab").textContent = "start (night 0) · planned schedule";
+  $("#kpis").innerHTML = `<div class="kpi"><div class="v">${mc.residents.length}</div><div class="l">residents in the Princeton colony</div></div>` + (scenario === "single" ? "" : `<div class="kpi"><div class="v">${mc.incoming.length}</div><div class="l">newcomers waiting in the source enclosure</div></div><div class="kpi"><div class="v">${dur}</div><div class="l">planned nights, first to last move (${(dur / 7).toFixed(0)} weeks)</div></div><div class="kpi"><div class="v" style="color:${dur > params.six_month_mark ? "var(--mover)" : "inherit"}">${dur > params.six_month_mark ? "over" : "under"}</div><div class="l">six months</div></div>`) + `<div class="kpi" style="flex:1;min-width:220px"><div class="l">${esc(plan.label)}. Orange ticks on the slider are the planned moves. Press Run to simulate.</div></div>`;
+}
+
+// ---- colonies view ----
+let night = 1, playing = false, timer = null;
+function setupTimeline() {
+  const s = $("#scrub"); s.min = 1; s.max = RUN.lastNight; s.value = Math.min(RUN.lastNight, RUN.pre + 1); night = Number(s.value);
+  s.oninput = () => { night = Number(s.value); drawNets(); };
+  const tk = $("#ticks"); const pct = n => ((n - 1) / Math.max(RUN.lastNight - 1, 1) * 100).toFixed(2) + "%";
+  tk.innerHTML = RUN.transfers.map(t => `<span style="left:${pct(t.night)}" title="night ${t.night}: ${t.bat}"></span>`).join("") + (RUN.transfers.length ? `<span class="six" style="left:${pct(RUN.pre + params.six_month_mark)}" title="six months after the first transfer"></span>` : "");
+  // playback: 1x = 25 nights per second (1 night every 40 ms; rebased 2026-09-09, the old 1x is now 2x); the speed select scales the step and can be changed while playing
+  const startTimer = () => { clearInterval(timer); const step = Math.max(0.25, Number($("#speed").value || 1)); let acc = 0; timer = setInterval(() => { acc += step; const adv = Math.floor(acc); if (!adv) return; acc -= adv; night = night >= RUN.lastNight ? 1 : Math.min(RUN.lastNight, night + adv); s.value = night; drawNets(); }, 40); };
+  $("#playBtn").onclick = () => { playing = !playing; $("#playBtn").textContent = playing ? "Pause" : "Play"; if (playing) startTimer(); else clearInterval(timer); };
+  $("#speed").onchange = () => { if (playing) startTimer(); };
+}
+function drawNets() {
+  if (!RUN || STALE) { drawPreview(); return; } const out = RUN.seed1, colony = out.colony, n = colony.n, idx = out.nights.indexOf(night); if (idx < 0) return;
+  const enc = out.enclosure[idx], encs = Array.from(new Set(enc)).sort((a, b) => (a === "resident" ? -1 : b === "resident" ? 1 : a < b ? -1 : 1));
+  const W = new Float64Array(n * n); for (let r = Math.max(0, idx - 13); r <= idx; r++) { const g = out.gsec[r]; for (let k = 0; k < n * n; k++) W[k] += g[k]; }
+  const host = $("#nets"); if (host.children.length !== encs.length || host.dataset.key !== encs.join(",")) { host.innerHTML = encs.map(e => `<div class="net"><canvas></canvas><div class="cap"></div><div class="n"></div></div>`).join(""); host.dataset.key = encs.join(","); }
+  const lab = e => e === "resident" ? "Princeton colony" : e === "source" ? "Louisville females (source)" : "small group " + e.slice(1);
+  encs.forEach((e, ei) => {
+    const div = host.children[ei], cv = div.querySelector("canvas"), dpr = window.devicePixelRatio || 1; cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+    const present = []; for (let i = 0; i < n; i++) if (enc[i] === e) present.push(i);
+    div.querySelector(".cap").textContent = lab(e); div.querySelector(".n").textContent = present.length + " bats";
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const i of present) { x0 = Math.min(x0, RUN.layout.x[i]); x1 = Math.max(x1, RUN.layout.x[i]); y0 = Math.min(y0, RUN.layout.y[i]); y1 = Math.max(y1, RUN.layout.y[i]); }
+    const w = cv.clientWidth, h = cv.clientHeight, pad = 34, sc = Math.min((w - 2 * pad) / Math.max(x1 - x0, 0.3), (h - 2 * pad) / Math.max(y1 - y0, 0.3));
+    const px = i => pad + (RUN.layout.x[i] - x0) * sc + ((w - 2 * pad) - (x1 - x0) * sc) / 2, py = i => pad + (RUN.layout.y[i] - y0) * sc + ((h - 2 * pad) - (y1 - y0) * sc) / 2;
+    let maxw = 0; for (const i of present) for (const j of present) if (i < j) maxw = Math.max(maxw, W[i * n + j] + W[j * n + i]);
+    ctx.clearRect(0, 0, w, h); ctx.lineCap = "round";
+    for (const i of present) for (const j of present) { if (i >= j) continue; const s = W[i * n + j] + W[j * n + i]; if (!s) continue; const f = s / (maxw || 1); ctx.strokeStyle = `rgba(0,114,178,${0.15 + 0.75 * f})`; ctx.lineWidth = 0.4 + 3 * f; ctx.beginPath(); ctx.moveTo(px(i), py(i)); ctx.lineTo(px(j), py(j)); ctx.stroke(); }
+    const css = getComputedStyle(document.documentElement);
+    for (const i of present) { const isMover = out.incoming.includes(colony.ids[i]); ctx.beginPath(); ctx.arc(px(i), py(i), 6, 0, 2 * Math.PI); ctx.fillStyle = isMover ? css.getPropertyValue("--mover") : colony.sex[i] === "m" ? css.getPropertyValue("--male") : css.getPropertyValue("--resident"); ctx.fill(); ctx.strokeStyle = "#7a7a76"; ctx.lineWidth = 0.8; ctx.stroke(); ctx.fillStyle = css.getPropertyValue("--ink-2"); ctx.font = "9.5px system-ui"; ctx.fillText(colony.ids[i], px(i) + 8, py(i) + 3); }
+    cv.onmousemove = ev => { const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top; let best = null, bd = 100; for (const i of present) { const d = (px(i) - mx) ** 2 + (py(i) - my) ** 2; if (d < bd) { bd = d; best = i; } } if (best == null) { hideTip(); return; } let given = 0, got = 0, np = 0; for (const j of present) { given += W[best * n + j]; got += W[j * n + best]; if (W[best * n + j] + W[j * n + best] > 0) np++; } showTip(ev, `<b>${colony.ids[best]}</b> (${colony.origin[best]}${colony.sex[best] === "m" ? ", male" : ""})<br>last 14 nights: gave ${Math.round(given / 60)} min, received ${Math.round(got / 60)} min, ${np} partners`); };
+    cv.onmouseleave = hideTip;
+  });
+  const tr = RUN.transfers.filter(t => t.night <= night).length; const six = RUN.pre + params.six_month_mark;
+  $("#nightLab").textContent = `night ${night}${night > RUN.pre ? ` · ${tr} of ${RUN.transfers.length} moved` : " · pre-transfer"}${night >= six && RUN.transfers.length ? " · past six months" : ""}`;
+  const kp = $("#kpis"); const cm = RUN.cm.filter(r => r.seed === 1 && r.night_end <= night); const last = cm.filter(r => r.enclosure === "resident").slice(-1)[0];
+  kp.innerHTML = `<div class="kpi"><div class="v">${night}</div><div class="l">night</div></div><div class="kpi"><div class="v">${tr}/${RUN.transfers.length}</div><div class="l">movers in</div></div>` + (last ? `<div class="kpi"><div class="v">${(last.density * 100).toFixed(0)}%</div><div class="l">main-enclosure density (14 nights)</div></div><div class="kpi"><div class="v">${Number.isFinite(last.modularity) ? last.modularity.toFixed(3) : "–"}</div><div class="l">origin modularity Q</div></div>` : "");
+}
+
+// ---- tiny SVG chart helper ----
+function chart(svg, opts) {
+  const el = typeof svg === "string" ? $(svg) : svg; const W = el.clientWidth || 400, H = el.clientHeight || 230, m = { l: 44, r: 10, t: 24, b: 30 }; el.innerHTML = "";
+  const xs = opts.x, ys = opts.y; const sx = v => m.l + (v - xs[0]) / (xs[1] - xs[0] || 1) * (W - m.l - m.r), sy = v => H - m.b - (v - ys[0]) / (ys[1] - ys[0] || 1) * (H - m.t - m.b);
+  let s = `<text x="${m.l}" y="14" font-weight="600">${esc(opts.title || "")}</text><g class="grid">`;
+  const ticks = (a, b, k) => { const step = niceStep((b - a) / k); const out = []; for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(6)); return out; };
+  for (const v of ticks(ys[0], ys[1], 4)) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${m.l - 6}" y="${sy(v) + 4}" text-anchor="end">${v}</text>`;
+  for (const v of ticks(xs[0], xs[1], 6)) s += `<text x="${sx(v)}" y="${H - m.b + 14}" text-anchor="middle">${v}</text>`;
+  s += `</g><g class="axis"><line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/></g>`;
+  for (const v of opts.vlines || []) s += `<line x1="${sx(v.x)}" x2="${sx(v.x)}" y1="${m.t}" y2="${H - m.b}" stroke="${v.color}" stroke-dasharray="${v.dash || ""}" opacity="${v.alpha || 1}"/>`;
+  for (const h of opts.hlines || []) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${sy(h.y)}" y2="${sy(h.y)}" stroke="${h.color}" stroke-dasharray="4 3"/>`;
+  for (const b of opts.bands || []) { const pts = b.data.filter(d => Number.isFinite(d.lo) && Number.isFinite(d.hi)); if (pts.length) s += `<path d="M${pts.map(d => sx(d.x) + "," + sy(Math.min(Math.max(d.hi, ys[0]), ys[1]))).join("L")}L${pts.slice().reverse().map(d => sx(d.x) + "," + sy(Math.min(Math.max(d.lo, ys[0]), ys[1]))).join("L")}Z" fill="${b.color}" opacity="${b.alpha || 0.16}"/>`; }
+  for (const l of opts.lines || []) { const pts = l.data.filter(d => Number.isFinite(d.y)); if (pts.length > 1) s += `<path d="M${pts.map(d => sx(d.x) + "," + sy(Math.min(Math.max(d.y, ys[0]), ys[1]))).join("L")}" fill="none" stroke="${l.color}" stroke-width="${l.width || 1}" opacity="${l.alpha || 1}"/>`; }
+  for (const p of opts.points || []) for (const d of p.data) if (Number.isFinite(d.y)) s += `<circle cx="${sx(d.x + (p.jitter ? (Math.random() - 0.5) * p.jitter : 0))}" cy="${sy(Math.min(Math.max(d.y, ys[0]), ys[1]))}" r="2.3" fill="${p.color}" opacity="${p.alpha || 0.5}"/>`;
+  s += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${esc(opts.xlab || "")}</text><text transform="translate(11,${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${esc(opts.ylab || "")}</text>`;
+  el.innerHTML = s;
+  // description (opts.desc, trusted HTML written in this file): hidden by default; hover the chart for 0.5 s to see it
+  // as a card, or click the chart to pin it underneath (click again to unpin)
+  const fig = el.parentElement, cap = fig && fig.querySelector("figcaption");
+  if (cap) { fig._desc = opts.desc || ""; cap.innerHTML = fig._desc; cap.hidden = !fig.classList.contains("open") || !fig._desc;
+    if (!fig._wired) { fig._wired = true; hoverCard(fig, () => `<div class="tipRow">${fig._desc}</div><div class="tipRow" style="opacity:.6">click the chart to pin this</div>`); fig.onclick = () => { fig.classList.toggle("open"); cap.hidden = !fig.classList.contains("open"); hideTip(); }; } }
+}
+const LEG_MOVERS = "<b>Thin orange</b> = one newcomer each (seed 1). <b>Blue line</b> = median over all newcomers and seeds; <b>blue band</b> = 5 to 95% of seed medians.";
+function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw || 1))), r = raw / p; return (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10) * p; }
+const band = (rows, key, xkey) => { const by = {}; for (const r of rows) (by[r[xkey]] = by[r[xkey]] || []).push(r[key]); return Object.keys(by).map(Number).sort((a, b) => a - b).map(x => ({ x, lo: B.quantile(by[x], 0.05), y: B.median(by[x]), hi: B.quantile(by[x], 0.95) })); };
+const seedMedians = (rows, key) => { const by = {}; for (const r of rows) ((by[r.seed] = by[r.seed] || {})[r.week] = by[r.seed][r.week] || []).push(r[key]); const out = []; for (const s in by) for (const w in by[s]) out.push({ seed: +s, week: +w, v: B.median(by[s][w]) }); return out; };
+
+// ---- integration & colony charts ----
+function drawCharts() {
+  if (!RUN) return; const six = RUN.pre + params.six_month_mark, trV = RUN.transfers.map(t => ({ x: t.night, color: "var(--mover)", alpha: 0.35 }));
+  if (scenario !== "single" && RUN.mm.length) {
+    const mm = RUN.mm.filter(r => r.week <= 12);
+    // integration_measure (table toggle): per_available_resident = grooming received per resident-night co-housed, relative to the median resident's; resident_median = the original total-seconds ratio
+    const perAvail = params.integration_measure !== "resident_median", relKey = perAvail ? "received_rel_avail" : "received_rel";
+    const relTitle = perAvail ? "Grooming received from residents, per resident available (1 = like a resident)" : "Grooming received from residents (1 = the typical resident's total)";
+    const thr = params.integration_threshold;
+    $("#relNote").textContent = perAvail ? "Measure: grooming received per resident-night co-housed, relative to the same quantity for the median resident in her own enclosure (fair for subgroup designs, where a mover has only 3-5 residents around her). Switch integration_measure to resident_median for the original total-seconds ratio." : "Measure: seconds received from residents relative to the median resident's seconds received from other residents in the same week. Caveat: this breaks when subgroup rounds empty the main enclosure; per_available_resident is the default.";
+    const specs = [
+      ["#c-rel", relKey, relTitle, [0, 2], thr, "grooming received (fraction of a resident's)", `<b>What it shows:</b> how much grooming each newcomer gets from residents, as a fraction of what a typical resident gets, week by week after her own arrival. 0 = ignored, 1 = treated like a resident. <b>Dashed line</b> = the integration threshold (${thr}); crossing it is "integrated". ${LEG_MOVERS}`],
+      ["#c-par", "partners", "How many residents each newcomer has groomed with so far", [0, Math.max(5, B.quantile(mm.map(r => r.partners), 0.99))], null, "resident partners (cumulative)", `<b>What it shows:</b> the running count of distinct residents a newcomer has groomed or been groomed by since she arrived (out of ${RUN.seed1.residents.length}). A curve that flattens early means she settled on a few partners. ${LEG_MOVERS}`],
+      ["#c-fam", "familiar_share", "Share of a newcomer's grooming that goes to her own Louisville bats", [0, 1], null, "familiar share (0 = all residents, 1 = all own colony)", `<b>What it shows:</b> of all the grooming a newcomer gives, the fraction that goes to bats from her own colony (familiar) rather than to residents. 1 = she only grooms old friends; 0 = only residents. Early movers have few familiar bats present, so they start low. ${LEG_MOVERS}`]
+    ];
+    for (const [id, key, title, ylim, hl, ylab, desc] of specs) {
+      const sm = seedMedians(mm, key), bd = band(sm, "v", "week"), thin = RUN.mm.filter(r => r.seed === 1 && r.week <= 12); const by = {}; for (const r of thin) (by[r.mover] = by[r.mover] || []).push({ x: r.week, y: r[key] });
+      chart(id, { title, x: [1, 12], y: ylim, xlab: "weeks since this bat arrived", ylab, desc, lines: Object.values(by).map(d => ({ data: d, color: "var(--mover)", alpha: 0.25 })).concat([{ data: bd.map(d => ({ x: d.x, y: d.y })), color: "var(--line)", width: 2 }]), bands: [{ data: bd, color: "var(--line)" }], hlines: hl != null ? [{ y: hl, color: "var(--ink-mute)" }] : [] });
+    }
+    const ms = RUN.ms, nR = Math.max(...ms.map(r => r.rank)), rel8 = relKey + "_week8"; const rb = band(ms.filter(r => Number.isFinite(r[rel8])), rel8, "rank"), fb = band(ms.filter(r => Number.isFinite(r.familiar_share_first4)), "familiar_share_first4", "rank");
+    chart("#c-rank", { title: "Integration at week 8, by order of arrival (1 = first bat moved)", x: [1, nR], y: [0, 1.5], xlab: "order of arrival (transfer rank)", ylab: "grooming received at week 8 (fraction of a resident's)", desc: `<b>What it shows:</b> whether bats moved later end up better or worse integrated than the first ones. Each <b>orange dot</b> is one newcomer in one seed, at her eighth week; the <b>blue line</b> is the median at each rank with an interquartile band; <b>dashed</b> = the integration threshold (${thr}). A flat line means order does not matter.`, points: [{ data: ms.map(r => ({ x: r.rank, y: r[rel8] })), color: "var(--mover)", jitter: 0.4 }], lines: [{ data: rb.map(d => ({ x: d.x, y: d.y })), color: "var(--line)", width: 2 }], bands: [{ data: rb.map(d => ({ x: d.x, lo: B.quantile([d.lo, d.y], 0.5), hi: B.quantile([d.y, d.hi], 0.5) })), color: "var(--line)" }], hlines: [{ y: thr, color: "var(--ink-mute)" }] });
+    chart("#c-famrank", { title: "Familiar share in the first 4 weeks, by order of arrival", x: [1, nR], y: [0, 1], xlab: "order of arrival (transfer rank)", ylab: "familiar share, weeks 1 to 4", desc: `<b>What it shows:</b> how much of a newcomer's early grooming goes to her own Louisville bats, against when she was moved. The first bats to move arrive to no familiar partners (share near 0); later ones find many and can keep grooming them (share rising). <b>Orange dots</b> = one newcomer per seed; <b>blue</b> = median per rank. This is the familiar-partner question (Q1) in one picture.`, points: [{ data: ms.map(r => ({ x: r.rank, y: r.familiar_share_first4 })), color: "var(--mover)", jitter: 0.4 }], lines: [{ data: fb.map(d => ({ x: d.x, y: d.y })), color: "var(--line)", width: 2 }] });
+  } else for (const id of ["#c-rel", "#c-par", "#c-fam", "#c-rank", "#c-famrank"]) { $(id).innerHTML = `<text x="20" y="30" fill="var(--ink-mute)">single-colony run: no newcomers, so nothing to integrate</text>`; const cap = $(id).parentElement.querySelector("figcaption"); if (cap) cap.innerHTML = ""; }
+  const cm = RUN.cm.filter(r => r.n_bats >= 4), encs = Array.from(new Set(cm.map(r => r.enclosure))); const cols = { resident: "var(--ink-2)", source: "var(--source)" }; const xr = [0, RUN.lastNight];
+  const encName = e => e === "resident" ? "Princeton colony" : e === "source" ? "Louisville source enclosure" : "small groups";
+  chart("#c-dens", { title: "Network density: share of pairs in each enclosure that groomed in the last 14 nights", x: xr, y: [0, 1], xlab: "night of the run", ylab: "share of present pairs", desc: `<b>What it shows:</b> how connected each enclosure's grooming network is, over the whole run. ${encs.map(e => `<b style="color:${cols[e] || "var(--mover)"}">${encName(e)}</b>`).join(", ")}; line = median over seeds, band = 5 to 95%. <b>Orange ticks</b> = transfers; <b>dotted</b> = six months after the first transfer. The source enclosure gets noisy once few bats are left in it.`, vlines: trV.concat(RUN.transfers.length ? [{ x: six, color: "var(--ink-mute)", dash: "2 3" }] : []), bands: encs.map(e => ({ data: band(cm.filter(r => r.enclosure === e), "density", "night_end"), color: cols[e] || "var(--mover)" })), lines: encs.map(e => ({ data: band(cm.filter(r => r.enclosure === e), "density", "night_end").map(d => ({ x: d.x, y: d.y })), color: cols[e] || "var(--mover)", width: 2 })) });
+  const md = cm.filter(r => r.enclosure === "resident" && Number.isFinite(r.modularity)); const mb = band(md, "modularity", "night_end");
+  chart("#c-mod", { title: "Origin modularity of the Princeton enclosure (0 = origins fully mixed)", x: xr, y: [-0.05, Math.max(0.15, B.quantile(md.map(r => r.modularity), 0.99) || 0.15)], xlab: "night of the run", ylab: "Newman Q", desc: `<b>What it shows:</b> how much grooming inside the Princeton enclosure stays within colony of origin (Newman Q of the Princeton-vs-Louisville split). 0 = the two origins groom each other as much as their own; 0.3 or more = two separate cliques. Only defined once at least one newcomer is present. <b>Orange ticks</b> = transfers; line and band as above.`, vlines: trV, hlines: [{ y: 0, color: "var(--ink-mute)" }], bands: [{ data: mb, color: "var(--ink-2)" }], lines: [{ data: mb.map(d => ({ x: d.x, y: d.y })), color: "var(--ink-2)", width: 2 }] });
+  const first = RUN.transfers.length ? Math.min(...RUN.transfers.map(t => t.night)) : NaN, lastMove = RUN.transfersFull ? Math.max(...RUN.transfersFull.map(t => t.night)) : (RUN.transfers.length ? Math.max(...RUN.transfers.map(t => t.night)) : NaN);
+  const dur = lastMove - first; $("#schedKpis").innerHTML = RUN.transfers.length ? `<div class="kpi"><div class="v">${RUN.transfers.length}</div><div class="l">movers</div></div><div class="kpi"><div class="v">${dur}</div><div class="l">nights, first to last move (${(dur / 7).toFixed(0)} weeks)</div></div><div class="kpi"><div class="v" style="color:${dur > params.six_month_mark ? "var(--mover)" : "inherit"}">${dur > params.six_month_mark ? "over" : "under"}</div><div class="l">six months (${params.six_month_mark} nights)</div></div><div class="kpi"><div class="v">${B.median(RUN.ms.map(r => r.weeks_to_threshold)).toFixed(0)}</div><div class="l">median weeks to threshold (censored for late movers)</div></div>` : `<div class="note">single colony: no schedule</div>`;
+}
+
+// ---- compare: one dial, two values ----
+const CMP = { dial: null, results: null };
+const CMP_COLS = { A: "#4575b4", B: "#d73027" };
+function cmpIsScen(name) { return !!SCEN_KEY[name] && !rowByName[name] || (!!SCEN_KEY[name] && HIDE.has(name)); }
+function cmpCurrent(name) { return SCEN_KEY[name] ? scen[SCEN_KEY[name]] : params[name]; }
+function cmpRow(name) { return SCEN_KEY[name] ? scenRow(name) : rowByName[name]; }
+function cmpOpts(name) { let o = SCEN_KEY[name] ? SCEN_OPTS[name] : STRING_OPTS[name]; if (name === "pre_exposure_chosen_how" && scenario === "merge") o = ["random", "most_social"]; return o; }
+function buildCompare() {
+  const sel = $("#cmpDial"); const names = scenNames().filter(n => n !== "nights_single").concat(DATA.params.filter(r => !HIDE.has(r.name)).map(r => r.name));
+  const cur = sel.value; sel.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}: ${esc(LABELS[n] || "")}</option>`).join("");
+  sel.value = names.includes(cur) ? cur : (names.includes("ingroup_bias") ? "ingroup_bias" : names[0]);
+  sel.onchange = cmpInputs; cmpInputs();
+}
+function cmpInputs() {
+  const name = $("#cmpDial").value, r = cmpRow(name), cur = cmpCurrent(name), opts = cmpOpts(name); CMP.dial = name;
+  const mk = (id, v) => { const host = $(id); if (typeof cur === "boolean") host.innerHTML = `<select><option ${v ? "selected" : ""}>true</option><option ${!v ? "selected" : ""}>false</option></select>`; else if (opts) host.innerHTML = `<select>${opts.map(o => `<option ${String(o) === String(v) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`; else host.innerHTML = `<input type="number" value="${v}" step="any">`; };
+  let alt = cur;
+  if (typeof cur === "number") { const [lo, hi] = parseRange(r.range, SCEN_KEY[name] ? SCEN_DEFAULTS[SCEN_KEY[name]] : defaults[name]); alt = cur === 0 ? +(lo + (hi - lo) / 2).toPrecision(3) : +(Math.min(hi, cur * 1.5)).toPrecision(3); if (alt === cur) alt = +(Math.max(lo, cur / 2)).toPrecision(3); if (intLike(r, cur, lo, hi)) alt = Math.round(alt); }
+  else if (typeof cur === "boolean") alt = !cur; else if (opts) alt = opts.find(o => String(o) !== String(cur)) || cur;
+  mk("#cmpA", cur); mk("#cmpB", alt);
+}
+function cmpRead(id) { const el = $(id).firstElementChild; const cur = cmpCurrent(CMP.dial); if (typeof cur === "boolean") return el.value === "true"; if (el.tagName === "SELECT") return el.value; return Number(el.value); }
+async function runCompare() {
+  if (ACTIVE) return;
+  const name = CMP.dial, vA = cmpRead("#cmpA"), vB = cmpRead("#cmpB"), nSeeds = Math.max(1, Number($("#nSeeds").value) || 1), btn = $("#cmpBtn"); btn.disabled = true; $("#runBtn").disabled = true;
+  const key = SCEN_KEY[name]; const saved = key ? scen[key] : params[name]; const results = {};
+  try {
+    for (const [lab, v] of [["A", vA], ["B", vB]]) {
+      if (key) scen[key] = v; else params[name] = v;
+      results[lab] = await simulateSeeds(nSeeds, (s, n) => { $("#cmpStatus").textContent = `${lab}: seed ${s} / ${n}`; });
+      results[lab].value = v;
+    }
+    CMP.results = results; $("#cmpStatus").textContent = `${nSeeds} seed${nSeeds > 1 ? "s" : ""} each`; $("#cmpOut").hidden = false; drawCompare();
+  } catch (err) { $("#cmpStatus").textContent = err.message === "stopped" ? "stopped" : "failed: " + err.message; }
+  finally { if (key) scen[key] = saved; else params[name] = saved; btn.disabled = false; $("#runBtn").disabled = false; }
+}
+function drawCompare() {
+  const R = CMP.results; if (!R) return; const name = CMP.dial;
+  const perAvail = params.integration_measure !== "resident_median", relKey = perAvail ? "received_rel_avail" : "received_rel", rel8 = relKey + "_week8", thr = params.integration_threshold;
+  const med = (arr, k) => B.median(arr.map(r => r[k]).filter(Number.isFinite));
+  const dur = r => { const first = r.transfers.length ? Math.min(...r.transfers.map(t => t.night)) : NaN; const last = r.transfersFull ? Math.max(...r.transfersFull.map(t => t.night)) : (r.transfers.length ? Math.max(...r.transfers.map(t => t.night)) : NaN); return last - first; };
+  const post = r => r.cm.filter(c => c.enclosure === "resident" && c.night_end > r.pre);
+  const rows = [
+    ["integration at week 8 (per available resident)", r => med(r.ms, rel8), 2],
+    ["newcomers over the threshold at week 8", r => { const x = r.ms.map(m => m[rel8]).filter(Number.isFinite); return x.length ? x.filter(v => v >= thr).length / x.length : NaN; }, 2],
+    ["resident partners at week 8", r => med(r.ms, "partners_week8"), 1],
+    ["familiar share, first 4 weeks", r => med(r.ms, "familiar_share_first4"), 2],
+    ["weeks to threshold (median; censored for late movers)", r => med(r.ms, "weeks_to_threshold_avail"), 1],
+    ["Princeton density after transfers begin", r => B.mean(post(r).map(c => c.density)), 2],
+    ["origin modularity at the end", r => { const p = post(r).filter(c => Number.isFinite(c.modularity)); return p.length ? p[p.length - 1].modularity : NaN; }, 3],
+    ["nights, first to last move", r => dur(r), 0]
+  ];
+  const f = (x, d) => Number.isFinite(x) ? x.toFixed(d) : "–";
+  $("#cmpTable").innerHTML = `<tr><th>measure</th><th style="color:${CMP_COLS.A}">A: ${esc(name)} = ${esc(R.A.value)}</th><th style="color:${CMP_COLS.B}">B: ${esc(name)} = ${esc(R.B.value)}</th><th>B − A</th></tr>` +
+    rows.map(([lab, fn, d]) => { const a = fn(R.A), b = fn(R.B); return `<tr><td>${lab}</td><td class="d">${f(a, d)}</td><td class="d">${f(b, d)}</td><td class="d">${Number.isFinite(a) && Number.isFinite(b) ? (b - a >= 0 ? "+" : "") + f(b - a, d) : "–"}</td></tr>`; }).join("");
+  const leg = `<b style="color:${CMP_COLS.A}">A</b> = ${esc(name)} ${esc(R.A.value)}, <b style="color:${CMP_COLS.B}">B</b> = ${esc(R.B.value)}; line = median over newcomers and seeds, band = 5 to 95% of seed medians.`;
+  const wk = (r, k) => band(seedMedians(r.mm.filter(m => m.week <= 12), k), "v", "week");
+  const two = (fn) => ["A", "B"].map(l => ({ data: fn(R[l]), color: CMP_COLS[l] }));
+  const lines = (fn) => ["A", "B"].map(l => ({ data: fn(R[l]).map(d => ({ x: d.x, y: d.y })), color: CMP_COLS[l], width: 2 }));
+  if (R.A.mm.length) {
+    const pmax = Math.max(5, B.quantile(R.A.mm.concat(R.B.mm).map(r => r.partners), 0.99));
+    chart("#x-rel", { title: perAvail ? "Grooming received per available resident (1 = like a resident)" : "Grooming received (1 = the typical resident's total)", x: [1, 12], y: [0, 2], xlab: "weeks since this bat arrived", ylab: "fraction of a resident's", desc: `<b>What it shows:</b> how fast newcomers are groomed like residents under the two settings. Dashed = integration threshold (${thr}). ${leg}`, bands: two(r => wk(r, relKey)), lines: lines(r => wk(r, relKey)), hlines: [{ y: thr, color: "var(--ink-mute)" }] });
+    chart("#x-par", { title: "Resident grooming partners so far", x: [1, 12], y: [0, pmax], xlab: "weeks since this bat arrived", ylab: "partners (cumulative)", desc: `<b>What it shows:</b> how many distinct residents a newcomer has groomed with, under the two settings. ${leg}`, bands: two(r => wk(r, "partners")), lines: lines(r => wk(r, "partners")) });
+    chart("#x-fam", { title: "Share of a newcomer's grooming to her own colony", x: [1, 12], y: [0, 1], xlab: "weeks since this bat arrived", ylab: "familiar share", desc: `<b>What it shows:</b> how much newcomers keep grooming their old friends rather than residents, under the two settings. ${leg}`, bands: two(r => wk(r, "familiar_share")), lines: lines(r => wk(r, "familiar_share")) });
+  } else for (const id of ["#x-rel", "#x-par", "#x-fam"]) $(id).innerHTML = `<text x="20" y="30" fill="var(--ink-mute)">single-colony run: no newcomers</text>`;
+  const xr = [0, Math.max(R.A.lastNight, R.B.lastNight)];
+  const dn = r => band(r.cm.filter(c => c.enclosure === "resident" && c.n_bats >= 4), "density", "night_end");
+  const mo = r => band(r.cm.filter(c => c.enclosure === "resident" && Number.isFinite(c.modularity)), "modularity", "night_end");
+  chart("#x-dens", { title: "Princeton enclosure: share of pairs grooming (14-night windows)", x: xr, y: [0, 1], xlab: "night of the run", ylab: "share of present pairs", desc: `<b>What it shows:</b> how connected the Princeton colony's grooming network stays as newcomers arrive, under the two settings. ${leg}`, bands: two(dn), lines: lines(dn) });
+  chart("#x-mod", { title: "Origin modularity of the Princeton enclosure (0 = mixed)", x: xr, y: [-0.05, Math.max(0.15, B.quantile(R.A.cm.concat(R.B.cm).map(c => c.modularity).filter(Number.isFinite), 0.99) || 0.15)], xlab: "night of the run", ylab: "Newman Q", desc: `<b>What it shows:</b> how much the two origins stay separate inside the Princeton enclosure, under the two settings. ${leg}`, bands: two(mo), lines: lines(mo), hlines: [{ y: 0, color: "var(--ink-mute)" }] });
+}
+$("#cmpBtn").onclick = runCompare;
+
+// ---- DAG ----
+function drawDag() {
+  const svg = $("#dag"); if (!svg) return; const W = svg.clientWidth || 900, H = svg.clientHeight || 520; const N = Object.fromEntries(DATA.dag.nodes.map(n => [n.id, n]));
+  const fill = { trait: "#dfe7f2", state: "#f2e6d9", treatment: "#fbe3cf", behaviour: "#ffffff" };
+  let s = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#52514e"/></marker></defs>`;
+  let hits = "";   // wide invisible strokes drawn last, so thin arrows are easy to hover; each opens the "why this arrow" card
+  DATA.dag.edges.forEach((e, i) => {
+    const v = params[e.dial], dv = defaults[e.dial]; const ref = Math.abs(typeof dv === "number" && dv !== 0 ? dv : 1); const str = typeof v === "number" ? Math.min(Math.abs(v) / ref, 2) : 1; if (str === 0) return;
+    const a = N[e.from], b = N[e.to], ax = a.x * W, ay = a.y * H, bx = b.x * W, by = b.y * H;
+    if (e.self) { const d = `M${ax + 40},${ay - 6} c 40,-40 60,20 8,14`; s += `<path d="${d}" fill="none" stroke="#52514e" stroke-width="${0.6 + str}" opacity="${0.25 + 0.5 * Math.min(str, 1)}" marker-end="url(#arr)"/>`; hits += `<path d="${d}" fill="none" stroke="transparent" stroke-width="14" data-edge="${i}"/>`; return; }
+    const wa = Math.max(90, a.label.length * 6.6 + 18) / 2, wb = Math.max(90, b.label.length * 6.6 + 18) / 2; const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, ta = Math.min(wa / Math.max(Math.abs(ux), 1e-6), 14 / Math.max(Math.abs(uy), 1e-6)), tb = Math.min(wb / Math.max(Math.abs(ux), 1e-6), 14 / Math.max(Math.abs(uy), 1e-6)); const x1 = ax + ux * ta, y1 = ay + uy * ta, x2 = bx - ux * tb, y2 = by - uy * tb;
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#52514e" stroke-width="${0.6 + 1.6 * Math.min(str, 1.5)}" opacity="${0.2 + 0.6 * Math.min(str, 1)}" marker-end="url(#arr)"/>`;
+    hits += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="14" data-edge="${i}" style="cursor:help"/>`;
+  });
+  DATA.dag.nodes.forEach((n, i) => { const bw = Math.max(90, n.label.length * 6.6 + 18); s += `<g data-node="${i}" style="cursor:help"><rect x="${n.x * W - bw / 2}" y="${n.y * H - 13}" width="${bw}" height="26" rx="13" fill="${fill[n.kind]}" stroke="#898781"/><text x="${n.x * W}" y="${n.y * H + 4}" text-anchor="middle" fill="#0b0b0b">${esc(n.label)}</text></g>`; });
+  svg.innerHTML = s + hits;
+  svg.querySelectorAll("[data-node]").forEach(g => { const n = DATA.dag.nodes[+g.dataset.node]; hoverCard(g, () => `<div class="tipHead">${esc(n.label)}</div><div class="tipRow">${esc(n.what || "")}</div><div class="tipRow"><i>${esc(n.kind)}</i> node</div>`); });
+  svg.querySelectorAll("[data-edge]").forEach(h => { const e = DATA.dag.edges[+h.dataset.edge], r = rowByName[e.dial] || {}; hoverCard(h, () => `<div class="tipHead">${esc(N[e.from].label)} → ${esc(N[e.to].label)}</div><div class="tipRow">${esc(e.why || "")}</div><div class="tipRow"><b>${esc(e.dial)}</b> = ${esc(params[e.dial])}${params[e.dial] !== defaults[e.dial] ? ` (default ${esc(r.default)})` : ""} · <span class="tag ${esc(r.source_type || "guess")}">${esc(r.source_type || "")}</span> ${esc(r.source || "")}</div>`); });
+}
+
+// ---- parameter table ----
+function drawTable() {
+  const t = $("#ptab"); t.innerHTML = `<tr><th>name</th><th>module</th><th>value</th><th>range</th><th>unit</th><th>source</th><th>rationale</th></tr>` + DATA.params.map(r => `<tr><td class="mono">${esc(r.name)}</td><td>${esc(r.module)}</td><td class="mono">${esc(r.value)}${params[r.name] !== defaults[r.name] ? ` <span style="color:var(--mover)">→ ${esc(params[r.name])}</span>` : ""}</td><td>${esc(r.range)}</td><td>${esc(r.unit)}</td><td><span class="tag ${esc(r.source_type)}">${esc(r.source_type)}</span> ${esc(r.source)}</td><td>${esc(r.rationale)}</td></tr>`).join("");
+}
+function drawAll() { drawNets(); drawCharts(); drawDag(); drawTable(); }
+
+// ---- tabs, theme ----
+function showTab(t) { $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x.dataset.t === t)); $$(".panel").forEach(p => p.classList.toggle("active", p.id === "p-" + t)); if (t === "dag") drawDag(); if (t === "table") drawTable(); if (t === "colonies") drawNets(); if (t === "compare") { cmpInputs(); drawCompare(); } if (RUN) { drawCharts(); } }
+$$(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
+$$("button.jump").forEach(b => b.onclick = () => jumpToDial(b.dataset.jump));
+window.addEventListener("resize", () => { drawNets(); if (RUN) drawCharts(); drawDag(); drawCompare(); });
+$("#builtNote").textContent = "Built " + DATA.built + " from params/parameter_table.csv and app/engine.js.";
+
+buildDials(); scenarioCard(); drawDag(); drawTable(); drawPreview(); buildCompare();
+if (/brysonloflin\.com$/.test(location.hostname) && window.self === window.top) $("#homeLink").hidden = false;   // hosted copy opened full screen: a way back to the site
+</script>
+</body>
+</html>
