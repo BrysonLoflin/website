@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Social Relations Model</title>
+<style>
+  :root{
+    --bg:#0c0c0c; --ink:#f4f4f4; --dim:#8b8b8b; --dimmer:#555;
+    --red:#cf1020; --red-soft:#6d0912; --card:#fbfcfd; --card-diag:#e8edf1;
+    --line:#242424;
+    --sans:"Helvetica Neue", Helvetica, Arial, "Segoe UI", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:var(--bg); overflow:hidden}
+  body{font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased}
+
+  /* fixed 16:9 stage, scaled to fill whatever window it is shown in */
+  #stage{position:absolute; top:0; left:0; width:1600px; height:900px;
+         transform-origin:top left; padding:46px 46px 40px;
+         display:flex; flex-direction:column; gap:30px}
+
+  .top{flex:1 1 auto; display:flex; gap:56px; align-items:center}
+
+  /* ---------- matrix ---------- */
+  .matrixbox{display:grid; gap:8px;
+    grid-template-columns:auto auto auto; grid-template-rows:auto auto auto;
+    align-items:center; justify-items:center}
+  .lab-recv{grid-column:2; grid-row:1; font-size:10px; letter-spacing:.3em;
+    color:var(--dim); text-transform:lowercase}
+  .lab-actor{grid-column:1; grid-row:2; font-size:10px; letter-spacing:.3em;
+    color:var(--dim); text-transform:lowercase;
+    writing-mode:vertical-rl; transform:rotate(180deg)}
+  .grid{grid-column:2; grid-row:2; display:grid}
+  .barsA{grid-column:3; grid-row:2; align-self:stretch; display:grid}
+  .barsB{grid-column:2; grid-row:3; justify-self:stretch; display:grid}
+
+  .hcell{font-size:13px; font-weight:700; letter-spacing:.05em; color:var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    user-select:none; transition:color .18s}
+  .hcell:hover,.hcell.sel{color:var(--red)}
+  .hcell.corner{cursor:default}
+  .hcell.corner:hover{color:var(--ink)}
+
+  .cell{background:var(--card); color:#111; display:flex; align-items:center;
+    justify-content:center; font-size:12px; font-weight:700;
+    font-variant-numeric:tabular-nums; border:1px solid rgba(12,12,12,.10);
+    transition:background .45s, color .45s, opacity .25s}
+  .cell.diag{background:var(--card-diag)}
+  .cell.faded{opacity:.18}
+  .cell.hot{box-shadow:inset 0 0 0 2px var(--red); z-index:2}
+
+  .bar{position:relative}
+  .bar .track{position:absolute; background:#383838}
+  .bar .fill{position:absolute; transition:all .45s cubic-bezier(.2,.7,.3,1); background:var(--red)}
+  .bar .val{position:absolute; font-size:10.5px; font-variant-numeric:tabular-nums;
+    color:var(--dimmer); white-space:nowrap; transition:color .25s}
+  .bar.sel .val{color:var(--ink)}
+  .barsA .bar{height:100%}
+  .barsA .bar .track{left:44px; width:1px; top:12%; bottom:12%}
+  .barsA .bar .fill{top:32%; height:36%}
+  .barsA .bar .val{right:0; top:50%; transform:translateY(-50%)}
+  .barsB .bar{width:100%}
+  .barsB .bar .track{top:26px; height:1px; left:10%; right:10%}
+  .barsB .bar .fill{left:34%; width:32%}
+  .barsB .bar .val{left:50%; transform:translateX(-50%); bottom:0}
+  .axislab{font-size:9px; letter-spacing:.22em; color:#5a5a5a; text-transform:lowercase;
+    text-align:center}
+
+  /* ---------- scatter ---------- */
+  .scatterwrap{flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0}
+  .segbar{display:flex; gap:0; align-self:flex-end}
+  .seg{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#4a4a4a;
+    border:1px solid var(--line); padding:6px 14px; cursor:pointer;
+    transition:all .2s; user-select:none; background:transparent}
+  .seg+.seg{border-left:none}
+  .seg.on{color:var(--red); border-color:var(--red-soft)}
+
+  /* ---------- bottom control bar ---------- */
+  .bottom{flex:0 0 auto; display:flex; align-items:center; gap:52px;
+    border-top:1px solid var(--line); padding-top:22px}
+  .switches{display:flex; gap:46px}
+  .sw{display:flex; align-items:center; gap:14px; cursor:pointer; user-select:none}
+  .pill{width:56px; height:27px; border-radius:999px; background:#1e1e1e;
+    border:1px solid #303030; position:relative; transition:all .3s; flex:0 0 auto}
+  .knob{position:absolute; top:3px; left:3px; width:19px; height:19px; border-radius:50%;
+    background:#7a7a7a; transition:all .3s}
+  .sw.on .pill{background:var(--red-soft); border-color:var(--red)}
+  .sw.on .knob{left:31px; background:#fff}
+  .sw .lab{font-size:15px; color:#6e6e6e; transition:color .25s; white-space:nowrap}
+  .sw.on .lab{color:var(--ink)}
+
+  .vbar{margin-left:auto; width:330px; flex:0 0 auto}
+  .vtrack{display:flex; height:9px; width:100%; overflow:hidden}
+  .vseg{transition:width .5s}
+  .vkey{display:flex; gap:16px; margin-top:8px; font-size:10px; color:#5f5f5f}
+  .vkey i{display:inline-block; width:8px; height:8px; margin-right:6px; font-style:normal}
+
+  .scen{position:absolute; left:46px; top:10px; display:flex; gap:0; opacity:.4;
+    transition:opacity .25s}
+  .scen:hover{opacity:1}
+  .scen .seg{padding:4px 10px; font-size:8.5px}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div class="top">
+    <div class="matrixbox">
+      <div class="lab-recv">receiver</div>
+      <div class="lab-actor">actor</div>
+      <div class="grid" id="grid"></div>
+      <div class="barsA" id="barsA"></div>
+      <div class="barsB" id="barsB"></div>
+    </div>
+
+    <div class="scatterwrap">
+      <svg id="scatter" viewBox="0 0 600 660" style="width:100%;height:auto"></svg>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="switches">
+      <div class="sw" id="sw0"><div class="pill"><div class="knob"></div></div><div class="lab">remove average</div></div>
+      <div class="sw" id="sw1"><div class="pill"><div class="knob"></div></div><div class="lab">remove giver effect</div></div>
+      <div class="sw" id="sw2"><div class="pill"><div class="knob"></div></div><div class="lab">remove receiver effect</div></div>
+    </div>
+  </div>
+
+  <div class="scen">
+    <div class="seg on" id="sc-A">masked bonds</div>
+    <div class="seg" id="sc-B">false signal</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- 16:9 stage scaling (projector / PowerPoint friendly) ---------- */
+const STAGE=document.getElementById("stage");
+function resize(){
+  const s=Math.min(innerWidth/1600, innerHeight/900);
+  STAGE.style.transform=`translate(${(innerWidth-1600*s)/2}px, ${(innerHeight-900*s)/2}px) scale(${s})`;
+}
+addEventListener("resize", resize);
+
+/* ---------- data ---------- */
+const IDS=["A","B","C","D","E","F","G","H","I","J"];
+const SCEN={
+  A:[[  0, 330, 335,   0, 180, 305,  45, 205, 165, 345],
+     [575,   0, 235,  50, 490, 325,  80, 180, 245, 430],
+     [260, 170,   0, 200, 275, 450, 115, 290, 210, 420],
+     [315, 130, 430,   0, 385, 430, 340, 355, 435, 465],
+     [325, 325, 220, 205,   0, 180, 280, 155, 200, 495],
+     [385,  20, 200,  70,   0,   0, 330, 225, 130,  80],
+     [420, 275, 230, 410, 500, 645,   0, 100, 315, 205],
+     [395,   0, 180,  15,  35, 260,   0,   0,  85, 265],
+     [170, 125, 310, 155, 225, 360, 210, 250,   0, 160],
+     [360, 300, 390,  75, 350,   0,   0, 220, 265,   0]],
+  B:[[  0, 225, 295, 275, 285,  75,  40, 175, 200,   0],
+     [275,   0, 280, 300, 305, 130, 270, 385, 220, 125],
+     [180, 450,   0, 225, 220, 165, 185, 385,   0,   0],
+     [ 75, 285,  80,   0, 225, 120,  80, 325, 295,   0],
+     [225, 250, 115, 325,   0,  40,   0, 235, 325,   0],
+     [  0,  75,  90,  60, 100,   0,  20,   0,  45,   0],
+     [140, 235, 115,  95, 220,   0,   0, 160, 125,   0],
+     [210, 145, 175, 360, 365, 220, 205,   0, 440,  10],
+     [165, 145, 140, 165, 270,  70, 295, 300,   0,  90],
+     [ 30,   0,  65,  45,  60,   0,   0,  45,   0,   0]]
+};
+const n=IDS.length;
+let scen="A", Y=SCEN.A.map(r=>r.slice());
+
+/* ---------- the social relations model ---------- */
+function fit(Y){
+  const off=[]; for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j) off.push(Y[i][j]);
+  const m=off.reduce((s,v)=>s+v,0)/off.length;
+  const rowM=[],colM=[];
+  for(let i=0;i<n;i++){ let rs=0,cs=0;
+    for(let j=0;j<n;j++) if(i!==j){ rs+=Y[i][j]; cs+=Y[j][i]; }
+    rowM.push(rs/(n-1)); colM.push(cs/(n-1)); }
+  const c1=(n-1)*(n-1)/(n*(n-2)), c2=(n-1)/(n*(n-2)), c3=(n-1)/(n-2);
+  const a=[],b=[];
+  for(let i=0;i<n;i++){ a.push(c1*rowM[i]+c2*colM[i]-c3*m);
+                        b.push(c1*colM[i]+c2*rowM[i]-c3*m); }
+  const mA=a.reduce((s,v)=>s+v,0)/n, mB=b.reduce((s,v)=>s+v,0)/n;
+  let sab=0,sa=0,sb=0;
+  for(let i=0;i<n;i++){ sab+=(a[i]-mA)*(b[i]-mB); sa+=(a[i]-mA)**2; sb+=(b[i]-mB)**2; }
+  const rGen=(sa&&sb)?sab/Math.sqrt(sa*sb):0;
+  const g=Array.from({length:n},()=>Array(n).fill(null));
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j) g[i][j]=Y[i][j]-m-a[i]-b[j];
+  let ssg=0; for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j) ssg+=g[i][j]*g[i][j];
+  let qa=0,qb=0; for(let i=0;i<n;i++){ qa+=a[i]*a[i]; qb+=b[i]*b[i]; }
+  const ssa=(n-1)*qa, ssb=(n-1)*qb, t=ssa+ssb+ssg;
+  return {m,a,b,g,rGen,share:{a:ssa/t,b:ssb/t,g:ssg/t}};
+}
+let F=fit(Y);
+
+/* double-entry reciprocity of whatever matrix is on screen */
+function recip(M){
+  let mu=0,k=0;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j){ mu+=M[i][j]; k++; }
+  mu/=k;
+  let num=0,den=0;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j){
+    num+=(M[i][j]-mu)*(M[j][i]-mu); den+=(M[i][j]-mu)**2; }
+  return den?num/den:0;
+}
+
+/* ---------- state ---------- */
+let SW=[false,false,false];      // centre, giver, receiver
+let sel=null;
+
+function current(){
+  const M=Array.from({length:n},()=>Array(n).fill(null));
+  const c=SW[0]||SW[1]||SW[2];
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j){
+    let v=Y[i][j];
+    if(c)     v-=F.m;
+    if(SW[1]) v-=F.a[i];
+    if(SW[2]) v-=F.b[j];
+    M[i][j]=v;
+  }
+  return {M, signed:c};
+}
+
+/* ---------- geometry ---------- */
+const CW=68, CH=50, HW=32, BARW=88, BARLAB=34, BARH=52;
+const RED=[207,16,32], WHITE=[251,252,253], DARK=[26,26,26];
+const mix=(c1,c2,t)=>c1.map((v,k)=>Math.round(v+(c2[k]-v)*t));
+const rgb=c=>`rgb(${c[0]},${c[1]},${c[2]})`;
+const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
+const fmt=(v,d)=>Number(v).toFixed(d);
+
+const grid=document.getElementById("grid");
+const barsA=document.getElementById("barsA");
+const barsB=document.getElementById("barsB");
+
+function build(){
+  grid.style.gridTemplateColumns=`${HW}px repeat(${n}, ${CW}px)`;
+  grid.style.gridTemplateRows=`${HW}px repeat(${n}, ${CH}px)`;
+  grid.innerHTML="";
+  grid.appendChild(Object.assign(document.createElement("div"),{className:"hcell corner"}));
+  IDS.forEach((id,j)=>{
+    const h=document.createElement("div");
+    h.className="hcell"; h.textContent=id; h.dataset.type="b"; h.dataset.i=j;
+    h.onclick=()=>pick("b",j); grid.appendChild(h);
+  });
+  IDS.forEach((id,i)=>{
+    const h=document.createElement("div");
+    h.className="hcell"; h.textContent=id; h.dataset.type="a"; h.dataset.i=i;
+    h.onclick=()=>pick("a",i); grid.appendChild(h);
+    IDS.forEach((_,j)=>{
+      const c=document.createElement("div");
+      c.className="cell"+(i===j?" diag":""); c.dataset.i=i; c.dataset.j=j;
+      grid.appendChild(c);
+    });
+  });
+
+  barsA.style.gridTemplateRows=`${HW}px repeat(${n}, ${CH}px) 16px`;
+  barsA.style.width=(BARW+BARLAB)+"px";
+  barsB.style.gridTemplateColumns=`${HW}px repeat(${n}, ${CW}px)`;
+  barsB.style.gridTemplateRows=`${BARH}px 14px`;
+  barsA.innerHTML=""; barsB.innerHTML="";
+  barsA.appendChild(document.createElement("div"));
+  for(let i=0;i<n;i++) barsA.appendChild(mkBar("a",i));
+  const la=document.createElement("div");
+  la.className="axislab"; la.textContent="giver"; la.style.paddingRight=BARLAB+"px";
+  barsA.appendChild(la);
+  barsB.appendChild(document.createElement("div"));
+  for(let j=0;j<n;j++) barsB.appendChild(mkBar("b",j));
+  const lb=document.createElement("div");
+  lb.className="axislab"; lb.style.gridColumn="2 / -1"; lb.textContent="receiver";
+  barsB.appendChild(lb);
+}
+function mkBar(type,i){
+  const w=document.createElement("div");
+  w.className="bar"; w.dataset.type=type; w.dataset.i=i; w.style.cursor="pointer";
+  w.innerHTML='<div class="track"></div><div class="fill"></div><div class="val"></div>';
+  w.onclick=()=>pick(type,i);
+  return w;
+}
+function pick(type,i){ sel=(sel&&sel.type===type&&sel.i===i)?null:{type,i}; draw(); }
+
+/* ---------- render ---------- */
+function draw(){
+  const {M,signed}=current();
+  let maxAbs=1;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j) maxAbs=Math.max(maxAbs,Math.abs(M[i][j]));
+
+  grid.querySelectorAll(".cell").forEach(c=>{
+    const i=+c.dataset.i, j=+c.dataset.j;
+    if(i===j){ c.textContent=""; return; }
+    const v=M[i][j], rv=Math.round(v);
+    c.textContent = signed ? (rv>0?"+"+rv:String(rv)) : String(rv);
+    let bg=WHITE;
+    if(signed){
+      const t=Math.min(1,Math.abs(v)/maxAbs);
+      // negatives sit on a dark grey floor so white numerals stay legible on a projector
+      bg = v>=0 ? mix(WHITE,RED,t*0.92) : mix(WHITE,DARK,0.62+0.38*Math.pow(t,0.8));
+    }
+    c.style.background=rgb(bg);
+    c.style.color = (signed && v<0) ? "#ffffff" : (lum(bg)<0.55 ? "#ffffff" : "#111");
+    const inSel = sel && ((sel.type==="a"&&i===sel.i)||(sel.type==="b"&&j===sel.i));
+    c.classList.toggle("faded", !!sel && !inSel);
+    c.classList.toggle("hot", !!inSel);
+  });
+  grid.querySelectorAll(".hcell").forEach(h=>{
+    if(!h.dataset.type) return;
+    h.classList.toggle("sel", !!sel && sel.type===h.dataset.type && +h.dataset.i===sel.i);
+  });
+
+  const scale=Math.max(...F.a.map(Math.abs), ...F.b.map(Math.abs), 1);
+  document.querySelectorAll(".bar").forEach(w=>{
+    const type=w.dataset.type, i=+w.dataset.i;
+    const v=type==="a"?F.a[i]:F.b[i];
+    const fill=w.querySelector(".fill"), val=w.querySelector(".val");
+    fill.style.background = v>=0 ? "var(--red)" : "#6f6f6f";
+    val.textContent=(v>0?"+":"")+fmt(v,0);
+    if(type==="a"){ const L=Math.min(1,Math.abs(v)/scale)*40;
+      fill.style.left=(v>=0?44:44-L)+"px"; fill.style.width=L+"px"; }
+    else{ const L=Math.min(1,Math.abs(v)/scale)*22;
+      fill.style.top=(v>=0?26-L:26)+"px"; fill.style.height=L+"px"; }
+    const dimmed = type==="a" ? !SW[1] : !SW[2];
+    w.classList.toggle("sel", !!sel && sel.type===type && sel.i===i);
+    w.style.opacity = sel ? ((sel.type===type&&sel.i===i)?1:.22) : (dimmed?.55:1);
+  });
+
+  document.getElementById("sw0").classList.toggle("on",SW[0]||SW[1]||SW[2]);
+  document.getElementById("sw1").classList.toggle("on",SW[1]);
+  document.getElementById("sw2").classList.toggle("on",SW[2]);
+
+  scatter(M);
+}
+
+/* ---------- scatter ---------- */
+const SV=document.getElementById("scatter");
+const W=600,H=660,PAD={l:58,r:18,t:18,b:54};
+function scatter(M){
+  const pts=[];
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++)
+    pts.push({x:M[i][j],y:M[j][i],lab:IDS[i]+"–"+IDS[j],hot:sel&&(sel.i===i||sel.i===j)});
+  const xlab="A → B", ylab="B → A", rr=recip(M);
+  const all=pts.flatMap(p=>[p.x,p.y]);
+  let lo=Math.min(...all), hi=Math.max(...all);
+  const pv=(hi-lo)*0.10||1; lo-=pv; hi+=pv;
+  const sx=v=>PAD.l+(v-lo)/(hi-lo)*(W-PAD.l-PAD.r);
+  const sy=v=>H-PAD.b-(v-lo)/(hi-lo)*(H-PAD.t-PAD.b);
+
+  let s=`<line x1="${sx(lo)}" y1="${sy(lo)}" x2="${sx(hi)}" y2="${sy(hi)}" stroke="#fff" stroke-width="1" stroke-dasharray="5 6" opacity=".38"/>`;
+  if(lo<0&&hi>0){
+    s+=`<line x1="${sx(0)}" y1="${PAD.t}" x2="${sx(0)}" y2="${H-PAD.b}" stroke="#2e2e2e"/>`;
+    s+=`<line x1="${PAD.l}" y1="${sy(0)}" x2="${W-PAD.r}" y2="${sy(0)}" stroke="#2e2e2e"/>`;
+  }
+  s+=`<rect x="${PAD.l}" y="${PAD.t}" width="${W-PAD.l-PAD.r}" height="${H-PAD.t-PAD.b}" fill="none" stroke="#222"/>`;
+  pts.forEach(p=>{
+    const d=sel?(p.hot?1:.15):1;
+    s+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="8" fill="#cf1020" fill-opacity="${.82*d}" stroke="#fbfcfd" stroke-width="1.2" stroke-opacity="${.7*d}"/>`;
+    if(sel&&p.hot){
+      const R=sx(p.x)<(PAD.l+W-PAD.r)/2;
+      s+=`<text x="${sx(p.x)+(R?13:-13)}" y="${sy(p.y)+4}" font-size="12" fill="#c9c9c9" opacity="${.85*d}" text-anchor="${R?"start":"end"}" font-family="Helvetica,Arial,sans-serif">${p.lab}</text>`;
+    }
+  });
+  s+=`<text x="${(PAD.l+W-PAD.r)/2}" y="${H-14}" font-size="13" fill="#7a7a7a" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${xlab}</text>`;
+  s+=`<text x="20" y="${(PAD.t+H-PAD.b)/2}" font-size="13" fill="#7a7a7a" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" transform="rotate(-90 20 ${(PAD.t+H-PAD.b)/2})">${ylab}</text>`;
+  s+=`<text x="${PAD.l+20}" y="${PAD.t+52}" font-size="44" fill="#cf1020" font-family="Helvetica,Arial,sans-serif" font-weight="300">r = ${fmt(rr,2)}</text>`;
+  SV.innerHTML=s;
+}
+
+/* ---------- controls ---------- */
+function setSw(k,v){
+  SW[k]= v===undefined ? !SW[k] : v;
+  if(k===0 && !SW[0]){ SW[1]=false; SW[2]=false; }
+  draw();
+}
+document.getElementById("sw0").onclick=()=>setSw(0);
+document.getElementById("sw1").onclick=()=>setSw(1);
+document.getElementById("sw2").onclick=()=>setSw(2);
+
+function loadScen(k){
+  scen=k; Y=SCEN[k].map(r=>r.slice()); F=fit(Y); sel=null;
+  document.getElementById("sc-A").classList.toggle("on",k==="A");
+  document.getElementById("sc-B").classList.toggle("on",k==="B");
+  draw();
+}
+document.getElementById("sc-A").onclick=()=>loadScen("A");
+document.getElementById("sc-B").onclick=()=>loadScen("B");
+
+/* clicker / arrow-key sequence, so a presentation remote drives it like slides */
+const SEQ=[
+  ()=>{ SW=[false,false,false]; sel=null; },
+  ()=>{ SW=[true ,false,false]; sel=null; },
+  ()=>{ SW=[true ,true ,false]; sel=null; },
+  ()=>{ SW=[true ,true ,true ]; sel=null; }
+];
+let cursor=0;
+function step(d){
+  cursor=Math.max(0,Math.min(SEQ.length-1,cursor+d));
+  SEQ[cursor](); draw();
+}
+addEventListener("keydown",e=>{
+  const k=e.key;
+  if(k==="ArrowRight"||k==="PageDown"||k===" "||k==="Enter"){ e.preventDefault(); step(1); }
+  else if(k==="ArrowLeft"||k==="PageUp"){ e.preventDefault(); step(-1); }
+  else if(k==="1"){ setSw(0); }
+  else if(k==="2"){ setSw(1); }
+  else if(k==="3"){ setSw(2); }
+  else if(k==="0"){ SW=[false,false,false]; sel=null; cursor=0; draw(); }
+  else if(k.toLowerCase()==="m"){ loadScen("A"); }
+  else if(k.toLowerCase()==="s"){ loadScen("B"); }
+  else if(k==="Escape"){ sel=null; draw(); }
+  else if(k.toLowerCase()==="f"){
+    if(document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+});
+
+build(); resize(); draw();
+})();
+</script>
+</body>
+</html>
