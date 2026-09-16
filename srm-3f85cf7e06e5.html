@@ -7,7 +7,7 @@
 <title>Social Relations Model</title>
 <style>
   :root{
-    --bg:#0c0c0c; --ink:#f4f4f4; --dim:#8b8b8b; --dimmer:#555;
+    --bg:#0c0c0c; --ink:#f4f4f4; --dim:#f0f0f0; --dimmer:#ededed;
     --red:#cf1020; --red-soft:#6d0912; --card:#fbfcfd; --card-diag:#e8edf1;
     --line:#242424;
     --sans:"Helvetica Neue", Helvetica, Arial, "Segoe UI", system-ui, sans-serif;
@@ -19,7 +19,7 @@
   /* fixed 16:9 stage, scaled to fill whatever window it is shown in */
   #stage{position:absolute; top:0; left:0; width:1600px; height:900px;
          transform-origin:top left; padding:46px 46px 40px;
-         display:flex; flex-direction:column; gap:30px}
+         display:flex; flex-direction:column; gap:22px}
 
   .top{flex:1 1 auto; display:flex; gap:56px; align-items:center}
 
@@ -27,16 +27,16 @@
   .matrixbox{display:grid; gap:8px;
     grid-template-columns:auto auto auto; grid-template-rows:auto auto auto;
     align-items:center; justify-items:center}
-  .lab-recv{grid-column:2; grid-row:1; font-size:10px; letter-spacing:.3em;
+  .lab-recv{grid-column:2; grid-row:1; font-size:27px; font-weight:700; letter-spacing:.3em;
     color:var(--dim); text-transform:lowercase}
-  .lab-actor{grid-column:1; grid-row:2; font-size:10px; letter-spacing:.3em;
+  .lab-actor{grid-column:1; grid-row:2; font-size:27px; font-weight:700; letter-spacing:.3em;
     color:var(--dim); text-transform:lowercase;
     writing-mode:vertical-rl; transform:rotate(180deg)}
   .grid{grid-column:2; grid-row:2; display:grid}
   .barsA{grid-column:3; grid-row:2; align-self:stretch; display:grid}
   .barsB{grid-column:2; grid-row:3; justify-self:stretch; display:grid}
 
-  .hcell{font-size:13px; font-weight:700; letter-spacing:.05em; color:var(--ink);
+  .hcell{font-size:21px; font-weight:700; letter-spacing:.05em; color:var(--ink);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
     user-select:none; transition:color .18s}
   .hcell:hover,.hcell.sel{color:var(--red)}
@@ -44,7 +44,7 @@
   .hcell.corner:hover{color:var(--ink)}
 
   .cell{background:var(--card); color:#111; display:flex; align-items:center;
-    justify-content:center; font-size:12px; font-weight:700;
+    justify-content:center; font-size:17px; font-weight:700;
     font-variant-numeric:tabular-nums; border:1px solid rgba(12,12,12,.10);
     transition:background .45s, color .45s, opacity .25s}
   .cell.diag{background:var(--card-diag)}
@@ -54,7 +54,7 @@
   .bar{position:relative}
   .bar .track{position:absolute; background:#383838}
   .bar .fill{position:absolute; transition:all .45s cubic-bezier(.2,.7,.3,1); background:var(--red)}
-  .bar .val{position:absolute; font-size:10.5px; font-variant-numeric:tabular-nums;
+  .bar .val{position:absolute; font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
     color:var(--dimmer); white-space:nowrap; transition:color .25s}
   .bar.sel .val{color:var(--ink)}
   .barsA .bar{height:100%}
@@ -65,13 +65,13 @@
   .barsB .bar .track{top:26px; height:1px; left:10%; right:10%}
   .barsB .bar .fill{left:34%; width:32%}
   .barsB .bar .val{left:50%; transform:translateX(-50%); bottom:0}
-  .axislab{font-size:9px; letter-spacing:.22em; color:#5a5a5a; text-transform:lowercase;
+  .axislab{font-size:17px; font-weight:700; letter-spacing:.22em; color:#f0f0f0; text-transform:lowercase;
     text-align:center}
 
   /* ---------- scatter ---------- */
   .scatterwrap{flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0}
   .segbar{display:flex; gap:0; align-self:flex-end}
-  .seg{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#4a4a4a;
+  .seg{font-size:15px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#e8e8e8;
     border:1px solid var(--line); padding:6px 14px; cursor:pointer;
     transition:all .2s; user-select:none; background:transparent}
   .seg+.seg{border-left:none}
@@ -79,7 +79,7 @@
 
   /* ---------- bottom control bar ---------- */
   .bottom{flex:0 0 auto; display:flex; align-items:center; gap:52px;
-    border-top:1px solid var(--line); padding-top:22px}
+    border-top:1px solid var(--line); padding-top:16px}
   .switches{display:flex; gap:46px}
   .sw{display:flex; align-items:center; gap:14px; cursor:pointer; user-select:none}
   .pill{width:56px; height:27px; border-radius:999px; background:#1e1e1e;
@@ -88,19 +88,23 @@
     background:#7a7a7a; transition:all .3s}
   .sw.on .pill{background:var(--red-soft); border-color:var(--red)}
   .sw.on .knob{left:31px; background:#fff}
-  .sw .lab{font-size:15px; color:#6e6e6e; transition:color .25s; white-space:nowrap}
+  .sw .lab{font-size:22px; font-weight:700; color:#d8d8d8; transition:color .25s; white-space:nowrap}
   .sw.on .lab{color:var(--ink)}
+  .labwrap{display:flex; flex-direction:column; gap:2px}
+  .sw .sub{font-size:15px; font-weight:600; color:#c4c4c4; white-space:nowrap;
+    transition:color .25s}
+  .sw.on .sub{color:#f0f0f0}
 
   .vbar{margin-left:auto; width:330px; flex:0 0 auto}
   .vtrack{display:flex; height:9px; width:100%; overflow:hidden}
   .vseg{transition:width .5s}
-  .vkey{display:flex; gap:16px; margin-top:8px; font-size:10px; color:#5f5f5f}
+  .vkey{display:flex; gap:16px; margin-top:8px; font-size:15px; font-weight:700; color:#f0f0f0}
   .vkey i{display:inline-block; width:8px; height:8px; margin-right:6px; font-style:normal}
 
-  .scen{position:absolute; left:46px; top:10px; display:flex; gap:0; opacity:.4;
+  .scen{position:absolute; left:46px; top:10px; display:flex; gap:0; opacity:.85;
     transition:opacity .25s}
   .scen:hover{opacity:1}
-  .scen .seg{padding:4px 10px; font-size:8.5px}
+  .scen .seg{padding:6px 14px; font-size:14px}
 </style>
 </head>
 <body>
@@ -122,15 +126,15 @@
 
   <div class="bottom">
     <div class="switches">
-      <div class="sw" id="sw0"><div class="pill"><div class="knob"></div></div><div class="lab">remove average</div></div>
-      <div class="sw" id="sw1"><div class="pill"><div class="knob"></div></div><div class="lab">remove giver effect</div></div>
-      <div class="sw" id="sw2"><div class="pill"><div class="knob"></div></div><div class="lab">remove receiver effect</div></div>
+      <div class="sw" id="sw0"><div class="pill"><div class="knob"></div></div><div class="labwrap"><div class="lab">remove average</div><div class="sub">subtract the grand mean</div></div></div>
+      <div class="sw" id="sw1"><div class="pill"><div class="knob"></div></div><div class="labwrap"><div class="lab">remove giver effect</div><div class="sub">subtract each actor’s overall giving</div></div></div>
+      <div class="sw" id="sw2"><div class="pill"><div class="knob"></div></div><div class="labwrap"><div class="lab">remove receiver effect</div><div class="sub">subtract each target’s overall receiving</div></div></div>
     </div>
   </div>
 
   <div class="scen">
-    <div class="seg on" id="sc-A">masked bonds</div>
-    <div class="seg" id="sc-B">false signal</div>
+    <div class="seg on" id="sc-A">false negative</div>
+    <div class="seg" id="sc-B">false positive</div>
   </div>
 </div>
 
@@ -227,7 +231,7 @@ function current(){
 }
 
 /* ---------- geometry ---------- */
-const CW=68, CH=50, HW=32, BARW=88, BARLAB=34, BARH=52;
+const CW=68, CH=50, HW=34, BARW=88, BARLAB=52, BARH=68;
 const RED=[207,16,32], WHITE=[251,252,253], DARK=[26,26,26];
 const mix=(c1,c2,t)=>c1.map((v,k)=>Math.round(v+(c2[k]-v)*t));
 const rgb=c=>`rgb(${c[0]},${c[1]},${c[2]})`;
@@ -259,10 +263,10 @@ function build(){
     });
   });
 
-  barsA.style.gridTemplateRows=`${HW}px repeat(${n}, ${CH}px) 16px`;
+  barsA.style.gridTemplateRows=`${HW}px repeat(${n}, ${CH}px) 26px`;
   barsA.style.width=(BARW+BARLAB)+"px";
   barsB.style.gridTemplateColumns=`${HW}px repeat(${n}, ${CW}px)`;
-  barsB.style.gridTemplateRows=`${BARH}px 14px`;
+  barsB.style.gridTemplateRows=`${BARH}px 24px`;
   barsA.innerHTML=""; barsB.innerHTML="";
   barsA.appendChild(document.createElement("div"));
   for(let i=0;i<n;i++) barsA.appendChild(mkBar("a",i));
@@ -360,12 +364,12 @@ function scatter(M){
     s+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="8" fill="#cf1020" fill-opacity="${.82*d}" stroke="#fbfcfd" stroke-width="1.2" stroke-opacity="${.7*d}"/>`;
     if(sel&&p.hot){
       const R=sx(p.x)<(PAD.l+W-PAD.r)/2;
-      s+=`<text x="${sx(p.x)+(R?13:-13)}" y="${sy(p.y)+4}" font-size="12" fill="#c9c9c9" opacity="${.85*d}" text-anchor="${R?"start":"end"}" font-family="Helvetica,Arial,sans-serif">${p.lab}</text>`;
+      s+=`<text x="${sx(p.x)+(R?13:-13)}" y="${sy(p.y)+4}" font-size="17" font-weight="700" fill="#ffffff" opacity="${.85*d}" text-anchor="${R?"start":"end"}" font-family="Helvetica,Arial,sans-serif">${p.lab}</text>`;
     }
   });
-  s+=`<text x="${(PAD.l+W-PAD.r)/2}" y="${H-14}" font-size="13" fill="#7a7a7a" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${xlab}</text>`;
-  s+=`<text x="20" y="${(PAD.t+H-PAD.b)/2}" font-size="13" fill="#7a7a7a" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" transform="rotate(-90 20 ${(PAD.t+H-PAD.b)/2})">${ylab}</text>`;
-  s+=`<text x="${PAD.l+20}" y="${PAD.t+52}" font-size="44" fill="#cf1020" font-family="Helvetica,Arial,sans-serif" font-weight="300">r = ${fmt(rr,2)}</text>`;
+  s+=`<text x="${(PAD.l+W-PAD.r)/2}" y="${H-14}" font-size="20" font-weight="700" fill="#f0f0f0" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${xlab}</text>`;
+  s+=`<text x="20" y="${(PAD.t+H-PAD.b)/2}" font-size="20" font-weight="700" fill="#f0f0f0" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" transform="rotate(-90 20 ${(PAD.t+H-PAD.b)/2})">${ylab}</text>`;
+  s+=`<text x="${PAD.l+20}" y="${PAD.t+52}" font-size="54" fill="#cf1020" font-family="Helvetica,Arial,sans-serif" font-weight="700">r = ${fmt(rr,2)}</text>`;
   SV.innerHTML=s;
 }
 
@@ -408,8 +412,8 @@ addEventListener("keydown",e=>{
   else if(k==="2"){ setSw(1); }
   else if(k==="3"){ setSw(2); }
   else if(k==="0"){ SW=[false,false,false]; sel=null; cursor=0; draw(); }
-  else if(k.toLowerCase()==="m"){ loadScen("A"); }
-  else if(k.toLowerCase()==="s"){ loadScen("B"); }
+  else if(k.toLowerCase()==="m"||k.toLowerCase()==="n"){ loadScen("A"); }
+  else if(k.toLowerCase()==="s"||k.toLowerCase()==="p"){ loadScen("B"); }
   else if(k==="Escape"){ sel=null; draw(); }
   else if(k.toLowerCase()==="f"){
     if(document.fullscreenElement) document.exitFullscreen();
