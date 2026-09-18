@@ -7,7 +7,7 @@
 <title>Social Relations Model</title>
 <style>
   :root{
-    --bg:#0c0c0c; --ink:#f4f4f4; --dim:#f0f0f0; --dimmer:#ededed;
+    --bg:#0c0c0c; --ink:#ffffff; --dim:#ffffff; --dimmer:#ffffff;
     --red:#cf1020; --red-soft:#6d0912; --card:#fbfcfd; --card-diag:#e8edf1;
     --line:#242424;
     --sans:"Helvetica Neue", Helvetica, Arial, "Segoe UI", system-ui, sans-serif;
@@ -52,26 +52,26 @@
   .cell.hot{box-shadow:inset 0 0 0 2px var(--red); z-index:2}
 
   .bar{position:relative}
-  .bar .track{position:absolute; background:#383838}
+  .bar .track{position:absolute; background:#ffffff}
   .bar .fill{position:absolute; transition:all .45s cubic-bezier(.2,.7,.3,1); background:var(--red)}
   .bar .val{position:absolute; font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
     color:var(--dimmer); white-space:nowrap; transition:color .25s}
   .bar.sel .val{color:var(--ink)}
   .barsA .bar{height:100%}
-  .barsA .bar .track{left:44px; width:1px; top:12%; bottom:12%}
+  .barsA .bar .track{left:43px; width:2px; top:12%; bottom:12%}
   .barsA .bar .fill{top:32%; height:36%}
   .barsA .bar .val{right:0; top:50%; transform:translateY(-50%)}
   .barsB .bar{width:100%}
-  .barsB .bar .track{top:26px; height:1px; left:10%; right:10%}
+  .barsB .bar .track{top:25px; height:2px; left:10%; right:10%}
   .barsB .bar .fill{left:34%; width:32%}
   .barsB .bar .val{left:50%; transform:translateX(-50%); bottom:0}
-  .axislab{font-size:17px; font-weight:700; letter-spacing:.22em; color:#f0f0f0; text-transform:lowercase;
+  .axislab{font-size:17px; font-weight:700; letter-spacing:.22em; color:#ffffff; text-transform:lowercase;
     text-align:center}
 
   /* ---------- scatter ---------- */
   .scatterwrap{flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0}
   .segbar{display:flex; gap:0; align-self:flex-end}
-  .seg{font-size:15px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#e8e8e8;
+  .seg{font-size:15px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#ffffff;
     border:1px solid var(--line); padding:6px 14px; cursor:pointer;
     transition:all .2s; user-select:none; background:transparent}
   .seg+.seg{border-left:none}
@@ -88,17 +88,17 @@
     background:#7a7a7a; transition:all .3s}
   .sw.on .pill{background:var(--red-soft); border-color:var(--red)}
   .sw.on .knob{left:31px; background:#fff}
-  .sw .lab{font-size:22px; font-weight:700; color:#d8d8d8; transition:color .25s; white-space:nowrap}
+  .sw .lab{font-size:22px; font-weight:700; color:#ffffff; transition:color .25s; white-space:nowrap}
   .sw.on .lab{color:var(--ink)}
   .labwrap{display:flex; flex-direction:column; gap:2px}
-  .sw .sub{font-size:15px; font-weight:600; color:#c4c4c4; white-space:nowrap;
+  .sw .sub{font-size:15px; font-weight:600; color:#ffffff; white-space:nowrap;
     transition:color .25s}
-  .sw.on .sub{color:#f0f0f0}
+  .sw.on .sub{color:#ffffff}
 
   .vbar{margin-left:auto; width:330px; flex:0 0 auto}
   .vtrack{display:flex; height:9px; width:100%; overflow:hidden}
   .vseg{transition:width .5s}
-  .vkey{display:flex; gap:16px; margin-top:8px; font-size:15px; font-weight:700; color:#f0f0f0}
+  .vkey{display:flex; gap:16px; margin-top:8px; font-size:15px; font-weight:700; color:#ffffff}
   .vkey i{display:inline-block; width:8px; height:8px; margin-right:6px; font-style:normal}
 
   .scen{position:absolute; left:46px; top:10px; display:flex; gap:0; opacity:.85;
@@ -355,8 +355,9 @@ function scatter(M){
 
   let s=`<line x1="${sx(lo)}" y1="${sy(lo)}" x2="${sx(hi)}" y2="${sy(hi)}" stroke="#fff" stroke-width="1" stroke-dasharray="5 6" opacity=".38"/>`;
   if(lo<0&&hi>0){
-    s+=`<line x1="${sx(0)}" y1="${PAD.t}" x2="${sx(0)}" y2="${H-PAD.b}" stroke="#2e2e2e"/>`;
-    s+=`<line x1="${PAD.l}" y1="${sy(0)}" x2="${W-PAD.r}" y2="${sy(0)}" stroke="#2e2e2e"/>`;
+    // average lines (the zero of the centred data): bright, bold white (Bryson 9/18)
+    s+=`<line x1="${sx(0)}" y1="${PAD.t}" x2="${sx(0)}" y2="${H-PAD.b}" stroke="#ffffff" stroke-width="2.5" opacity=".95"/>`;
+    s+=`<line x1="${PAD.l}" y1="${sy(0)}" x2="${W-PAD.r}" y2="${sy(0)}" stroke="#ffffff" stroke-width="2.5" opacity=".95"/>`;
   }
   s+=`<rect x="${PAD.l}" y="${PAD.t}" width="${W-PAD.l-PAD.r}" height="${H-PAD.t-PAD.b}" fill="none" stroke="#222"/>`;
   pts.forEach(p=>{
@@ -367,8 +368,8 @@ function scatter(M){
       s+=`<text x="${sx(p.x)+(R?13:-13)}" y="${sy(p.y)+4}" font-size="17" font-weight="700" fill="#ffffff" opacity="${.85*d}" text-anchor="${R?"start":"end"}" font-family="Helvetica,Arial,sans-serif">${p.lab}</text>`;
     }
   });
-  s+=`<text x="${(PAD.l+W-PAD.r)/2}" y="${H-14}" font-size="20" font-weight="700" fill="#f0f0f0" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${xlab}</text>`;
-  s+=`<text x="20" y="${(PAD.t+H-PAD.b)/2}" font-size="20" font-weight="700" fill="#f0f0f0" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" transform="rotate(-90 20 ${(PAD.t+H-PAD.b)/2})">${ylab}</text>`;
+  s+=`<text x="${(PAD.l+W-PAD.r)/2}" y="${H-14}" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle" font-family="Helvetica,Arial,sans-serif">${xlab}</text>`;
+  s+=`<text x="20" y="${(PAD.t+H-PAD.b)/2}" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" transform="rotate(-90 20 ${(PAD.t+H-PAD.b)/2})">${ylab}</text>`;
   s+=`<text x="${PAD.l+20}" y="${PAD.t+52}" font-size="54" fill="#cf1020" font-family="Helvetica,Arial,sans-serif" font-weight="700">r = ${fmt(rr,2)}</text>`;
   SV.innerHTML=s;
 }
