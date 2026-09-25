@@ -329,23 +329,29 @@
     renderSelection(id);
   }
 
+  // Touch screens have no hover: a tap is a click. Restyling the map from inside a Plotly touch callback made Plotly re-fire
+  // plotly_unhover until the call stack overflowed (9/24, phone froze after one tap), so every redraw runs just AFTER the
+  // event (setTimeout 0), and phones never bind the hover handlers.
+  var TOUCH = window.matchMedia("(hover: none)").matches;
+  var later = function (fn) { setTimeout(fn, 0); };
+
   function bindMapEvents() {
     mapEl.on("plotly_click", function (ev) {
       if (!ev || !ev.points || !ev.points.length) return;
-      var p = ev.points[0];
+      var p = ev.points[0], id = p.customdata, pn = p.pointNumber;
       pinned = true;
-      latestHoverId = p.customdata;
-      setCurrent(p.customdata);
-      highlightPoint(p.pointNumber);
+      latestHoverId = id;
+      later(function () { setCurrent(id); highlightPoint(pn); });
     });
+    if (TOUCH) return;
     mapEl.on("plotly_hover", function (ev) {
       if (!ev || !ev.points || !ev.points.length) return;
-      var p = ev.points[0], thisId = p.customdata;
+      var p = ev.points[0], thisId = p.customdata, pn = p.pointNumber;
       if (latestHoverId !== null && latestHoverId === thisId) return;
       latestHoverId = thisId;
       isHovering = true;
       pinned = false;
-      highlightPoint(p.pointNumber);
+      later(function () { highlightPoint(pn); });
       setTimeout(function () {
         if (isHovering && latestHoverId === thisId) setCurrent(thisId);
       }, 250);
