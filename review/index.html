@@ -206,6 +206,12 @@ dialog::backdrop { background: rgba(32,33,36,.45); }
 .btn.sug { border-color: var(--ins); color: var(--ins); }
 .seg button.on.sug { background: var(--ins-bg); color: var(--ins); }
 .card.static { position: relative; top: auto !important; margin-bottom: 10px; }
+.card.ref { cursor: pointer; }
+.card.ref:hover { box-shadow: 0 1px 3px rgba(60,64,67,.35), 0 4px 10px rgba(60,64,67,.18); }
+.card.ref .go { margin-top: 6px; font-size: 12px; color: var(--accent); }
+.mlabel { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 2px 8px; }
+.page .flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0%, 35% { background: var(--hl-on); box-shadow: 0 0 0 3px var(--hl-on); } 100% { box-shadow: 0 0 0 0 transparent; } }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&display=swap">
@@ -262,6 +268,7 @@ const S = { essays: null, essay: null, notes: [], top: [], owner: false, active:
   layout: ls.get("gl-layout") || "draft", figAspect: 735 / 1950, mode: "comment", draft: null, undo: [], redo: [] };
 
 const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const app = $("#app");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const words = (s) => (s || "").trim().split(/\s+/).filter(Boolean).length;
@@ -718,6 +725,7 @@ function renderSuggestMargin() {
     ? `<div class="empty-m" style="margin-bottom:10px">Each change is posted as its own suggestion that Bryson can accept or reject.</div>`
       + hs.map((h) => `<div class="card static"><div class="ch">${avatar(name() || "?")}<div class="who"><b>${esc(name() || "You")}</b><small>Not posted yet</small></div></div>${sugText(h.quote, h.replacement, short)}</div>`).join("")
     : `<div class="empty-m">Click anywhere in the text and start typing. Added words show in green, removed words are struck through in red. Nothing is saved until you press Post.</div>`;
+  $("#margin").innerHTML += refCards();
 }
 async function postSuggestions(btn) {
   const hs = hunks(S.essay.body, S.draft);
@@ -911,6 +919,73 @@ function textOffset(root, node, off) {
 }
 
 // ---------- margin ----------
+// Read-only copies of the open comments, shown beside the editor and in suggesting mode.
+// Clicking one finds its text in whatever is on the page (the textarea or the suggesting draft).
+function refCards() {
+  const ns = S.top.filter((n) => n.status === "open")
+    .sort((a, b) => (a.pos < 0 ? -1 : a.pos) - (b.pos < 0 ? -1 : b.pos) || a.created_at.localeCompare(b.created_at));
+  if (!ns.length) return "";
+  const short = (x, k) => (x.length > k ? x.slice(0, k) + "…" : x);
+  return `<div class="mlabel">Comments and suggestions (${ns.length})</div>` + ns.map((n) => {
+    const reps = S.notes.filter((r) => r.parent_id === n.id);
+    return `<div class="card static ref" data-ref="${n.id}" title="Show this in the text">
+      <div class="ch">${avatar(n.author)}<div class="who"><b>${esc(n.author)}</b><small>${n.kind === "suggest" ? "Suggested edit · " : ""}${ago(n.created_at)}</small></div></div>
+      ${n.kind === "suggest" ? sugText(n.quote, n.replacement || "", short) : `<div class="q">${esc(short(n.quote, 160))}</div>`}
+      ${n.text ? `<div class="tx">${esc(n.text)}</div>` : ""}
+      ${reps.map((r) => `<div class="rep"><div class="ch">${avatar(r.author)}<div class="who"><b>${esc(r.author)}</b> <small>${ago(r.created_at)}</small></div></div><div class="tx">${esc(r.text)}</div></div>`).join("")}
+      <div class="go">${n.pos < 0 ? "The text this pointed to has changed." : "Show in text ↑"}</div></div>`;
+  }).join("");
+}
+function centerOnRect(rect) {
+  if (!rect) return;
+  const y = rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+}
+// Normal view: bring the highlighted text into view and pulse it.
+function jumpToNote(id) {
+  const el = $(`#doc [data-n~="${id}"]`);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  $$(`#doc [data-n~="${id}"]`).forEach((x) => { x.classList.remove("flash"); void x.offsetWidth; x.classList.add("flash"); });
+  return true;
+}
+// Editing or suggesting: find the note's text in the current version and select it.
+function findRef(id) {
+  const n = S.top.find((x) => x.id === id);
+  if (!n) return;
+  if (S.editing) {
+    const ed = $("#editor");
+    if (!ed) return;
+    const i = anchor(ed.value, n.quote, n.prefix, n.suffix, n.start);
+    if (i < 0) return toast("That text has changed since this was written.");
+    ed.blur(); ed.setSelectionRange(i, i + n.quote.length); ed.focus();
+    // put the selected line in the middle of the editor box, then the box in the middle of the screen
+    const lh = parseFloat(getComputedStyle(ed).lineHeight) || 24;
+    const before = ed.value.slice(0, i), cols = Math.max(20, Math.floor(ed.clientWidth / (lh * 0.42)));
+    const lines = before.split("\n").reduce((a, l) => a + Math.max(1, Math.ceil(l.length / cols)), 0);
+    ed.scrollTop = Math.max(0, lines * lh - ed.clientHeight / 2);
+    const r = ed.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) ed.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  if (S.mode === "suggest") {
+    const doc = $("#sdoc");
+    if (!doc) return;
+    const i = anchor(S.draft, n.quote, n.prefix, n.suffix, n.start);
+    if (i < 0) return toast("That text has changed in your draft.");
+    const pt = (k) => {
+      const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT, {
+        acceptNode: (t) => (t.parentElement.closest("[data-del]") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+      let cum = 0, t, last = null;
+      while ((t = w.nextNode())) { last = t; if (cum + t.length >= k) return [t, k - cum]; cum += t.length; }
+      return last ? [last, last.length] : [doc, 0];
+    };
+    const r = document.createRange();
+    r.setStart(...pt(i)); r.setEnd(...pt(i + n.quote.length));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    centerOnRect(r.getBoundingClientRect());
+  }
+}
 function noteCard(n) {
   const reps = S.notes.filter((r) => r.parent_id === n.id);
   const open = n.status === "open";
@@ -1023,6 +1098,8 @@ function activate(id, scroll) {
 app.addEventListener("click", async (ev) => {
   const t = ev.target.closest("[data-t]");
   if (t) return tool(t.dataset.t);
+  const ref = ev.target.closest(".card.ref");
+  if (ref) return findRef(ref.dataset.ref);
   const hit = ev.target.closest("#doc [data-n]");
   if (hit && !S.pending) {
     const sel = getSelection();
@@ -1034,7 +1111,11 @@ app.addEventListener("click", async (ev) => {
   const btn = ev.target.closest("[data-a]");
   const card = ev.target.closest(".card");
   if (btn && card) return act(btn.dataset.a, card, btn);
-  if (card && card.dataset.id !== "pending" && !ev.target.closest("textarea,input")) activate(card.dataset.id, false);
+  if (card && card.dataset.id !== "pending" && !ev.target.closest("textarea,input,a")) {
+    const id = card.dataset.id;
+    activate(id, false);
+    jumpToNote(id);
+  }
 });
 app.addEventListener("keydown", (ev) => {
   if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {
@@ -1146,8 +1227,10 @@ function renderEditor() {
   ed.value = S.essay.body;
   let tick;
   ed.addEventListener("input", () => { clearTimeout(tick); tick = setTimeout(() => renderCounts(ed.value), pageLimit(S.essay) ? 200 : 0); });
-  $("#margin").innerHTML = `<div class="empty-m">Comments come back when you save or cancel.</div>`;
+  $("#margin").innerHTML = refCards() ? `<div class="empty-m">Editing the text. Click a comment to find its text in the editor.</div>` + refCards()
+    : `<div class="empty-m">No open comments on this piece.</div>`;
   $("#margin").style.minHeight = "";
+  $("#mhead").textContent = "Comments and suggestions";
   ed.focus();
 }
 async function versions() {
