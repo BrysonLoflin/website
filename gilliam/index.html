@@ -92,6 +92,13 @@ button.chip:hover { background: var(--bg); }
 .page.clean .ins { display: none; }
 .page .pend { background: var(--pend); }
 .page .cr { display: none; }
+.page.editing { outline: 2px solid var(--accent); caret-color: var(--accent); cursor: text; }
+.page.editing:focus { outline-width: 3px; }
+.page.editing .cr { display: inline; color: var(--faint); font-size: .8em; }
+.tools .save { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.tools .save.err { color: var(--del); font-weight: 600; }
+.seg.modes button { padding: 5px 11px; }
+.seg.modes button.on.ed { background: var(--accent-soft); color: var(--accent); }
 .page sup { font-size: 70%; line-height: 0; }
 .page .figwrap { display: block; margin: 8px 0 0; }
 .page .figwrap img { width: 100%; height: auto; display: block; border: 1px solid var(--line); }
@@ -250,6 +257,8 @@ const ls = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} },
 };
+// brysonloflin.com/review/#me marks this browser as Bryson's, so pieces open in Editing.
+if (location.hash === "#me") { ls.set("gl-me", "1"); history.replaceState(null, "", location.pathname + location.search + "#/"); }
 // Access keys arrive in the link's #fragment once, then live in this browser.
 (function takeKeys() {
   const h = location.hash.slice(1);
@@ -265,7 +274,8 @@ if (!CLIENT) { CLIENT = Math.random().toString(36).slice(2) + Date.now().toStrin
 
 const S = { essays: null, essay: null, notes: [], top: [], owner: false, active: null, pending: null, sel: null,
   view: ls.get("gl-view") || "inline", showClosed: false, editing: false, fig: null, sig: "",
-  layout: ls.get("gl-layout") || "draft", figAspect: 735 / 1950, mode: "comment", draft: null, undo: [], redo: [] };
+  layout: ls.get("gl-layout") || "draft", figAspect: 735 / 1950, mode: "view", draft: null, undo: [], redo: [],
+  eundo: [], eredo: [], saved: null, ver: null, sBase: null, sKnown: new Map(), sDirty: false };
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -411,18 +421,36 @@ function route() {
   const h = location.hash.replace(/^#\/?/, "");
   return h ? { type: "essay", id: decodeURIComponent(h.split("?")[0]) } : { type: "hub" };
 }
-window.addEventListener("hashchange", (ev) => {
-  if (unposted() && !confirm("You have suggested changes that aren't posted yet. Leave and discard them?")) {
-    history.replaceState(null, "", ev.oldURL.slice(ev.oldURL.indexOf("#")));
-    return;
+window.addEventListener("hashchange", async (ev) => {
+  if (editorDirty() || unposted() || S.saving || S.syncing) {
+    const ok = await flushAll(5000);
+    if (!ok && !confirm("Some changes haven't saved yet. They're kept in this browser and will be recovered next time. Leave anyway?")) {
+      history.replaceState(null, "", ev.oldURL.slice(ev.oldURL.indexOf("#")));
+      return;
+    }
   }
   go();
 });
-window.addEventListener("beforeunload", (ev) => { if (unposted()) { ev.preventDefault(); ev.returnValue = ""; } });
+window.addEventListener("beforeunload", (ev) => { if (editorDirty() || unposted() || S.saving || S.syncing) { ev.preventDefault(); ev.returnValue = ""; } });
+document.addEventListener("visibilitychange", () => { if (document.hidden) { if (editorDirty()) saveNow(); if (unposted()) syncSuggestions(); } });
+function flushAll(ms) {
+  return Promise.race([
+    (async () => {
+      for (let i = 0; i < 4 && (editorDirty() || unposted() || S.saving || S.syncing); i++) {
+        if (S.saving || S.syncing) { await new Promise((r) => setTimeout(r, 250)); continue; }
+        if (editorDirty()) await saveNow();
+        if (unposted()) await syncSuggestions();
+      }
+      return !(editorDirty() || unposted());
+    })(),
+    new Promise((r) => setTimeout(() => r(false), ms)),
+  ]);
+}
 
 async function go() {
   hideBubble();
-  S.active = null; S.pending = null; S.editing = false; S.mode = "comment"; S.draft = null;
+  S.active = null; S.pending = null; S.editing = false; S.mode = "view"; S.draft = null; S.sDirty = false; S.sKnown = new Map();
+  S.essay = null; S.saved = null; S.ver = null; S.eundo = []; S.eredo = []; clearTimeout(S.saveT); clearTimeout(S.syncT); clearTimeout(S.retryT);
   if (!KEY) return noKey();
   const r = route();
   try {
@@ -447,7 +475,7 @@ async function showHub() {
   document.title = "Gilliam drafts";
   app.innerHTML = `<div class="hub">
     <h1>My HHMI Gilliam Fellowship drafts</h1>
-    <p class="lede">Thank you for helping me with these! Open any piece, select text, and leave a comment, just like in a Google Doc. Or switch to <b>Suggest by typing</b> and edit right on the page. Each piece shows the HHMI prompt and its word or page limit.</p>
+    <p class="lede">Thank you for helping me with these! This works like a Google Doc. Open any piece and type right on the page in <b>Suggesting</b> mode: your edits become suggestions and save as you go. Select any text to leave a comment. Each piece shows the HHMI prompt and its word or page limit.</p>
     <div class="list">${d.essays.map(hubRow).join("")}</div></div>`;
 }
 function wcBlock(n, limit, note, big) {
@@ -468,10 +496,40 @@ function hubRow(e) {
 }
 
 // ---------- essay ----------
+// Take the server's copy of a piece. If you have typed changes that haven't saved yet, they are
+// re-applied on top of the newest text (like Google Docs merging collaborators' edits).
+function adoptRemote(e) {
+  const same = S.essay && S.essay.id === e.id && S.saved != null;
+  const local = same ? S.essay.body : null;
+  let body = e.body;
+  if (same && local !== S.saved) {
+    if (e.body === S.saved) body = local;
+    else if (dmp) body = dmp.patch_apply(dmp.patch_make(S.saved, local), e.body)[0];
+    else body = local;
+  }
+  S.saved = e.body; S.ver = e.version;
+  S.essay = { ...e, body };
+}
+function startMode() {
+  const want = ls.get("gl-mode") || ((ls.get("gl-me") || ls.get("gl-o")) ? "edit" : "suggest");
+  if (want === "edit") return S.owner ? "edit" : "suggest";
+  return want === "view" ? "view" : "suggest";
+}
+// Typing saved in this browser but never reached the server (a crash, a closed tab, no network).
+function recoverBackup() {
+  const b = editDraft(S.essay.id);
+  if (!b || !S.owner) return false;
+  let merged = b.text;
+  if (b.base != null && b.base !== S.essay.body && dmp) merged = dmp.patch_apply(dmp.patch_make(b.base, b.text), S.essay.body)[0];
+  if (merged === S.essay.body) { ls.set(editKey(S.essay.id), null); return false; }
+  S.mode = "edit"; S.essay.body = merged;
+  return true;
+}
 async function loadEssay(id) {
   const d = await api("/essays/" + encodeURIComponent(id));
-  S.owner = d.owner; S.essay = d.essay; S.notes = d.notes;
-  const body = d.essay.body;
+  S.owner = d.owner; S.notes = d.notes;
+  adoptRemote(d.essay);
+  const body = S.essay.body;
   S.top = d.notes.filter((n) => !n.parent_id).map((n) => ({ ...n, pos: anchor(body, n.quote, n.prefix, n.suffix, n.start) }));
   S.sig = JSON.stringify([d.essay.version, d.notes.map((n) => [n.id, n.status, n.updated_at])]);
   if (!S.essays) { try { S.essays = (await api("/essays")).essays; } catch (e) {} }
@@ -512,7 +570,11 @@ async function showEssay(id) {
       </div>
       <aside><div class="mhead" id="mhead"></div><div class="margin" id="margin"></div></aside>
     </div></div>`;
+  S.mode = startMode();
+  const recovered = recoverBackup();
+  if (S.mode === "suggest") buildSuggestDraft();
   renderAll();
+  if (recovered) { toast("Recovered edits that hadn't saved yet. Saving them now."); afterEdit(null); }
 }
 
 // The part of a suggestion that really changes: strip what the quote and replacement share at
@@ -564,7 +626,11 @@ function hunks(orig, draft) {
     return { s, quote, replacement: rep, prefix: orig.slice(Math.max(0, s - 32), s), suffix: orig.slice(s + quote.length, s + quote.length + 32) };
   }).filter((h) => h.quote && h.quote !== h.replacement);
 }
-const unposted = () => S.mode === "suggest" && S.draft != null && S.essay && S.draft !== S.essay.body;
+const unposted = () => S.mode === "suggest" && !!S.sDirty;
+// Direct edits are saved in this browser as you type, so a reload, a closed tab, or a failed save never loses them.
+const editKey = (id) => "gl-edit-" + id;
+function editDraft(id) { try { return JSON.parse(ls.get(editKey(id)) || "null"); } catch (e) { return null; } }
+function editorDirty() { return !!(S.essay && S.saved != null && S.essay.body !== S.saved); }
 function suggestHTML(orig, draft) {
   const fig = (t) => (S.fig && t.includes("[Figure 1]")
     ? t.split("[Figure 1]").map(esc).join(`[Figure 1]<span class="figwrap" contenteditable="false" data-del><img alt="Figure 1" src="${S.fig}"></span>`)
@@ -574,13 +640,13 @@ function suggestHTML(orig, draft) {
     : `<span class="s-del" contenteditable="false" data-del>${esc(t)}</span>`).join("");
 }
 // text of the reader's version inside a node, skipping struck-through (data-del) text
-function readDraft(root) {
+function readDraft(root, skip = "data-del") {
   let out = "";
   const walk = (n) => {
     for (const c of n.childNodes) {
       if (c.nodeType === 3) out += c.data;
       else if (c.nodeType === 1) {
-        if (c.hasAttribute("data-del")) continue;
+        if (c.hasAttribute(skip)) continue;
         if (c.tagName === "BR") { out += "\n"; continue; }
         if (/^(DIV|P)$/.test(c.tagName) && out && !out.endsWith("\n")) out += "\n";
         walk(c);
@@ -590,11 +656,11 @@ function readDraft(root) {
   walk(root);
   return out;
 }
-function draftOffset(root, node, off) {
+function draftOffset(root, node, off, skip = "data-del") {
   const r = document.createRange();
   r.setStart(root, 0);
   try { r.setEnd(node, off); } catch (e) { return 0; }
-  return readDraft(r.cloneContents()).length;
+  return readDraft(r.cloneContents(), skip).length;
 }
 function selOffsets(root) {
   const sel = getSelection();
@@ -628,20 +694,19 @@ function setDraft(text, caret, kind) {
   S.redo = [];
   S.draft = text;
   paintSuggest(caret);
+  scheduleSync();
 }
 function paintSuggest(caret) {
   const doc = $("#sdoc");
   if (!doc) return;
-  doc.innerHTML = suggestHTML(S.essay.body, S.draft);
+  doc.innerHTML = suggestHTML(S.sBase, S.draft);
   placeCaret(doc, caret);
-  renderTools();
-  renderCounts(S.draft);
-  renderSuggestMargin();
+  clearTimeout(S.countT); S.countT = setTimeout(() => renderCounts(S.draft), 250);
 }
 function renderSuggest() {
   $("#docbox").innerHTML = `<article class="page suggesting" id="sdoc" contenteditable="true" spellcheck="true" autocapitalize="sentences"></article>`;
   const doc = $("#sdoc");
-  doc.innerHTML = suggestHTML(S.essay.body, S.draft);
+  doc.innerHTML = suggestHTML(S.sBase, S.draft);
   renderCounts(S.draft);
   renderSuggestMargin();
   const edit = (ins, s, e, kind) => setDraft(S.draft.slice(0, s) + ins + S.draft.slice(e), s + ins.length, kind);
@@ -696,7 +761,8 @@ function renderSuggest() {
     if ((ev.metaKey || ev.ctrlKey) && !ev.altKey && ev.key.toLowerCase() === "z") { ev.preventDefault(); undoRedo(!ev.shiftKey); }
     if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "y") { ev.preventDefault(); undoRedo(false); }
   });
-  doc.focus();
+  renderSuggestMargin();
+  doc.focus({ preventScroll: true });
 }
 // after IME composition or any change the browser made itself, read the page back
 function syncFromDom() {
@@ -715,37 +781,74 @@ function undoRedo(isUndo) {
   to.push({ d: S.draft, c: st.c });
   S.draft = st.d; undoAt = 0;
   paintSuggest(Math.min(st.c, S.draft.length));
+  scheduleSync();
 }
 function renderSuggestMargin() {
-  const hs = hunks(S.essay.body, S.draft);
-  const short = (x, k) => (x.length > k ? x.slice(0, k) + "…" : x);
-  $("#mhead").textContent = hs.length ? `Your suggested changes (${hs.length})` : "Suggesting";
-  $("#margin").style.minHeight = "";
-  $("#margin").innerHTML = hs.length
-    ? `<div class="empty-m" style="margin-bottom:10px">Each change is posted as its own suggestion that Bryson can accept or reject.</div>`
-      + hs.map((h) => `<div class="card static"><div class="ch">${avatar(name() || "?")}<div class="who"><b>${esc(name() || "You")}</b><small>Not posted yet</small></div></div>${sugText(h.quote, h.replacement, short)}</div>`).join("")
-    : `<div class="empty-m">Click anywhere in the text and start typing. Added words show in green, removed words are struck through in red. Nothing is saved until you press Post.</div>`;
-  $("#margin").innerHTML += refCards();
+  const m = $("#margin");
+  if (!m) return;
+  m.style.minHeight = "";
+  $("#mhead").textContent = "Comments and suggestions";
+  const cards = visibleNotes().map((n) => noteCard(n).replace('class="card ', 'class="card static '));
+  if (S.pending) cards.unshift(composeCard().replace('class="card compose', 'class="card static compose'));
+  m.innerHTML = `<div class="empty-m" style="margin-bottom:10px">Suggesting: what you type shows in green, what you delete is struck through, and it all saves as suggestions${S.owner ? "" : " for Bryson to accept or reject"}. Click a card to find its text.</div>` + cards.join("");
+  if (S.pending) { const f = m.querySelector(".compose .nm") || m.querySelector(".compose .ct"); if (f) f.focus({ preventScroll: true }); }
 }
-async function postSuggestions(btn) {
-  const hs = hunks(S.essay.body, S.draft);
-  if (!hs.length) return;
-  if (!name()) {
-    const n = prompt("Your name (shown on your suggestions):", "");
-    if (!n || !n.trim()) return;
-    ls.set("gl-name", n.trim().slice(0, 60)); paintName();
+// Your own open suggestions on this piece, applied to the text, are what you see and keep editing.
+function mySugs() { return S.top.filter((n) => n.kind === "suggest" && n.status === "open" && n.mine && n.pos >= 0); }
+const sugKey = (s, q, r) => { const t = trimSug(q, r); return (s + t.a) + "\u0001" + t.del + "\u0001" + t.ins; };
+function buildSuggestDraft() {
+  const base = S.essay.body;
+  let d = base, last = Infinity;
+  const known = new Map();
+  for (const n of mySugs().sort((a, b) => b.pos - a.pos)) {
+    if (n.pos + n.quote.length > last) continue;
+    d = d.slice(0, n.pos) + n.replacement + d.slice(n.pos + n.quote.length);
+    last = n.pos;
+    known.set(sugKey(n.pos, n.quote, n.replacement), n.id);
   }
-  if (btn) btn.disabled = true;
+  S.sBase = base; S.draft = d; S.sKnown = known; S.sDirty = false; S.undo = []; S.redo = [];
+}
+function scheduleSync(ms = 1200) { S.sDirty = true; setSave("Saving…"); clearTimeout(S.syncT); S.syncT = setTimeout(syncSuggestions, ms); }
+// Post new changes as suggestions and withdraw the ones you have since undone or retyped.
+async function syncSuggestions() {
+  clearTimeout(S.syncT);
+  if (S.sBase == null || !S.essay) return true;
+  if (S.syncing) { S.syncAgain = true; return false; }
+  S.syncing = true;
+  const draft = S.draft, id = S.essay.id;
+  let failed = false;
   try {
-    const r = await api(`/essays/${encodeURIComponent(S.essay.id)}/suggestions`, { method: "POST", body: {
-      author: name(), items: hs.map((h) => ({ quote: h.quote, prefix: h.prefix, suffix: h.suffix, start: h.s, replacement: h.replacement })) } });
-    S.mode = "comment"; S.draft = null;
-    await refresh(null);
-    toast(`Posted ${r.n} suggestion${r.n === 1 ? "" : "s"}`);
+    if (!name()) {
+      const n = prompt("Your name, shown on your suggestions:", "");
+      ls.set("gl-name", (n && n.trim() ? n.trim() : "Anonymous").slice(0, 60)); paintName();
+    }
+    const want = new Map(hunks(S.sBase, draft).map((h) => [sugKey(h.s, h.quote, h.replacement), h]));
+    const have = S.sKnown;
+    for (const [k, h] of want) {
+      if (have.has(k)) continue;
+      const r = await api(`/essays/${encodeURIComponent(id)}/notes`, { method: "POST", body: {
+        kind: "suggest", quote: h.quote, prefix: h.prefix, suffix: h.suffix, start: h.s, replacement: h.replacement, text: "", author: name() } });
+      have.set(k, r.id);
+    }
+    for (const [k, nid] of [...have]) {
+      if (want.has(k)) continue;
+      if (S.notes.some((r) => r.parent_id === nid)) await api(`/notes/${nid}/status`, { method: "POST", body: { status: "rejected", author: name() } }).catch(() => {});
+      else await api(`/notes/${nid}`, { method: "DELETE" }).catch((e) => { if (e.status !== 404) throw e; });
+      have.delete(k);
+    }
+    await loadEssay(id);            // fresh notes; your draft and its base stay as they are
   } catch (e) {
-    toast("Couldn't post: " + e.message + " Your changes are still here.");
-    if (btn) btn.disabled = false;
-  }
+    failed = true;
+    setSave("Couldn't save your suggestions. Retrying…", true);
+    clearTimeout(S.retryT); S.retryT = setTimeout(syncSuggestions, 5000);
+  } finally { S.syncing = false; }
+  if (!S.essay || S.essay.id !== id) return !failed;
+  S.sDirty = failed || S.draft !== draft || !!S.syncAgain;
+  S.syncAgain = false;
+  if (S.mode === "suggest") { renderSuggestMargin(); renderTools(); }
+  if (S.sDirty && !failed) { scheduleSync(300); return false; }
+  if (!failed) setSave("All changes saved");
+  return !failed;
 }
 
 function openSuggestions() { return S.top.filter((n) => n.kind === "suggest" && n.status === "open" && n.pos >= 0); }
@@ -780,39 +883,29 @@ function renderCounts(text) {
   $("#counts").innerHTML = `<div>${wcBlock(n, e.limit_words, e.limit_note, true)}</div>${alt}`;
 }
 function renderTools() {
-  const closed = S.top.filter((n) => n.status !== "open").length;
-  const modeSeg = (on) => `<span class="seg" title="Comment on selected text, or type your edits straight onto the page">
-       <button data-t="mcomment" class="${on ? "" : "on"}">Comment</button><button data-t="msuggest" class="${on ? "on sug" : ""}">✎ Suggest by typing</button></span>`;
-  if (S.mode === "suggest" && !S.editing) {
-    const n = hunks(S.essay.body, S.draft).length;
-    $("#tools").innerHTML = `<span class="hint"><b style="color:var(--ins)">Suggesting.</b> Type right on the page. ${n ? `${n} change${n === 1 ? "" : "s"} not posted yet.` : ""}</span>
-       ${modeSeg(true)}
-       <button class="btn" data-t="sdiscard" ${n ? "" : "disabled"}>Discard</button>
-       <button class="btn pri" data-t="spost" ${n ? "" : "disabled"}>Post ${n > 1 ? n + " suggestions" : "suggestion"}</button>`;
-    return;
-  }
-  $("#tools").innerHTML = S.editing
-    ? `<span class="hint">Editing the text directly. Comments stay attached to any text you don't change.</span>
-       <button class="btn" data-t="cancel">Cancel</button><button class="btn pri" data-t="save">Save</button>`
-    : pagesMode()
-    ? `<span class="hint">True-size pages of the current text, where each page breaks. Switch to Draft to comment.</span>
-       <span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft">Draft</button><button data-t="pages" class="on">Pages</button></span>
-       <button class="btn" data-t="copy">Copy text</button>`
-    : `<span class="hint">Select any text to comment or suggest an edit.</span>
-       ${modeSeg(false)}
-       ${pageLimit(S.essay) ? `<span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft" class="on">Draft</button><button data-t="pages">Pages</button></span>` : ""}
-       <span class="seg" title="How suggested edits look in the text">
-         <button data-t="inline" class="${S.view === "inline" ? "on" : ""}">Show edits</button>
-         <button data-t="clean" class="${S.view === "clean" ? "on" : ""}">Original</button></span>
-       ${closed ? `<button class="btn" data-t="closed">${S.showClosed ? "Hide" : "Show"} resolved (${closed})</button>` : ""}
-       <button class="btn" data-t="copy">Copy text</button>
-       ${S.owner ? `<button class="btn" data-t="versions">Versions</button><button class="btn pri" data-t="edit">Edit text</button>` : ""}`;
+  if (!$("#tools") || !S.essay) return;
+  const closed = S.top.filter((n) => n.status !== "open").length, m = S.mode;
+  const modes = `<span class="seg modes" title="Editing changes the text. Suggesting turns your typing into suggestions. Viewing is for reading and commenting.">
+    ${S.owner ? `<button data-t="medit" class="${m === "edit" ? "on ed" : ""}">✎ Editing</button>` : ""}
+    <button data-t="msuggest" class="${m === "suggest" ? "on sug" : ""}">💡 Suggesting</button>
+    <button data-t="mview" class="${m === "view" ? "on" : ""}">👁 Viewing</button></span>`;
+  const hint = m === "edit" ? "Type anywhere to change the text. Select text to comment."
+    : m === "suggest" ? "Type anywhere to suggest a change. Select text to comment."
+    : pagesMode() ? "True-size pages, showing where each page breaks." : "Select any text to comment.";
+  $("#tools").innerHTML = `${modes}<span class="hint">${hint}</span><span class="save" id="savestate"></span>
+    ${m === "view" && pageLimit(S.essay) ? `<span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft" class="${S.layout !== "pages" ? "on" : ""}">Draft</button><button data-t="pages" class="${S.layout === "pages" ? "on" : ""}">Pages</button></span>` : ""}
+    ${m === "view" && !pagesMode() ? `<span class="seg" title="How suggested edits look in the text"><button data-t="inline" class="${S.view === "inline" ? "on" : ""}">Show edits</button><button data-t="clean" class="${S.view === "clean" ? "on" : ""}">Original</button></span>` : ""}
+    ${closed && !pagesMode() ? `<button class="btn" data-t="closed">${S.showClosed ? "Hide" : "Show"} resolved (${closed})</button>` : ""}
+    <button class="btn" data-t="copy">Copy text</button>
+    ${S.owner ? `<button class="btn" data-t="versions">Version history</button>` : ""}`;
+  paintSave();
 }
-const pagesMode = () => !S.editing && S.mode !== "suggest" && S.layout === "pages" && !!pageLimit(S.essay);
+function paintSave() { const el = $("#savestate"); if (el) { el.textContent = S.saveMsg || ""; el.className = "save" + (S.saveErr ? " err" : ""); } }
+function setSave(msg, err) { S.saveMsg = msg; S.saveErr = !!err; paintSave(); }
+const pagesMode = () => S.mode === "view" && S.layout === "pages" && !!pageLimit(S.essay);
 function renderAll() {
   renderTools();
-  renderCounts();
-  if (S.editing) return renderEditor();
+  renderCounts(S.mode === "suggest" ? S.draft : undefined);
   if (S.mode === "suggest") return renderSuggest();
   if (pagesMode()) return renderPages();
   renderDoc();
@@ -840,6 +933,7 @@ function renderPages() {
 // offsets skip it.
 function renderDoc() {
   const body = S.essay.body;
+  for (const n of S.top) n.pos = anchor(body, n.quote, n.prefix, n.suffix, n.start);
   const iv = [];
   for (const n of S.top) {
     if (n.pos < 0) continue;
@@ -856,7 +950,7 @@ function renderDoc() {
   if (figAt >= 0) cuts.add(figAt + 10);
   const pts = [...cuts].sort((a, b) => a - b);
   const insAt = (z) => iv.filter((x) => x.kind === "suggest" && x.e === z && x.rep)
-    .map((x) => `<span class="ins${x.id === S.active ? " on" : ""}" data-x="1" data-n="${x.id}">${esc(x.rep)}</span>`).join("");
+    .map((x) => `<span class="ins${x.id === S.active ? " on" : ""}" data-x="1" contenteditable="false" data-n="${x.id}">${esc(x.rep)}</span>`).join("");
   const caret = /\^[0-9,–-]+\^/.test(body);
   let sup = false, html = insAt(0);
   const chars = (t) => {
@@ -882,11 +976,182 @@ function renderDoc() {
       html += `<span class="${[...cls].join(" ")}" data-n="${cov.map((x) => x.id).join(" ")}">${inner}</span>`;
     } else html += inner;
     html += insAt(z);
-    if (figAt >= 0 && z === figAt + 10 && S.fig) html += `<span class="figwrap" data-x="1"><img alt="Figure 1" src="${S.fig}"></span>`;
+    if (figAt >= 0 && z === figAt + 10 && S.fig) html += `<span class="figwrap" data-x="1" contenteditable="false"><img alt="Figure 1" src="${S.fig}"></span>`;
   }
-  const box = $("#docbox");
-  box.innerHTML = `<article class="page ${S.view === "clean" ? "clean" : ""}" id="doc">${html}</article>`;
-  box.querySelectorAll("img").forEach((im) => im.addEventListener("load", layoutCards));
+  let art = $("#doc");
+  if (!art) { $("#docbox").innerHTML = `<article class="page" id="doc"></article>`; art = $("#doc"); bindEditor(art); }
+  art.className = "page" + (S.view === "clean" && S.mode === "view" ? " clean" : "") + (S.mode === "edit" ? " editing" : "");
+  if (S.mode === "edit") { art.setAttribute("contenteditable", "true"); art.spellcheck = true; } else art.removeAttribute("contenteditable");
+  art.innerHTML = html;
+  art.querySelectorAll("img").forEach((im) => im.addEventListener("load", layoutCards));
+}
+
+// ---------- editing mode: type straight onto the page; every change saves itself ----------
+function placeAt(root, k, skip) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (t) => (t.parentElement.closest(`[${skip}]`) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  let cum = 0, t, last = null;
+  const r = document.createRange();
+  while ((t = w.nextNode())) {
+    last = t;
+    if (cum + t.length >= k) { r.setStart(t, k - cum); break; }
+    cum += t.length;
+  }
+  if (!t) { if (last) r.setStart(last, last.length); else r.setStart(root, root.childNodes.length); }
+  r.collapse(true);
+  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+}
+function editSel(art) {
+  const g = getSelection();
+  if (!g.rangeCount) return null;
+  const r = g.getRangeAt(0);
+  if (!art.contains(r.startContainer)) return null;
+  const a = draftOffset(art, r.startContainer, r.startOffset, "data-x"), b = draftOffset(art, r.endContainer, r.endOffset, "data-x");
+  return { s: Math.min(a, b), e: Math.max(a, b) };
+}
+function editCaret() {
+  const art = $("#doc");
+  if (S.mode !== "edit" || !art || document.activeElement !== art) return null;
+  const r = editSel(art);
+  return r ? r.e : null;
+}
+function restoreCaret(prev, caret) {
+  const art = $("#doc");
+  if (caret == null || !art || S.mode !== "edit") return;
+  const k = dmp && prev !== S.essay.body ? dmp.diff_xIndex(dmp.diff_main(prev, S.essay.body), caret) : caret;
+  placeAt(art, Math.min(k, S.essay.body.length), "data-x");
+}
+function bindEditor(art) {
+  const on = () => S.mode === "edit";
+  const edit = (ins, s, e, kind) => editBody(S.essay.body.slice(0, s) + ins + S.essay.body.slice(e), s + ins.length, kind);
+  art.addEventListener("beforeinput", (ev) => {
+    if (!on()) return;
+    const t = ev.inputType;
+    if (t === "insertCompositionText") return;                        // IME: let it through, read back after
+    ev.preventDefault();
+    const r = editSel(art);
+    if (!r) return;
+    const { s, e } = r, d = S.essay.body;
+    if (t === "historyUndo" || t === "historyRedo") return editUndo(t === "historyUndo");
+    if (t === "insertText" || t === "insertReplacementText" || t.startsWith("insertFrom")) {
+      let text = ev.data;
+      if (text == null && ev.dataTransfer) text = ev.dataTransfer.getData("text/plain");
+      if (text == null) return;
+      text = text.replace(/\r\n?/g, "\n");
+      if (t === "insertReplacementText" && ev.getTargetRanges && ev.getTargetRanges().length) {
+        const tr = ev.getTargetRanges()[0];
+        return edit(text, draftOffset(art, tr.startContainer, tr.startOffset, "data-x"), draftOffset(art, tr.endContainer, tr.endOffset, "data-x"), "replace");
+      }
+      return edit(text, s, e, t === "insertText" && text.length === 1 ? "type" : "paste");
+    }
+    if (t === "insertParagraph") return edit("\n\n", s, e, "para");
+    if (t === "insertLineBreak") return edit("\n", s, e, "para");
+    if (t.startsWith("delete")) {
+      if (s !== e) return edit("", s, e, "del");
+      let a = s, b = s;
+      if (t === "deleteContentBackward") { a = Math.max(0, s - 1); if (a > 0 && /[\udc00-\udfff]/.test(d[a])) a--; }
+      else if (t === "deleteContentForward") { b = Math.min(d.length, s + 1); if (/[\ud800-\udbff]/.test(d[s])) b++; }
+      else if (t === "deleteWordBackward") { const m = /(\S+\s*|\s+)$/.exec(d.slice(0, s)); a = m ? s - m[0].length : s; }
+      else if (t === "deleteWordForward") { const m = /^(\s*\S+|\s+)/.exec(d.slice(s)); b = m ? s + m[0].length : s; }
+      else if (/Backward$/.test(t)) a = d.lastIndexOf("\n", s - 1) + 1;
+      else if (/Forward$/.test(t)) { const n = d.indexOf("\n", s); b = n < 0 ? d.length : n; }
+      if (a === b) return;
+      return edit("", a, b, "del");
+    }
+  });
+  const sync = () => {
+    if (!on()) return;
+    const text = readDraft(art, "data-x"), r = editSel(art);
+    if (text !== S.essay.body) editBody(text, r ? r.e : text.length, "ime");
+  };
+  art.addEventListener("input", (ev) => { if (!ev.isComposing) sync(); });
+  art.addEventListener("compositionend", () => setTimeout(sync, 0));
+  art.addEventListener("copy", (ev) => {
+    if (!on()) return;
+    const r = editSel(art);
+    if (!r || r.s === r.e) return;
+    ev.preventDefault(); ev.clipboardData.setData("text/plain", S.essay.body.slice(r.s, r.e));
+  });
+  art.addEventListener("cut", (ev) => {
+    if (!on()) return;
+    const r = editSel(art);
+    ev.preventDefault();
+    if (!r || r.s === r.e) return;
+    ev.clipboardData.setData("text/plain", S.essay.body.slice(r.s, r.e));
+    edit("", r.s, r.e, "del");
+  });
+  art.addEventListener("keydown", (ev) => {
+    if (!on()) return;
+    if ((ev.metaKey || ev.ctrlKey) && !ev.altKey && ev.key.toLowerCase() === "z") { ev.preventDefault(); editUndo(!ev.shiftKey); }
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "y") { ev.preventDefault(); editUndo(false); }
+  });
+}
+let eUndoAt = 0;
+function editBody(text, caret, kind) {
+  if (text === S.essay.body) { placeAt($("#doc"), caret, "data-x"); return; }
+  const t = Date.now();
+  if (kind !== "type" || t - eUndoAt > 900 || !S.eundo.length) S.eundo.push({ d: S.essay.body, c: caret });
+  eUndoAt = kind === "type" ? t : 0;
+  S.eredo = [];
+  S.essay.body = text;
+  afterEdit(caret);
+}
+function editUndo(isUndo) {
+  const from = isUndo ? S.eundo : S.eredo, to = isUndo ? S.eredo : S.eundo;
+  const st = from.pop();
+  if (!st) return;
+  to.push({ d: S.essay.body, c: st.c });
+  S.essay.body = st.d; eUndoAt = 0;
+  afterEdit(Math.min(st.c, st.d.length));
+}
+// After every change: redraw, keep a copy in this browser, and save shortly after you pause.
+function afterEdit(caret) {
+  if (S.mode === "edit" && !pagesMode()) {
+    renderDoc();
+    if (caret != null) placeAt($("#doc"), caret, "data-x");
+    requestAnimationFrame(layoutCards);
+  }
+  clearTimeout(S.countT); S.countT = setTimeout(() => renderCounts(), 250);
+  ls.set(editKey(S.essay.id), JSON.stringify({ text: S.essay.body, base: S.saved, t: Date.now() }));
+  setSave("Saving…");
+  scheduleSave();
+}
+function scheduleSave(ms = 800) { clearTimeout(S.saveT); S.saveT = setTimeout(saveNow, ms); }
+async function saveNow() {
+  clearTimeout(S.saveT);
+  if (!S.essay || S.saved == null) return true;
+  const id = S.essay.id, text = S.essay.body;
+  if (text === S.saved) { ls.set(editKey(id), null); if (!S.saving) setSave("All changes saved"); return true; }
+  if (S.saving) { S.saveAgain = true; return false; }
+  S.saving = true; setSave("Saving…");
+  let ok = false;
+  try {
+    const r = await api("/essays/" + encodeURIComponent(id), { method: "PUT", body: { body: text, base_version: S.ver, author: name() || "Bryson" } });
+    if (S.essay && S.essay.id === id) { S.saved = text; S.ver = r.version; S.essay.version = r.version; }
+    ok = true;
+  } catch (e) {
+    if (e.status === 409) {
+      // someone else saved first: pull their version, put your typing on top, then save again
+      try { await pullMerge(); S.saveAgain = true; } catch (x) {}
+    } else {
+      setSave("Offline? Changes are kept in this browser and will save when the connection is back.", true);
+      clearTimeout(S.retryT); S.retryT = setTimeout(saveNow, 5000);
+    }
+  } finally { S.saving = false; }
+  if (!S.essay || S.essay.id !== id) return ok;
+  if (S.essay.body !== S.saved) {
+    if (ok || S.saveAgain) { S.saveAgain = false; scheduleSave(250); }
+    return false;
+  }
+  S.saveAgain = false;
+  ls.set(editKey(id), null);
+  setSave("All changes saved");
+  return true;
+}
+async function pullMerge() {
+  const prev = S.essay.body, caret = editCaret();
+  await loadEssay(S.essay.id);
+  if (S.mode === "edit" && !pagesMode()) { renderDoc(); restoreCaret(prev, caret); renderMargin(); renderTools(); }
 }
 
 function firstText(n) {
@@ -1085,6 +1350,7 @@ let rz;
 window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => (pagesMode() && $("#docbox") ? renderPages() : layoutCards()), 120); });
 
 function activate(id, scroll) {
+  if (S.mode === "suggest") { S.active = id; renderSuggestMargin(); return; }
   if (S.active === id) return;
   S.active = id;
   renderDoc(); renderMargin();
@@ -1113,6 +1379,11 @@ app.addEventListener("click", async (ev) => {
   if (btn && card) return act(btn.dataset.a, card, btn);
   if (card && card.dataset.id !== "pending" && !ev.target.closest("textarea,input,a")) {
     const id = card.dataset.id;
+    if (S.mode === "suggest") {
+      S.active = id;
+      $$("#margin .card").forEach((c) => c.classList.toggle("on", c.dataset.id === id));
+      return findRef(id);
+    }
     activate(id, false);
     jumpToNote(id);
   }
@@ -1130,7 +1401,7 @@ async function act(a, card, btn) {
   const nameIn = card && card.querySelector(".nm");
   if (nameIn && nameIn.value.trim()) { ls.set("gl-name", nameIn.value.trim().slice(0, 60)); paintName(); }
   try {
-    if (a === "cancel") { S.pending = null; renderDoc(); renderMargin(); return; }
+    if (a === "cancel") { S.pending = null; if (S.mode === "suggest") renderSuggestMargin(); else { renderDoc(); renderMargin(); } return; }
     if (a === "post") {
       if (!name()) { toast("Please add your name first."); return; }
       const p = S.pending, text = (card.querySelector(".ct") || {}).value || "";
@@ -1179,9 +1450,15 @@ async function act(a, card, btn) {
   }
 }
 async function refresh(activeId) {
+  const prev = S.essay.body, caret = editCaret();
   await loadEssay(S.essay.id);
   S.active = activeId;
-  renderAll();
+  if (S.mode === "suggest") {
+    if (!S.sDirty && !S.syncing) buildSuggestDraft();
+    renderTools(); renderCounts(S.draft);
+    const d = $("#sdoc"); if (d) d.innerHTML = suggestHTML(S.sBase, S.draft);
+    renderSuggestMargin();
+  } else { renderAll(); restoreCaret(prev, caret); }
   if (S.essays) {
     const x = S.essays.find((e) => e.id === S.essay.id);
     if (x) x.updated_at = S.essay.updated_at;
@@ -1189,18 +1466,19 @@ async function refresh(activeId) {
 }
 
 async function tool(t) {
-  if (t === "msuggest") {
-    if (S.mode === "suggest") return;
-    S.mode = "suggest"; S.draft = S.essay.body; S.undo = []; S.redo = []; S.pending = null; S.active = null; hideBubble();
-    renderAll(); return;
+  if (t === "medit" || t === "msuggest" || t === "mview") {
+    const want = { medit: "edit", msuggest: "suggest", mview: "view" }[t];
+    if (want === S.mode) return;
+    await flushAll(5000);
+    ls.set("gl-mode", want);
+    S.pending = null; S.active = null; hideBubble();
+    try { await loadEssay(S.essay.id); } catch (e) {}
+    S.mode = want;
+    if (want === "suggest") buildSuggestDraft();
+    renderAll();
+    if (want === "edit") { const a = $("#doc"); if (a) a.focus({ preventScroll: true }); }
+    return;
   }
-  if (t === "mcomment" || t === "sdiscard") {
-    if (S.mode !== "suggest") return;
-    const n = hunks(S.essay.body, S.draft).length;
-    if (n && !confirm(`Discard your ${n} unposted change${n === 1 ? "" : "s"}?`)) return;
-    S.mode = "comment"; S.draft = null; renderAll(); return;
-  }
-  if (t === "spost") return postSuggestions($("[data-t=spost]"));
   if (t === "draft" || t === "pages") { S.layout = t; ls.set("gl-layout", t); S.pending = null; hideBubble(); renderAll(); return; }
   if (t === "inline" || t === "clean") { S.view = t; ls.set("gl-view", t); renderTools(); renderDoc(); layoutCards(); return; }
   if (t === "closed") { S.showClosed = !S.showClosed; renderAll(); return; }
@@ -1209,29 +1487,7 @@ async function tool(t) {
     catch (e) { toast("Your browser blocked copying."); }
     return;
   }
-  if (t === "edit") { S.editing = true; S.pending = null; hideBubble(); renderAll(); return; }
-  if (t === "cancel") { S.editing = false; renderAll(); return; }
-  if (t === "save") {
-    const v = $("#editor").value;
-    try {
-      await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v, base_version: S.essay.version } });
-      S.editing = false; await refresh(null); toast("Saved");
-    } catch (e) { toast(e.message); }
-    return;
-  }
   if (t === "versions") return versions();
-}
-function renderEditor() {
-  $("#docbox").innerHTML = `<textarea class="editor" id="editor" spellcheck="true"></textarea>`;
-  const ed = $("#editor");
-  ed.value = S.essay.body;
-  let tick;
-  ed.addEventListener("input", () => { clearTimeout(tick); tick = setTimeout(() => renderCounts(ed.value), pageLimit(S.essay) ? 200 : 0); });
-  $("#margin").innerHTML = refCards() ? `<div class="empty-m">Editing the text. Click a comment to find its text in the editor.</div>` + refCards()
-    : `<div class="empty-m">No open comments on this piece.</div>`;
-  $("#margin").style.minHeight = "";
-  $("#mhead").textContent = "Comments and suggestions";
-  ed.focus();
 }
 async function versions() {
   const dlg = $("#dlg");
@@ -1254,7 +1510,9 @@ async function versions() {
     if (rs) {
       const v = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions/${rs.dataset.restore}`);
       try {
-        await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v.body, base_version: S.essay.version } });
+        await flushAll(4000);
+        await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v.body, base_version: S.ver, author: name() || "Bryson" } });
+        S.essay.body = v.body; S.saved = v.body;
         dlg.close(); await refresh(null); toast("Restored version " + v.version);
       } catch (e) { toast(e.message); }
     }
@@ -1265,20 +1523,30 @@ async function versions() {
 const bubble = $("#bubble");
 function hideBubble() { bubble.classList.remove("show"); S.sel = null; }
 function onSelection() {
-  const doc = $("#doc");
-  if (!doc || S.editing || S.pending) return hideBubble();
+  const sdoc = S.mode === "suggest" ? $("#sdoc") : null;
+  const doc = sdoc || $("#doc");
+  if (!doc || S.pending || pagesMode()) return hideBubble();
   const sel = getSelection();
   if (!sel.rangeCount || sel.isCollapsed) return hideBubble();
   const r = sel.getRangeAt(0);
   if (!doc.contains(r.startContainer) || !doc.contains(r.endContainer)) return hideBubble();
-  let s = textOffset(doc, r.startContainer, r.startOffset), e = textOffset(doc, r.endContainer, r.endOffset);
+  let s, e, body;
+  if (sdoc) {
+    // comments attach to the saved text, so map the selection back from your draft
+    const o = selOffsets(sdoc);
+    if (!dmp) return hideBubble();
+    const df = dmp.diff_main(S.draft, S.sBase);
+    s = dmp.diff_xIndex(df, o.s); e = dmp.diff_xIndex(df, o.e); body = S.sBase;
+  } else {
+    s = textOffset(doc, r.startContainer, r.startOffset); e = textOffset(doc, r.endContainer, r.endOffset); body = S.essay.body;
+  }
   if (s == null || e == null) return hideBubble();
   if (e < s) [s, e] = [e, s];
-  const body = S.essay.body;
   while (s < e && /\s/.test(body[s])) s++;
   while (e > s && /\s/.test(body[e - 1])) e--;
   if (e <= s) return hideBubble();
-  S.sel = { s, e };
+  S.sel = { s, e, body };
+  const sb = bubble.querySelector('[data-k="suggest"]'); if (sb) sb.style.display = S.mode === "view" ? "" : "none";
   const rect = r.getBoundingClientRect();
   bubble.classList.add("show");
   const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
@@ -1294,34 +1562,60 @@ let st;
 document.addEventListener("selectionchange", () => { clearTimeout(st); st = setTimeout(onSelection, 150); });
 window.addEventListener("scroll", () => { if (S.sel) onSelection(); }, { passive: true });
 bubble.addEventListener("mousedown", (e) => e.preventDefault());
+// Ctrl/Cmd + Alt + M adds a comment on the selected text, as in Google Docs
+document.addEventListener("keydown", (ev) => {
+  if ((ev.metaKey || ev.ctrlKey) && ev.altKey && (ev.key.toLowerCase() === "m" || ev.code === "KeyM")) {
+    onSelection();
+    if (S.sel) { ev.preventDefault(); const b = bubble.querySelector('[data-k="comment"]'); if (b) b.click(); }
+  }
+});
 bubble.addEventListener("click", (e) => {
   const b = e.target.closest("[data-k]");
   if (!b || !S.sel) return;
-  const { s, e: end } = S.sel, body = S.essay.body;
+  const { s, e: end, body } = S.sel;
   S.pending = { kind: b.dataset.k, s, e: end, quote: body.slice(s, end), prefix: body.slice(Math.max(0, s - 32), s), suffix: body.slice(end, end + 32) };
   S.active = "pending";
   getSelection().removeAllRanges();
   hideBubble();
-  renderDoc(); renderMargin();
+  if (S.mode === "suggest") renderSuggestMargin(); else { renderDoc(); renderMargin(); }
   if (narrow()) { const c = $(".card.compose"); if (c) c.scrollIntoView({ behavior: "smooth", block: "center" }); }
 });
 
 // ---------- live updates from other readers ----------
 setInterval(async () => {
   if (document.hidden || !KEY) return;
-  const busy = S.pending || S.editing || S.mode === "suggest" || (document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName) && document.activeElement.value);
-  if (busy || (S.sel && !getSelection().isCollapsed)) return;
+  S.tick = (S.tick || 0) + 1;
+  const typing = document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName) && document.activeElement.value;
+  if (S.pending || typing || (S.sel && !getSelection().isCollapsed)) return;
   try {
     if (route().type === "essay" && S.essay) {
-      const before = S.sig, act = S.active;
-      await loadEssay(S.essay.id);
-      if (S.sig !== before) { S.active = S.top.some((n) => n.id === act) ? act : null; renderAll(); }
-    } else if (route().type === "hub" && $(".hub")) {
+      const before = S.sig;
+      if (S.mode === "edit") {
+        if (S.saving || editorDirty()) return;          // your next save merges others' changes anyway
+        const prev = S.essay.body, caret = editCaret();
+        await loadEssay(S.essay.id);
+        if (S.sig !== before && S.mode === "edit") { renderTools(); renderCounts(); renderDoc(); restoreCaret(prev, caret); renderMargin(); }
+      } else if (S.mode === "suggest") {
+        if (S.sDirty || S.syncing) return;
+        await loadEssay(S.essay.id);
+        if (S.sig !== before && S.mode === "suggest" && !S.sDirty) {
+          const d = $("#sdoc"), focused = d && document.activeElement === d, c = focused ? selOffsets(d).e : 0;
+          buildSuggestDraft(); renderTools(); renderCounts(S.draft);
+          if (d) { d.innerHTML = suggestHTML(S.sBase, S.draft); if (focused) placeCaret(d, Math.min(c, S.draft.length)); }
+          renderSuggestMargin();
+        }
+      } else {
+        if (S.tick % 2) return;
+        const act = S.active;
+        await loadEssay(S.essay.id);
+        if (S.sig !== before) { S.active = S.top.some((n) => n.id === act) ? act : null; renderAll(); }
+      }
+    } else if (route().type === "hub" && $(".hub") && S.tick % 6 === 0) {
       const d = await api("/essays");
       if (JSON.stringify(d.essays) !== JSON.stringify(S.essays)) { S.essays = d.essays; $(".list").innerHTML = d.essays.map(hubRow).join(""); }
     }
   } catch (e) {}
-}, 30000);
+}, 5000);
 
 paintName();
 go();
