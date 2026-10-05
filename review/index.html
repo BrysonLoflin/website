@@ -95,6 +95,14 @@ button.chip:hover { background: var(--bg); }
 .page.editing { outline: 2px solid var(--accent); caret-color: var(--accent); cursor: text; }
 .page.editing:focus { outline-width: 3px; }
 .page.editing .cr { display: inline; color: var(--faint); font-size: .8em; }
+.page .sepc { font-size: 0; }
+.page .sechead { display: block; font: 600 12px/1.4 inherit; font-family: inherit; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  border-top: 1px solid var(--line); padding-top: 14px; margin-top: 2px; user-select: none; cursor: default; }
+.page .sechead.first { border-top: 0; padding-top: 0; }
+.gcounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 22px; width: 100%; }
+.gcounts .lbl { margin-bottom: 4px; }
+.prompts summary { cursor: pointer; color: var(--muted); font-size: 13px; margin: 6px 0; }
+.prompts .lbl { margin-top: 10px; }
 .tools .save { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .tools .save.err { color: var(--del); font-weight: 600; }
 .seg.modes button { padding: 5px 11px; }
@@ -416,6 +424,69 @@ function pageBlock(st, big) {
     <div class="bar"><i style="width:${pct}%"></i></div><div class="alt" style="margin-top:4px">${detail}</div></div>`;
 }
 
+// ---------- groups ----------
+// Pieces HHMI collects as separate fields but that read as one document. They show on one page,
+// one section each, and every edit, comment, and suggestion is saved to the piece it belongs to.
+const GROUPS = { research: { title: "PhD Research", parts: ["title", "abstract", "overview", "references"],
+  blurb: "Title, abstract, research overview, and references on one page. HHMI collects each as its own field, so each section keeps its own prompt, limit, and comments." } };
+const SEP = "\n\u2063";                       // between sections; U+2063 is invisible and never typed
+const groupOf = (id) => Object.keys(GROUPS).find((g) => GROUPS[g].parts.includes(id));
+const splitParts = (text) => (text || "").split(SEP);
+function partRanges(body) {
+  const out = []; let s0 = 0;
+  splitParts(body).forEach((t, i) => { out.push({ i, s: s0, e: s0 + t.length }); s0 += t.length + SEP.length; });
+  return out;
+}
+// true if an edit over [s, e) would touch a section break
+function crossesSep(body, s, e) {
+  const r = partRanges(body);
+  for (let i = 0; i < r.length - 1; i++) {
+    const a = r[i].e, b = r[i + 1].s;
+    if (s < b && e > a) return true;                // overlaps the break
+    if (s === e && s > a && s < b) return true;     // caret inside the break
+  }
+  return false;
+}
+// where a stretch of the combined text lives: which piece, and its position inside that piece
+function locate(body, s, e) {
+  const r = partRanges(body).find((x) => s >= x.s && e <= x.e);
+  if (!r) return null;
+  const t = splitParts(body)[r.i], ls = s - r.s, le = e - r.s;
+  return { part: S.parts[r.i].id, i: r.i, ls, quote: t.slice(ls, le), prefix: t.slice(Math.max(0, ls - 32), ls), suffix: t.slice(le, le + 32) };
+}
+function notePos(n, body) {
+  const i = S.parts.findIndex((p) => p.id === n.essay_id);
+  if (i < 0) return -1;
+  const r = partRanges(body)[i];
+  if (!r) return -1;
+  const k = anchor(body.slice(r.s, r.e), n.quote, n.prefix, n.suffix, n.start);
+  return k < 0 ? -1 : r.s + k;
+}
+const sectionLabel = (i) => (S.parts[i] ? S.parts[i].essay.title : "");
+const plainText = (body) => body.split(SEP).join("\n\n");
+// the piece the Pages view measures: the overview inside a group, or the piece itself
+function pageTarget() {
+  if (!S.group) return { essay: S.essay, body: S.essay.body };
+  const ps = splitParts(S.essay.body);
+  const i = S.parts.findIndex((p) => pageLimit(p.essay) && p.essay.has_fig);
+  const k = i >= 0 ? i : S.parts.findIndex((p) => pageLimit(p.essay));
+  return k >= 0 ? { essay: S.parts[k].essay, body: ps[k] || "" } : { essay: S.essay, body: "" };
+}
+// hub and prev/next list, with each group shown once in place of its pieces
+function navList() {
+  const out = [];
+  for (const e of S.essays || []) {
+    const g = groupOf(e.id);
+    if (!g) { out.push(e); continue; }
+    if (out.some((x) => x.id === g)) continue;
+    const ps = (S.essays || []).filter((x) => groupOf(x.id) === g);
+    out.push({ id: g, group: true, ord: e.ord, title: GROUPS[g].title, prompt: GROUPS[g].blurb, parts: ps,
+      comments: ps.reduce((a, x) => a + (x.comments || 0), 0), suggestions: ps.reduce((a, x) => a + (x.suggestions || 0), 0),
+      updated_at: ps.map((x) => x.updated_at || "").sort().pop() || null });
+  }
+  return out;
+}
+
 // ---------- routing ----------
 function route() {
   const h = location.hash.replace(/^#\/?/, "");
@@ -454,6 +525,7 @@ async function go() {
   if (!KEY) return noKey();
   const r = route();
   try {
+    if (r.type === "essay" && groupOf(r.id)) { history.replaceState(null, "", "#/" + groupOf(r.id)); r.id = groupOf(r.id); }
     if (r.type === "hub") await showHub(); else await showEssay(r.id);
   } catch (e) {
     if (e.status === 401) return noKey(true);
@@ -476,7 +548,7 @@ async function showHub() {
   app.innerHTML = `<div class="hub">
     <h1>My HHMI Gilliam Fellowship drafts</h1>
     <p class="lede">Thank you for helping me with these! This works like a Google Doc. Open any piece and type right on the page in <b>Suggesting</b> mode: your edits become suggestions and save as you go. Select any text to leave a comment. Each piece shows the HHMI prompt and its word or page limit.</p>
-    <div class="list">${d.essays.map(hubRow).join("")}</div></div>`;
+    <div class="list">${navList().map((x, i) => hubRow({ ...x, ord: i + 1 })).join("")}</div></div>`;
 }
 function wcBlock(n, limit, note, big) {
   if (!limit) return `<div class="wc"><span class="n ${big ? "big" : ""}">${fmt(n)}</span> words<div class="bar"></div><div class="alt" style="margin-top:4px">Limit: ${esc(note)}</div></div>`;
@@ -491,7 +563,8 @@ function hubRow(e) {
   return `<a class="row" href="#/${encodeURIComponent(e.id)}">
     <span class="num">${e.ord}</span>
     <span><div class="t">${esc(e.title)}</div><div class="p">${esc(e.prompt)}</div></span>
-    ${pageLimit(e) && e.body != null ? pageBlock(pageStats(e.body, pageLimit(e))) : wcBlock(e.words, e.limit_words, e.limit_note)}
+    ${e.group ? `<div class="wc"><span class="n">${e.parts.length}</span> sections<div class="bar"></div><div class="alt" style="margin-top:4px">${e.parts.map((x) => esc(x.title)).join(" · ")}</div></div>`
+      : pageLimit(e) && e.body != null ? pageBlock(pageStats(e.body, pageLimit(e))) : wcBlock(e.words, e.limit_words, e.limit_note)}
     <span class="notes">${bits.join("<br>") || "No comments yet"}<br><small>edited ${ago(e.updated_at)}</small></span></a>`;
 }
 
@@ -506,6 +579,7 @@ function adoptRemote(e) {
     if (e.body === S.saved) body = local;
     else if (dmp) body = dmp.patch_apply(dmp.patch_make(S.saved, local), e.body)[0];
     else body = local;
+    if (splitParts(body).length !== splitParts(e.body).length) body = e.body;   // never mangle the section breaks
   }
   S.saved = e.body; S.ver = e.version;
   S.essay = { ...e, body };
@@ -526,14 +600,23 @@ function recoverBackup() {
   return true;
 }
 async function loadEssay(id) {
-  const d = await api("/essays/" + encodeURIComponent(id));
-  S.owner = d.owner; S.notes = d.notes;
-  adoptRemote(d.essay);
+  const g = GROUPS[id];
+  const ds = await Promise.all((g ? g.parts : [id]).map((x) => api("/essays/" + encodeURIComponent(x))));
+  S.owner = ds[0].owner;
+  S.parts = ds.map((d) => ({ id: d.essay.id, essay: d.essay }));
+  S.notes = ds.flatMap((d) => d.notes);
+  S.group = !!g;
+  const e = g ? { id, group: true, title: g.title, prompt: g.blurb, limit_words: null, limit_note: "",
+      has_fig: ds.some((d) => d.essay.has_fig), body: ds.map((d) => d.essay.body).join(SEP),
+      version: ds.reduce((a, d) => a + d.essay.version, 0), updated_at: ds.map((d) => d.essay.updated_at || "").sort().pop() }
+    : ds[0].essay;
+  adoptRemote(e);
+  S.vers = ds.map((d) => d.essay.version);
   const body = S.essay.body;
-  S.top = d.notes.filter((n) => !n.parent_id).map((n) => ({ ...n, pos: anchor(body, n.quote, n.prefix, n.suffix, n.start) }));
-  S.sig = JSON.stringify([d.essay.version, d.notes.map((n) => [n.id, n.status, n.updated_at])]);
+  S.top = S.notes.filter((n) => !n.parent_id).map((n) => ({ ...n, pos: notePos(n, body) }));
+  S.sig = JSON.stringify([S.vers, S.notes.map((n) => [n.id, n.status, n.updated_at])]);
   if (!S.essays) { try { S.essays = (await api("/essays")).essays; } catch (e) {} }
-  if (d.essay.has_fig && !S.fig) {
+  if (S.essay.has_fig && !S.fig) {
     try {
       const r = await fetch(API + "/api/fig/1", { headers: { "x-key": KEY }, cache: "no-cache" });
       if (r.ok) {
@@ -551,7 +634,7 @@ async function showEssay(id) {
   const e = S.essay;
   document.title = e.title + " · Gilliam drafts";
   $("#crumb").textContent = "/ " + e.title;
-  const list = S.essays || [];
+  const list = navList();
   const i = list.findIndex((x) => x.id === e.id);
   const prev = list[i - 1], next = list[i + 1];
   app.innerHTML = `<div class="wrap">
@@ -561,8 +644,11 @@ async function showEssay(id) {
       <div>
         <section class="prompt">
           <h1>${esc(e.title)}</h1>
-          <div class="lbl">HHMI prompt</div>
-          <p>${esc(e.prompt)}</p>
+          ${S.group ? `<p>${esc(e.prompt)}</p>
+          <details class="prompts"><summary>HHMI prompts for these ${S.parts.length} fields</summary>
+            ${S.parts.map((p) => `<div class="lbl">${esc(p.essay.title)}</div><p>${esc(p.essay.prompt)}</p>`).join("")}</details>`
+          : `<div class="lbl">HHMI prompt</div>
+          <p>${esc(e.prompt)}</p>`}
           <div class="counts" id="counts"></div>
         </section>
         <div class="tools" id="tools"></div>
@@ -620,8 +706,8 @@ function hunks(orig, draft) {
     if (!quote) {
       const before = /\S+\s*$/.exec(orig.slice(Math.max(0, s - 80), s));
       const after = /^\s*\S+/.exec(orig.slice(s, s + 80));
-      if (before) { quote = before[0]; s -= quote.length; rep = quote + rep; }
-      else if (after) { quote = after[0]; rep = rep + quote; }
+      if (before && !before[0].includes("\u2063")) { quote = before[0]; s -= quote.length; rep = quote + rep; }
+      else if (after && !after[0].includes("\u2063")) { quote = after[0]; rep = rep + quote; }
     }
     return { s, quote, replacement: rep, prefix: orig.slice(Math.max(0, s - 32), s), suffix: orig.slice(s + quote.length, s + quote.length + 32) };
   }).filter((h) => h.quote && h.quote !== h.replacement);
@@ -632,10 +718,13 @@ const editKey = (id) => "gl-edit-" + id;
 function editDraft(id) { try { return JSON.parse(ls.get(editKey(id)) || "null"); } catch (e) { return null; } }
 function editorDirty() { return !!(S.essay && S.saved != null && S.essay.body !== S.saved); }
 function suggestHTML(orig, draft) {
-  const fig = (t) => (S.fig && t.includes("[Figure 1]")
+  let sec = 0;
+  const heads = (h) => (S.group ? h.replace(/\u2063/g, () => `<span class="sepc">\u2063</span><span class="sechead" data-del contenteditable="false">${esc(sectionLabel(++sec))}</span>`) : h);
+  const fig = (t) => heads(S.fig && t.includes("[Figure 1]")
     ? t.split("[Figure 1]").map(esc).join(`[Figure 1]<span class="figwrap" contenteditable="false" data-del><img alt="Figure 1" src="${S.fig}"></span>`)
     : esc(t));
-  return diffs(orig, draft).map(([op, t]) => op === 0 ? fig(t)
+  const first = S.group ? `<span class="sechead first" data-del contenteditable="false">${esc(sectionLabel(0))}</span>` : "";
+  return first + diffs(orig, draft).map(([op, t]) => op === 0 ? fig(t)
     : op === 1 ? `<span class="s-ins">${esc(t)}</span>`
     : `<span class="s-del" contenteditable="false" data-del>${esc(t)}</span>`).join("");
 }
@@ -688,6 +777,7 @@ function placeCaret(root, k) {
 let undoAt = 0;
 function setDraft(text, caret, kind) {
   if (text === S.draft) { placeCaret($("#sdoc"), caret); return; }
+  if (S.group && splitParts(text).length !== S.parts.length) { paintSuggest(caret); return toast("Edits can't cross from one section into the next."); }
   const t = Date.now();
   if (kind !== "type" || t - undoAt > 900 || !S.undo.length) S.undo.push({ d: S.draft, c: caret });
   undoAt = kind === "type" ? t : 0;
@@ -709,7 +799,11 @@ function renderSuggest() {
   doc.innerHTML = suggestHTML(S.sBase, S.draft);
   renderCounts(S.draft);
   renderSuggestMargin();
-  const edit = (ins, s, e, kind) => setDraft(S.draft.slice(0, s) + ins + S.draft.slice(e), s + ins.length, kind);
+  const edit = (ins, s, e, kind) => {
+    if (S.group && crossesSep(S.draft, s, e)) return toast("Edits can't cross from one section into the next.");
+    ins = ins.replace(/\u2063/g, "");
+    setDraft(S.draft.slice(0, s) + ins + S.draft.slice(e), s + ins.length, kind);
+  };
   doc.addEventListener("beforeinput", (ev) => {
     const t = ev.inputType;
     if (t === "insertCompositionText") return;                        // IME: let it through, sync after
@@ -826,8 +920,10 @@ async function syncSuggestions() {
     const have = S.sKnown;
     for (const [k, h] of want) {
       if (have.has(k)) continue;
-      const r = await api(`/essays/${encodeURIComponent(id)}/notes`, { method: "POST", body: {
-        kind: "suggest", quote: h.quote, prefix: h.prefix, suffix: h.suffix, start: h.s, replacement: h.replacement, text: "", author: name() } });
+      const at = locate(S.sBase, h.s, h.s + h.quote.length);
+      if (!at) continue;                                     // never spans a section break
+      const r = await api(`/essays/${encodeURIComponent(at.part)}/notes`, { method: "POST", body: {
+        kind: "suggest", quote: at.quote, prefix: at.prefix, suffix: at.suffix, start: at.ls, replacement: h.replacement, text: "", author: name() } });
       have.set(k, r.id);
     }
     for (const [k, nid] of [...have]) {
@@ -862,6 +958,7 @@ function withSuggestions(body) {
   return out;
 }
 function renderCounts(text) {
+  if (S.group) return renderGroupCounts(text);
   const e = S.essay, n = words(text != null ? text : e.body), lim = pageLimit(e);
   let alt = "";
   if (lim) {
@@ -882,6 +979,19 @@ function renderCounts(text) {
   }
   $("#counts").innerHTML = `<div>${wcBlock(n, e.limit_words, e.limit_note, true)}</div>${alt}`;
 }
+function renderGroupCounts(text) {
+  const ps = splitParts(text != null ? text : S.essay.body);
+  const alt = text == null && openSuggestions().length ? splitParts(withSuggestions(S.essay.body)) : null;
+  const anyPages = S.parts.some((p) => pageLimit(p.essay));
+  $("#counts").innerHTML = `<div class="gcounts">${S.parts.map((p, i) => {
+    const lim = pageLimit(p.essay), t = ps[i] || "";
+    const meter = lim ? pageBlock(pageStats(t, lim)) : wcBlock(words(t), p.essay.limit_words, p.essay.limit_note);
+    let a = "";
+    if (alt && alt[i] !== t) a = lim ? `With open suggestions: ${pagesLabel(pageStats(alt[i], lim))} pages` : `With open suggestions: ${fmt(words(alt[i]))} words`;
+    if (text != null && S.mode === "suggest") a = "Counting your suggested version";
+    return `<div class="gc"><div class="lbl">${esc(p.essay.title)}</div>${meter}${a ? `<div class="alt">${a}</div>` : ""}</div>`;
+  }).join("")}</div>${anyPages ? `<div class="fmtnote" style="flex-basis:100%">${esc(FORMAT_NOTE)} Use Pages view to see where each page of the overview breaks.</div>` : ""}`;
+}
 function renderTools() {
   if (!$("#tools") || !S.essay) return;
   const closed = S.top.filter((n) => n.status !== "open").length, m = S.mode;
@@ -893,7 +1003,7 @@ function renderTools() {
     : m === "suggest" ? "Type anywhere to suggest a change. Select text to comment."
     : pagesMode() ? "True-size pages, showing where each page breaks." : "Select any text to comment.";
   $("#tools").innerHTML = `${modes}<span class="hint">${hint}</span><span class="save" id="savestate"></span>
-    ${m === "view" && pageLimit(S.essay) ? `<span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft" class="${S.layout !== "pages" ? "on" : ""}">Draft</button><button data-t="pages" class="${S.layout === "pages" ? "on" : ""}">Pages</button></span>` : ""}
+    ${m === "view" && pageLimit(pageTarget().essay) ? `<span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft" class="${S.layout !== "pages" ? "on" : ""}">Draft</button><button data-t="pages" class="${S.layout === "pages" ? "on" : ""}">Pages</button></span>` : ""}
     ${m === "view" && !pagesMode() ? `<span class="seg" title="How suggested edits look in the text"><button data-t="inline" class="${S.view === "inline" ? "on" : ""}">Show edits</button><button data-t="clean" class="${S.view === "clean" ? "on" : ""}">Original</button></span>` : ""}
     ${closed && !pagesMode() ? `<button class="btn" data-t="closed">${S.showClosed ? "Hide" : "Show"} resolved (${closed})</button>` : ""}
     <button class="btn" data-t="copy">Copy text</button>
@@ -902,7 +1012,7 @@ function renderTools() {
 }
 function paintSave() { const el = $("#savestate"); if (el) { el.textContent = S.saveMsg || ""; el.className = "save" + (S.saveErr ? " err" : ""); } }
 function setSave(msg, err) { S.saveMsg = msg; S.saveErr = !!err; paintSave(); }
-const pagesMode = () => S.mode === "view" && S.layout === "pages" && !!pageLimit(S.essay);
+const pagesMode = () => S.mode === "view" && S.layout === "pages" && !!S.essay && !!pageLimit(pageTarget().essay);
 function renderAll() {
   renderTools();
   renderCounts(S.mode === "suggest" ? S.draft : undefined);
@@ -915,7 +1025,7 @@ function renderAll() {
 function renderPages() {
   const box = $("#docbox");
   if (!box) return;
-  const lim = pageLimit(S.essay), st = pageStats(S.essay.body, lim);
+  const pt = pageTarget(), lim = pageLimit(pt.essay), st = pageStats(pt.body, lim);
   const W = box.clientWidth || 780, k = Math.min(1, W / (8.5 * PX_IN));
   box.innerHTML = `<div class="sheets">${st.pages.map((p, i) => `<div class="sheetbox" style="width:${8.5 * PX_IN * k}px;height:${11 * PX_IN * k}px">
     <div class="sheet ${i >= lim ? "over" : ""}" style="transform:scale(${k})">
@@ -933,7 +1043,7 @@ function renderPages() {
 // offsets skip it.
 function renderDoc() {
   const body = S.essay.body;
-  for (const n of S.top) n.pos = anchor(body, n.quote, n.prefix, n.suffix, n.start);
+  for (const n of S.top) n.pos = notePos(n, body);
   const iv = [];
   for (const n of S.top) {
     if (n.pos < 0) continue;
@@ -952,13 +1062,15 @@ function renderDoc() {
   const insAt = (z) => iv.filter((x) => x.kind === "suggest" && x.e === z && x.rep)
     .map((x) => `<span class="ins${x.id === S.active ? " on" : ""}" data-x="1" contenteditable="false" data-n="${x.id}">${esc(x.rep)}</span>`).join("");
   const caret = /\^[0-9,–-]+\^/.test(body);
-  let sup = false, html = insAt(0);
+  let sup = false, sec = 0, html = (S.group ? `<span class="sechead first" data-x="1" contenteditable="false">${esc(sectionLabel(0))}</span>` : "") + insAt(0);
   const chars = (t) => {
-    if (!caret) return esc(t);
+    if (!caret && !S.group) return esc(t);
     let out = "", run = "";
     const flush = () => { if (run) out += sup ? `<sup>${esc(run)}</sup>` : esc(run); run = ""; };
     for (const ch of t) {
-      if (ch === "^") { flush(); out += '<span class="cr">^</span>'; sup = !sup; } else run += ch;
+      if (ch === "^") { flush(); out += '<span class="cr">^</span>'; sup = !sup; }
+      else if (ch === "\u2063") { flush(); sec++; out += `<span class="sepc">\u2063</span><span class="sechead" data-x="1" contenteditable="false">${esc(sectionLabel(sec))}</span>`; }
+      else run += ch;
     }
     flush();
     return out;
@@ -1023,7 +1135,11 @@ function restoreCaret(prev, caret) {
 }
 function bindEditor(art) {
   const on = () => S.mode === "edit";
-  const edit = (ins, s, e, kind) => editBody(S.essay.body.slice(0, s) + ins + S.essay.body.slice(e), s + ins.length, kind);
+  const edit = (ins, s, e, kind) => {
+    if (S.group && crossesSep(S.essay.body, s, e)) return toast("Edits can't cross from one section into the next.");
+    ins = ins.replace(/\u2063/g, "");
+    editBody(S.essay.body.slice(0, s) + ins + S.essay.body.slice(e), s + ins.length, kind);
+  };
   art.addEventListener("beforeinput", (ev) => {
     if (!on()) return;
     const t = ev.inputType;
@@ -1089,6 +1205,7 @@ function bindEditor(art) {
 let eUndoAt = 0;
 function editBody(text, caret, kind) {
   if (text === S.essay.body) { placeAt($("#doc"), caret, "data-x"); return; }
+  if (splitParts(text).length !== S.parts.length) { renderDoc(); return toast("Edits can't cross from one section into the next."); }
   const t = Date.now();
   if (kind !== "type" || t - eUndoAt > 900 || !S.eundo.length) S.eundo.push({ d: S.essay.body, c: caret });
   eUndoAt = kind === "type" ? t : 0;
@@ -1123,11 +1240,18 @@ async function saveNow() {
   const id = S.essay.id, text = S.essay.body;
   if (text === S.saved) { ls.set(editKey(id), null); if (!S.saving) setSave("All changes saved"); return true; }
   if (S.saving) { S.saveAgain = true; return false; }
+  const loc = splitParts(text), srv = splitParts(S.saved);
+  if (loc.length !== S.parts.length || srv.length !== S.parts.length) { setSave("Couldn't save: the section breaks changed. Reload the page.", true); return false; }
   S.saving = true; setSave("Saving…");
   let ok = false;
   try {
-    const r = await api("/essays/" + encodeURIComponent(id), { method: "PUT", body: { body: text, base_version: S.ver, author: name() || "Bryson" } });
-    if (S.essay && S.essay.id === id) { S.saved = text; S.ver = r.version; S.essay.version = r.version; }
+    for (let i = 0; i < loc.length; i++) {
+      if (loc[i] === srv[i]) continue;
+      const r = await api("/essays/" + encodeURIComponent(S.parts[i].id), { method: "PUT", body: { body: loc[i], base_version: S.vers[i], author: name() || "Bryson" } });
+      if (!S.essay || S.essay.id !== id) break;
+      S.vers[i] = r.version; S.parts[i].essay.version = r.version; S.parts[i].essay.body = loc[i];
+      srv[i] = loc[i]; S.saved = srv.join(SEP);   // record each section as soon as it lands
+    }
     ok = true;
   } catch (e) {
     if (e.status === 409) {
@@ -1236,7 +1360,7 @@ function findRef(id) {
   if (S.mode === "suggest") {
     const doc = $("#sdoc");
     if (!doc) return;
-    const i = anchor(S.draft, n.quote, n.prefix, n.suffix, n.start);
+    const i = anchor(S.draft, n.quote, n.prefix, n.suffix, n.pos >= 0 ? n.pos : n.start);
     if (i < 0) return toast("That text has changed in your draft.");
     const pt = (k) => {
       const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT, {
@@ -1409,8 +1533,8 @@ async function act(a, card, btn) {
       if (p.kind === "comment" && !text.trim()) { toast("The comment is empty."); return; }
       if (p.kind === "suggest" && rep === p.quote) { toast("Change the text to suggest an edit."); return; }
       btn && (btn.disabled = true);
-      const r = await api(`/essays/${encodeURIComponent(S.essay.id)}/notes`, { method: "POST", body: {
-        kind: p.kind, quote: p.quote, prefix: p.prefix, suffix: p.suffix, start: p.s, replacement: rep, text, author: name() } });
+      const r = await api(`/essays/${encodeURIComponent(p.part || S.essay.id)}/notes`, { method: "POST", body: {
+        kind: p.kind, quote: p.quote, prefix: p.prefix, suffix: p.suffix, start: p.ls != null ? p.ls : p.s, replacement: rep, text, author: name() } });
       S.pending = null;
       await refresh(r.id);
       toast(p.kind === "suggest" ? "Suggestion added" : "Comment added");
@@ -1420,7 +1544,8 @@ async function act(a, card, btn) {
       const ta = card.querySelector(".rt");
       if (!ta.value.trim()) return;
       if (!name()) { toast("Please add your name first."); return; }
-      await api(`/essays/${encodeURIComponent(S.essay.id)}/notes`, { method: "POST", body: { parent_id: id, text: ta.value, author: name() } });
+      const parent = S.notes.find((x) => x.id === id);
+      await api(`/essays/${encodeURIComponent(parent ? parent.essay_id : S.essay.id)}/notes`, { method: "POST", body: { parent_id: id, text: ta.value, author: name() } });
       await refresh(id);
       return;
     }
@@ -1483,36 +1608,48 @@ async function tool(t) {
   if (t === "inline" || t === "clean") { S.view = t; ls.set("gl-view", t); renderTools(); renderDoc(); layoutCards(); return; }
   if (t === "closed") { S.showClosed = !S.showClosed; renderAll(); return; }
   if (t === "copy") {
-    try { await navigator.clipboard.writeText(S.essay.body.replace(/\^[0-9,–-]+\^/g, "")); toast("Copied the current text"); }
+    try { await navigator.clipboard.writeText(plainText(S.essay.body).replace(/\^[0-9,–-]+\^/g, "")); toast("Copied the current text"); }
     catch (e) { toast("Your browser blocked copying."); }
     return;
   }
   if (t === "versions") return versions();
 }
-async function versions() {
+async function versions(pid) {
   const dlg = $("#dlg");
-  const d = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions`);
-  dlg.innerHTML = `<div class="dlg"><header><span>Versions of ${esc(S.essay.title)}</span><button class="ib" data-c>✕</button></header>
-    <div class="body" id="vb">${d.versions.map((v) => `<div class="vrow" data-v="${v.version}"><span>Version ${v.version}${v.version === S.essay.version ? " (current)" : ""} · ${esc(v.saved_by || "")}</span>
+  if (S.group && !pid) {
+    dlg.innerHTML = `<div class="dlg"><header><span>Version history: choose a section</span><button class="ib" data-c>✕</button></header>
+      <div class="body">${S.parts.map((p) => `<div class="vrow" data-pid="${p.id}"><span>${esc(p.essay.title)}</span><span style="color:var(--muted)">version ${p.essay.version}</span></div>`).join("")}</div></div>`;
+    if (!dlg.open) dlg.showModal();
+    dlg.onclick = (ev) => {
+      if (ev.target === dlg || ev.target.closest("[data-c]")) return dlg.close();
+      const row = ev.target.closest("[data-pid]");
+      if (row) versions(row.dataset.pid);
+    };
+    return;
+  }
+  const pi = S.parts.findIndex((p) => p.id === (pid || S.essay.id)), part = S.parts[pi], eid = part.id;
+  const d = await api(`/essays/${encodeURIComponent(eid)}/versions`);
+  dlg.innerHTML = `<div class="dlg"><header><span>Versions of ${esc(part.essay.title)}</span><button class="ib" data-c>✕</button></header>
+    <div class="body" id="vb">${d.versions.map((v) => `<div class="vrow" data-v="${v.version}"><span>Version ${v.version}${v.version === part.essay.version ? " (current)" : ""} · ${esc(v.saved_by || "")}</span>
       <span style="color:var(--muted)">${fmt(v.words)} words · ${new Date(v.saved_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div>`).join("")}</div></div>`;
-  dlg.showModal();
+  if (!dlg.open) dlg.showModal();
   dlg.onclick = async (ev) => {
     if (ev.target === dlg || ev.target.closest("[data-c]")) return dlg.close();
     const row = ev.target.closest("[data-v]");
     if (row) {
-      const v = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions/${row.dataset.v}`);
+      const v = await api(`/essays/${encodeURIComponent(eid)}/versions/${row.dataset.v}`);
       $("#vb").innerHTML = `<p><button class="btn" data-back>‹ All versions</button>
-        ${v.version !== S.essay.version ? `<button class="btn pri" data-restore="${v.version}">Restore this version</button>` : ""}</p><pre>${esc(v.body)}</pre>`;
+        ${v.version !== part.essay.version ? `<button class="btn pri" data-restore="${v.version}">Restore this version</button>` : ""}</p><pre>${esc(v.body)}</pre>`;
       return;
     }
-    if (ev.target.closest("[data-back]")) { dlg.close(); return versions(); }
+    if (ev.target.closest("[data-back]")) return versions(eid);
     const rs = ev.target.closest("[data-restore]");
     if (rs) {
-      const v = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions/${rs.dataset.restore}`);
+      const v = await api(`/essays/${encodeURIComponent(eid)}/versions/${rs.dataset.restore}`);
       try {
         await flushAll(4000);
-        await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v.body, base_version: S.ver, author: name() || "Bryson" } });
-        S.essay.body = v.body; S.saved = v.body;
+        await api("/essays/" + encodeURIComponent(eid), { method: "PUT", body: { body: v.body, base_version: S.vers[pi], author: name() || "Bryson" } });
+        const ps = splitParts(S.essay.body); ps[pi] = v.body; S.essay.body = ps.join(SEP); S.saved = S.essay.body;
         dlg.close(); await refresh(null); toast("Restored version " + v.version);
       } catch (e) { toast(e.message); }
     }
@@ -1545,6 +1682,7 @@ function onSelection() {
   while (s < e && /\s/.test(body[s])) s++;
   while (e > s && /\s/.test(body[e - 1])) e--;
   if (e <= s) return hideBubble();
+  if (!locate(body, s, e)) return hideBubble();
   S.sel = { s, e, body };
   const sb = bubble.querySelector('[data-k="suggest"]'); if (sb) sb.style.display = S.mode === "view" ? "" : "none";
   const rect = r.getBoundingClientRect();
@@ -1573,7 +1711,9 @@ bubble.addEventListener("click", (e) => {
   const b = e.target.closest("[data-k]");
   if (!b || !S.sel) return;
   const { s, e: end, body } = S.sel;
-  S.pending = { kind: b.dataset.k, s, e: end, quote: body.slice(s, end), prefix: body.slice(Math.max(0, s - 32), s), suffix: body.slice(end, end + 32) };
+  const at = locate(body, s, end);
+  if (!at) { hideBubble(); return toast("Select text within one section."); }
+  S.pending = { kind: b.dataset.k, s, e: end, quote: at.quote, prefix: at.prefix, suffix: at.suffix, part: at.part, ls: at.ls };
   S.active = "pending";
   getSelection().removeAllRanges();
   hideBubble();
@@ -1612,14 +1752,14 @@ setInterval(async () => {
       }
     } else if (route().type === "hub" && $(".hub") && S.tick % 6 === 0) {
       const d = await api("/essays");
-      if (JSON.stringify(d.essays) !== JSON.stringify(S.essays)) { S.essays = d.essays; $(".list").innerHTML = d.essays.map(hubRow).join(""); }
+      if (JSON.stringify(d.essays) !== JSON.stringify(S.essays)) { S.essays = d.essays; $(".list").innerHTML = navList().map((x, i) => hubRow({ ...x, ord: i + 1 })).join(""); }
     }
   } catch (e) {}
 }, 5000);
 
 paintName();
 go();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S.essay && S.mode !== "suggest" && pageLimit(S.essay) && route().type === "essay" && !S.editing && $("#counts")) { renderCounts(); if (pagesMode()) renderPages(); } });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S.essay && S.mode !== "suggest" && pageLimit(pageTarget().essay) && route().type === "essay" && $("#counts")) { renderCounts(); if (pagesMode()) renderPages(); } });
 })();
 </script>
 </body>
