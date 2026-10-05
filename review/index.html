@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Gilliam drafts</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='3' width='20' height='26' rx='3' fill='%231a73e8'/%3E%3Crect x='10' y='10' width='12' height='2' fill='%23fff'/%3E%3Crect x='10' y='15' width='12' height='2' fill='%23fff'/%3E%3Crect x='10' y='20' width='8' height='2' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f1f3f4; --page: #fff; --ink: #202124; --muted: #5f6368; --faint: #80868b;
+  --line: #dadce0; --accent: #1a73e8; --accent-soft: #e8f0fe;
+  --hl: #fdeaa8; --hl-on: #fbcf4f; --pend: #c6dafc;
+  --ins: #137333; --ins-bg: #e6f4ea; --del: #b3261e; --over: #d93025; --ok: #188038;
+  --card: #fff; --shadow: 0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+button { font: inherit; cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px; min-height: 56px; }
+.top .brand { font-weight: 600; font-size: 16px; color: var(--ink); white-space: nowrap; }
+.top .brand:hover { text-decoration: none; }
+.top .crumb { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top .sp { flex: 1; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; font-size: 13px; color: var(--muted); background: #fff; white-space: nowrap; }
+button.chip:hover { background: var(--bg); }
+.chip.owner { border-color: var(--accent); color: var(--accent); }
+
+/* hub */
+.hub { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+.hub h1 { font-size: 26px; font-weight: 600; margin: 4px 0 6px; }
+.hub .lede { color: var(--muted); margin: 0 0 22px; max-width: 640px; }
+.list { background: #fff; border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+.row { display: grid; grid-template-columns: 34px minmax(0,1fr) 170px 150px; gap: 14px; align-items: center;
+  padding: 14px 18px; border-top: 1px solid var(--line); color: var(--ink); }
+.row:first-child { border-top: 0; }
+.row:hover { background: #f8f9fa; text-decoration: none; }
+.row .num { color: var(--faint); font-variant-numeric: tabular-nums; }
+.row .t { font-weight: 600; font-size: 15px; }
+.row .p { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .notes { font-size: 13px; color: var(--muted); text-align: right; }
+.row .notes b { color: var(--ink); font-weight: 600; }
+.wc { font-size: 13px; font-variant-numeric: tabular-nums; }
+.wc .n { font-weight: 600; }
+.wc.over .n { color: var(--over); }
+.bar { height: 4px; background: #e8eaed; border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.wc.over .bar i { background: var(--over); }
+
+/* essay view */
+.wrap { max-width: 1140px; margin: 0 auto; padding: 18px 20px 80px; }
+.nav { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; font-size: 14px; }
+.grid { display: grid; grid-template-columns: minmax(0, 780px) 300px; gap: 22px; justify-content: center; }
+.prompt { background: #fff; border-radius: 10px; box-shadow: var(--shadow); padding: 18px 22px; margin-bottom: 14px; }
+.prompt h1 { font-size: 21px; font-weight: 600; margin: 0 0 10px; }
+.lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); font-weight: 600; margin-bottom: 3px; }
+.prompt p { margin: 0 0 12px; color: #3c4043; }
+.counts { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: flex-end; }
+.counts .wc { min-width: 180px; }
+.counts .wc .big { font-size: 20px; }
+.counts .alt { font-size: 13px; color: var(--muted); }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.tools .hint { color: var(--muted); font-size: 13px; margin-right: auto; }
+.btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 12px; color: var(--ink); font-size: 13px; }
+.btn:hover { background: #f8f9fa; }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.pri:hover { background: #1765cc; }
+.btn:disabled { opacity: .5; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+.seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+.page { background: var(--page); box-shadow: var(--shadow); padding: 56px 68px 72px; min-height: 60vh;
+  font: 15px/1.6 Arial, Helvetica, sans-serif; white-space: pre-wrap; overflow-wrap: break-word; }
+.page .hl { background: var(--hl); border-bottom: 2px solid #f7c948; cursor: pointer; }
+.page .hl.on, .page .sg.on { background: var(--hl-on); }
+.page .sg { color: var(--del); text-decoration: line-through; text-decoration-thickness: 1px; cursor: pointer; }
+.page.clean .sg { color: inherit; text-decoration: none; background: var(--ins-bg); border-bottom: 2px dotted var(--ins); }
+.page .sg.hl { background: var(--hl); }
+.page .ins { color: var(--ins); text-decoration: underline; text-decoration-thickness: 1px; cursor: pointer; }
+.page .ins.on { background: var(--hl-on); }
+.page.clean .ins { display: none; }
+.page .pend { background: var(--pend); }
+.page .cr { display: none; }
+.page sup { font-size: 70%; line-height: 0; }
+.page .figwrap { display: block; margin: 8px 0 0; }
+.page .figwrap img { width: 100%; height: auto; display: block; border: 1px solid var(--line); }
+.editor { width: 100%; min-height: 70vh; border: 0; outline: 2px solid var(--accent); resize: vertical;
+  font: 15px/1.6 Arial, Helvetica, sans-serif; padding: 56px 68px; box-shadow: var(--shadow); color: var(--ink); }
+
+/* margin + cards */
+.margin { position: relative; }
+.card { position: absolute; left: 0; right: 0; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
+  padding: 10px 12px; font-size: 13px; transition: top .18s ease, transform .18s ease; cursor: default; }
+.card.on { transform: translateX(-10px); box-shadow: 0 2px 6px rgba(60,64,67,.3), 0 4px 12px 2px rgba(60,64,67,.15); z-index: 2; }
+.card.closed { opacity: .72; }
+.card .ch { display: flex; align-items: flex-start; gap: 8px; }
+.av { width: 28px; height: 28px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-weight: 600; flex: none; font-size: 13px; }
+.card .who { flex: 1; min-width: 0; line-height: 1.25; }
+.card .who b { display: block; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .who small { color: var(--faint); font-size: 12px; }
+.card .acts { display: flex; gap: 2px; }
+.ib { border: 0; background: transparent; border-radius: 50%; width: 28px; height: 28px; display: grid; place-items: center; color: var(--muted); font-size: 15px; }
+.ib:hover { background: var(--bg); }
+.ib.ok { color: var(--ok); }
+.ib.no { color: var(--del); }
+.card .q { margin: 8px 0 0; color: var(--muted); font-size: 12px; border-left: 3px solid var(--hl-on); padding-left: 8px; white-space: pre-wrap; }
+.card .sgx { margin: 8px 0 0; white-space: pre-wrap; }
+.card .sgx del { color: var(--del); }
+.card .sgx ins { color: var(--ins); text-decoration: none; background: var(--ins-bg); }
+.card .tx { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: break-word; }
+.card .st { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.card .rep { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.card .rep .who b { display: inline; }
+.card .rb { display: none; margin-top: 10px; }
+.card.on .rb { display: block; }
+.card .detach { margin-top: 6px; font-size: 12px; color: var(--del); }
+.card textarea, .card input { width: 100%; font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; resize: vertical; }
+.card textarea:focus, .card input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.card .row2 { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.card .f { margin-top: 8px; }
+.card .f .lbl { margin-bottom: 4px; }
+.card.compose { border-left: 3px solid var(--accent); z-index: 3; }
+.empty-m { color: var(--faint); font-size: 13px; padding: 4px 2px; }
+
+/* selection bubble, toast, dialogs */
+.bubble { position: fixed; z-index: 40; display: none; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(60,64,67,.35);
+  padding: 4px; gap: 2px; }
+.bubble.show { display: flex; }
+.bubble button { border: 0; background: #fff; border-radius: 6px; padding: 7px 11px; font-size: 13px; color: var(--ink); display: flex; gap: 6px; align-items: center; }
+.bubble button:hover { background: var(--accent-soft); color: var(--accent); }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #202124; color: #fff;
+  padding: 10px 16px; border-radius: 6px; font-size: 14px; opacity: 0; transition: .2s; z-index: 60; pointer-events: none; max-width: 90vw; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+dialog { border: 0; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.25); padding: 0; width: min(760px, 94vw); max-height: 86vh; }
+dialog::backdrop { background: rgba(32,33,36,.45); }
+.dlg { display: flex; flex-direction: column; max-height: 86vh; }
+.dlg header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.dlg .body { overflow: auto; padding: 14px 18px; }
+.dlg .vrow { display: flex; justify-content: space-between; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.dlg .vrow:hover { background: #f8f9fa; }
+.dlg pre { white-space: pre-wrap; font: 14px/1.55 Arial, sans-serif; margin: 0; }
+.center { max-width: 520px; margin: 18vh auto; background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 28px; text-align: center; }
+.center h1 { font-size: 20px; margin: 0 0 8px; }
+.center p { color: var(--muted); margin: 0; }
+.loading { color: var(--muted); padding: 40px; text-align: center; }
+
+@media (max-width: 1000px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .margin { position: static; }
+  .card { position: relative; top: auto !important; margin-bottom: 10px; }
+  .card.on { transform: none; outline: 2px solid var(--accent); }
+  .mhead { display: block !important; }
+}
+@media (max-width: 700px) {
+  .top { padding: 8px 16px; }
+  .top .crumb, #due, .nav .prev, .nav .dot { display: none; }
+  .top { gap: 8px; }
+  #namechip { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+  .hub, .wrap { padding-left: 16px; padding-right: 16px; }
+  .row { grid-template-columns: minmax(0,1fr) auto; }
+  .row .num { display: none; }
+  .row .notes { grid-column: 2; grid-row: 1; }
+  .row .wc { grid-column: 1 / -1; }
+  .page, .editor { padding: 26px 20px 36px; font-size: 16px; }
+  .prompt { padding: 16px; }
+}
+.mhead { display: none; font-weight: 600; margin: 18px 0 8px; }
+
+/* True-size page measurement for the page-limited pieces: US Letter, 1-inch margins,
+   Arial 11 pt, single-spaced (Word's "single" for Arial is 1.15 x the font size), 6 pt after
+   each paragraph, figures 6.5 in wide. Arimo is Arial's metric twin, used where Arial isn't installed. */
+.measure { position: absolute; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
+.pflow { width: 6.5in; font-family: Arial, Arimo, "Liberation Sans", Helvetica, sans-serif; font-size: 11pt; line-height: 1.15; color: #000; }
+.pflow p { margin: 0 0 6pt; white-space: pre-wrap; overflow-wrap: break-word; }
+.pflow sup { font-size: 7pt; line-height: 0; }
+.pflow .pfig { margin: 0 0 6pt; }
+.pflow .pfig img, .pflow .pfig i { display: block; width: 6.5in; }
+.pflow .pfig i { background: #f1f3f4; }
+.sheets { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.sheetbox { position: relative; flex: none; }
+.sheet { position: absolute; left: 0; top: 0; width: 8.5in; height: 11in; padding: 1in; background: #fff;
+  box-shadow: var(--shadow); transform-origin: top left; }
+.sheet .clip { overflow: hidden; }
+.sheet .pno { position: absolute; left: 0; right: 0; bottom: .45in; text-align: center; font: 9pt Arial, sans-serif; color: var(--faint); }
+.sheet .marg { position: absolute; inset: 1in; outline: 1px dashed #e0e3e7; pointer-events: none; }
+.sheet.over { box-shadow: 0 0 0 4px var(--over); }
+.sheet .overtag { position: absolute; top: .4in; left: 1in; right: 1in; color: var(--over); font: 600 13pt system-ui, sans-serif; }
+.fmtnote { font-size: 12px; color: var(--faint); margin-top: 4px; }
+
+/* suggesting mode: type on the page, changes show as tracked edits */
+.page.suggesting { outline: 2px solid var(--ins); caret-color: var(--ins); cursor: text; }
+.page.suggesting:focus { outline-width: 3px; }
+.page .s-ins { color: var(--ins); background: var(--ins-bg); text-decoration: underline; text-decoration-thickness: 1px; }
+.page .s-del { color: var(--del); text-decoration: line-through; text-decoration-thickness: 1px; user-select: none; -webkit-user-select: none; }
+.btn.sug { border-color: var(--ins); color: var(--ins); }
+.seg button.on.sug { background: var(--ins-bg); color: var(--ins); }
+.card.static { position: relative; top: auto !important; margin-bottom: 10px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&display=swap">
+</head>
+<body>
+<div class="top">
+  <a class="brand" href="#/">Gilliam 2027</a>
+  <span class="crumb" id="crumb"></span>
+  <span class="sp"></span>
+  <span class="chip" id="due" title="HHMI deadline: Tuesday, October 27, 2026, 11:59 PM ET"></span>
+  <span class="chip owner" id="ownerchip" hidden>Owner</span>
+  <button class="chip" id="namechip" type="button"></button>
+</div>
+<main id="app"><div class="loading">Loading…</div></main>
+<div class="bubble" id="bubble">
+  <button type="button" data-k="comment">💬 Comment</button>
+  <button type="button" data-k="suggest">✎ Suggest edit</button>
+</div>
+<div class="toast" id="toast"></div>
+<dialog id="dlg"></dialog>
+
+<script>
+/* diff-match-patch (c) 2006 Google Inc., Apache License 2.0, https://github.com/google/diff-match-patch */
+(function(){var module={exports:{}};var diff_match_patch=function(){this.Diff_Timeout=1,this.Diff_EditCost=4,this.Match_Threshold=.5,this.Match_Distance=1e3,this.Patch_DeleteThreshold=.5,this.Patch_Margin=4,this.Match_MaxBits=32},DIFF_DELETE=-1,DIFF_INSERT=1,DIFF_EQUAL=0;diff_match_patch.Diff=function(t,i){return[t,i]},diff_match_patch.prototype.diff_main=function(t,i,h,e){void 0===e&&(e=this.Diff_Timeout<=0?Number.MAX_VALUE:(new Date).getTime()+1e3*this.Diff_Timeout);var f=e;if(null==t||null==i)throw new Error("Null input. (diff_main)");if(t==i)return t?[new diff_match_patch.Diff(DIFF_EQUAL,t)]:[];void 0===h&&(h=!0);var n=h,a=this.diff_commonPrefix(t,i),r=t.substring(0,a);t=t.substring(a),i=i.substring(a),a=this.diff_commonSuffix(t,i);var s=t.substring(t.length-a);t=t.substring(0,t.length-a),i=i.substring(0,i.length-a);var _=this.diff_compute_(t,i,n,f);return r&&_.unshift(new diff_match_patch.Diff(DIFF_EQUAL,r)),s&&_.push(new diff_match_patch.Diff(DIFF_EQUAL,s)),this.diff_cleanupMerge(_),_},diff_match_patch.prototype.diff_compute_=function(t,i,h,e){var f;if(!t)return[new diff_match_patch.Diff(DIFF_INSERT,i)];if(!i)return[new diff_match_patch.Diff(DIFF_DELETE,t)];var n=t.length>i.length?t:i,a=t.length>i.length?i:t,r=n.indexOf(a);if(-1!=r)return f=[new diff_match_patch.Diff(DIFF_INSERT,n.substring(0,r)),new diff_match_patch.Diff(DIFF_EQUAL,a),new diff_match_patch.Diff(DIFF_INSERT,n.substring(r+a.length))],t.length>i.length&&(f[0][0]=f[2][0]=DIFF_DELETE),f;if(1==a.length)return[new diff_match_patch.Diff(DIFF_DELETE,t),new diff_match_patch.Diff(DIFF_INSERT,i)];var s=this.diff_halfMatch_(t,i);if(s){var _=s[0],c=s[1],l=s[2],g=s[3],o=s[4],p=this.diff_main(_,l,h,e),d=this.diff_main(c,g,h,e);return p.concat([new diff_match_patch.Diff(DIFF_EQUAL,o)],d)}return h&&t.length>100&&i.length>100?this.diff_lineMode_(t,i,e):this.diff_bisect_(t,i,e)},diff_match_patch.prototype.diff_lineMode_=function(t,i,h){var e=this.diff_linesToChars_(t,i);t=e.chars1,i=e.chars2;var f=e.lineArray,n=this.diff_main(t,i,!1,h);this.diff_charsToLines_(n,f),this.diff_cleanupSemantic(n),n.push(new diff_match_patch.Diff(DIFF_EQUAL,""));for(var a=0,r=0,s=0,_="",c="";a<n.length;){switch(n[a][0]){case DIFF_INSERT:s++,c+=n[a][1];break;case DIFF_DELETE:r++,_+=n[a][1];break;case DIFF_EQUAL:if(r>=1&&s>=1){n.splice(a-r-s,r+s),a=a-r-s;for(var l=this.diff_main(_,c,!1,h),g=l.length-1;g>=0;g--)n.splice(a,0,l[g]);a+=l.length}s=0,r=0,_="",c=""}a++}return n.pop(),n},diff_match_patch.prototype.diff_bisect_=function(t,i,h){for(var e=t.length,f=i.length,n=Math.ceil((e+f)/2),a=n,r=2*n,s=new Array(r),_=new Array(r),c=0;c<r;c++)s[c]=-1,_[c]=-1;s[a+1]=0,_[a+1]=0;for(var l=e-f,g=l%2!=0,o=0,p=0,d=0,u=0,m=0;m<n&&!((new Date).getTime()>h);m++){for(var F=-m+o;F<=m-p;F+=2){for(var D=a+F,E=(L=F==-m||F!=m&&s[D-1]<s[D+1]?s[D+1]:s[D-1]+1)-F;L<e&&E<f&&t.charAt(L)==i.charAt(E);)L++,E++;if(s[D]=L,L>e)p+=2;else if(E>f)o+=2;else if(g){if((v=a+l-F)>=0&&v<r&&-1!=_[v])if(L>=(b=e-_[v]))return this.diff_bisectSplit_(t,i,L,E,h)}}for(var I=-m+d;I<=m-u;I+=2){for(var b,v=a+I,w=(b=I==-m||I!=m&&_[v-1]<_[v+1]?_[v+1]:_[v-1]+1)-I;b<e&&w<f&&t.charAt(e-b-1)==i.charAt(f-w-1);)b++,w++;if(_[v]=b,b>e)u+=2;else if(w>f)d+=2;else if(!g){if((D=a+l-I)>=0&&D<r&&-1!=s[D]){var L;E=a+(L=s[D])-D;if(L>=(b=e-b))return this.diff_bisectSplit_(t,i,L,E,h)}}}}return[new diff_match_patch.Diff(DIFF_DELETE,t),new diff_match_patch.Diff(DIFF_INSERT,i)]},diff_match_patch.prototype.diff_bisectSplit_=function(t,i,h,e,f){var n=t.substring(0,h),a=i.substring(0,e),r=t.substring(h),s=i.substring(e),_=this.diff_main(n,a,!1,f),c=this.diff_main(r,s,!1,f);return _.concat(c)},diff_match_patch.prototype.diff_linesToChars_=function(t,i){var h=[],e={};function f(t){for(var i="",f=0,a=-1,r=h.length;a<t.length-1;){-1==(a=t.indexOf("\n",f))&&(a=t.length-1);var s=t.substring(f,a+1);(e.hasOwnProperty?e.hasOwnProperty(s):void 0!==e[s])?i+=String.fromCharCode(e[s]):(r==n&&(s=t.substring(f),a=t.length),i+=String.fromCharCode(r),e[s]=r,h[r++]=s),f=a+1}return i}h[0]="";var n=4e4,a=f(t);return n=65535,{chars1:a,chars2:f(i),lineArray:h}},diff_match_patch.prototype.diff_charsToLines_=function(t,i){for(var h=0;h<t.length;h++){for(var e=t[h][1],f=[],n=0;n<e.length;n++)f[n]=i[e.charCodeAt(n)];t[h][1]=f.join("")}},diff_match_patch.prototype.diff_commonPrefix=function(t,i){if(!t||!i||t.charAt(0)!=i.charAt(0))return 0;for(var h=0,e=Math.min(t.length,i.length),f=e,n=0;h<f;)t.substring(n,f)==i.substring(n,f)?n=h=f:e=f,f=Math.floor((e-h)/2+h);return f},diff_match_patch.prototype.diff_commonSuffix=function(t,i){if(!t||!i||t.charAt(t.length-1)!=i.charAt(i.length-1))return 0;for(var h=0,e=Math.min(t.length,i.length),f=e,n=0;h<f;)t.substring(t.length-f,t.length-n)==i.substring(i.length-f,i.length-n)?n=h=f:e=f,f=Math.floor((e-h)/2+h);return f},diff_match_patch.prototype.diff_commonOverlap_=function(t,i){var h=t.length,e=i.length;if(0==h||0==e)return 0;h>e?t=t.substring(h-e):h<e&&(i=i.substring(0,h));var f=Math.min(h,e);if(t==i)return f;for(var n=0,a=1;;){var r=t.substring(f-a),s=i.indexOf(r);if(-1==s)return n;a+=s,0!=s&&t.substring(f-a)!=i.substring(0,a)||(n=a,a++)}},diff_match_patch.prototype.diff_halfMatch_=function(t,i){if(this.Diff_Timeout<=0)return null;var h=t.length>i.length?t:i,e=t.length>i.length?i:t;if(h.length<4||2*e.length<h.length)return null;var f=this;function n(t,i,h){for(var e,n,a,r,s=t.substring(h,h+Math.floor(t.length/4)),_=-1,c="";-1!=(_=i.indexOf(s,_+1));){var l=f.diff_commonPrefix(t.substring(h),i.substring(_)),g=f.diff_commonSuffix(t.substring(0,h),i.substring(0,_));c.length<g+l&&(c=i.substring(_-g,_)+i.substring(_,_+l),e=t.substring(0,h-g),n=t.substring(h+l),a=i.substring(0,_-g),r=i.substring(_+l))}return 2*c.length>=t.length?[e,n,a,r,c]:null}var a,r,s,_,c,l=n(h,e,Math.ceil(h.length/4)),g=n(h,e,Math.ceil(h.length/2));return l||g?(a=g?l&&l[4].length>g[4].length?l:g:l,t.length>i.length?(r=a[0],s=a[1],_=a[2],c=a[3]):(_=a[0],c=a[1],r=a[2],s=a[3]),[r,s,_,c,a[4]]):null},diff_match_patch.prototype.diff_cleanupSemantic=function(t){for(var i=!1,h=[],e=0,f=null,n=0,a=0,r=0,s=0,_=0;n<t.length;)t[n][0]==DIFF_EQUAL?(h[e++]=n,a=s,r=_,s=0,_=0,f=t[n][1]):(t[n][0]==DIFF_INSERT?s+=t[n][1].length:_+=t[n][1].length,f&&f.length<=Math.max(a,r)&&f.length<=Math.max(s,_)&&(t.splice(h[e-1],0,new diff_match_patch.Diff(DIFF_DELETE,f)),t[h[e-1]+1][0]=DIFF_INSERT,e--,n=--e>0?h[e-1]:-1,a=0,r=0,s=0,_=0,f=null,i=!0)),n++;for(i&&this.diff_cleanupMerge(t),this.diff_cleanupSemanticLossless(t),n=1;n<t.length;){if(t[n-1][0]==DIFF_DELETE&&t[n][0]==DIFF_INSERT){var c=t[n-1][1],l=t[n][1],g=this.diff_commonOverlap_(c,l),o=this.diff_commonOverlap_(l,c);g>=o?(g>=c.length/2||g>=l.length/2)&&(t.splice(n,0,new diff_match_patch.Diff(DIFF_EQUAL,l.substring(0,g))),t[n-1][1]=c.substring(0,c.length-g),t[n+1][1]=l.substring(g),n++):(o>=c.length/2||o>=l.length/2)&&(t.splice(n,0,new diff_match_patch.Diff(DIFF_EQUAL,c.substring(0,o))),t[n-1][0]=DIFF_INSERT,t[n-1][1]=l.substring(0,l.length-o),t[n+1][0]=DIFF_DELETE,t[n+1][1]=c.substring(o),n++),n++}n++}},diff_match_patch.prototype.diff_cleanupSemanticLossless=function(t){function i(t,i){if(!t||!i)return 6;var h=t.charAt(t.length-1),e=i.charAt(0),f=h.match(diff_match_patch.nonAlphaNumericRegex_),n=e.match(diff_match_patch.nonAlphaNumericRegex_),a=f&&h.match(diff_match_patch.whitespaceRegex_),r=n&&e.match(diff_match_patch.whitespaceRegex_),s=a&&h.match(diff_match_patch.linebreakRegex_),_=r&&e.match(diff_match_patch.linebreakRegex_),c=s&&t.match(diff_match_patch.blanklineEndRegex_),l=_&&i.match(diff_match_patch.blanklineStartRegex_);return c||l?5:s||_?4:f&&!a&&r?3:a||r?2:f||n?1:0}for(var h=1;h<t.length-1;){if(t[h-1][0]==DIFF_EQUAL&&t[h+1][0]==DIFF_EQUAL){var e=t[h-1][1],f=t[h][1],n=t[h+1][1],a=this.diff_commonSuffix(e,f);if(a){var r=f.substring(f.length-a);e=e.substring(0,e.length-a),f=r+f.substring(0,f.length-a),n=r+n}for(var s=e,_=f,c=n,l=i(e,f)+i(f,n);f.charAt(0)===n.charAt(0);){e+=f.charAt(0),f=f.substring(1)+n.charAt(0),n=n.substring(1);var g=i(e,f)+i(f,n);g>=l&&(l=g,s=e,_=f,c=n)}t[h-1][1]!=s&&(s?t[h-1][1]=s:(t.splice(h-1,1),h--),t[h][1]=_,c?t[h+1][1]=c:(t.splice(h+1,1),h--))}h++}},diff_match_patch.nonAlphaNumericRegex_=/[^a-zA-Z0-9]/,diff_match_patch.whitespaceRegex_=/\s/,diff_match_patch.linebreakRegex_=/[\r\n]/,diff_match_patch.blanklineEndRegex_=/\n\r?\n$/,diff_match_patch.blanklineStartRegex_=/^\r?\n\r?\n/,diff_match_patch.prototype.diff_cleanupEfficiency=function(t){for(var i=!1,h=[],e=0,f=null,n=0,a=!1,r=!1,s=!1,_=!1;n<t.length;)t[n][0]==DIFF_EQUAL?(t[n][1].length<this.Diff_EditCost&&(s||_)?(h[e++]=n,a=s,r=_,f=t[n][1]):(e=0,f=null),s=_=!1):(t[n][0]==DIFF_DELETE?_=!0:s=!0,f&&(a&&r&&s&&_||f.length<this.Diff_EditCost/2&&a+r+s+_==3)&&(t.splice(h[e-1],0,new diff_match_patch.Diff(DIFF_DELETE,f)),t[h[e-1]+1][0]=DIFF_INSERT,e--,f=null,a&&r?(s=_=!0,e=0):(n=--e>0?h[e-1]:-1,s=_=!1),i=!0)),n++;i&&this.diff_cleanupMerge(t)},diff_match_patch.prototype.diff_cleanupMerge=function(t){t.push(new diff_match_patch.Diff(DIFF_EQUAL,""));for(var i,h=0,e=0,f=0,n="",a="";h<t.length;)switch(t[h][0]){case DIFF_INSERT:f++,a+=t[h][1],h++;break;case DIFF_DELETE:e++,n+=t[h][1],h++;break;case DIFF_EQUAL:e+f>1?(0!==e&&0!==f&&(0!==(i=this.diff_commonPrefix(a,n))&&(h-e-f>0&&t[h-e-f-1][0]==DIFF_EQUAL?t[h-e-f-1][1]+=a.substring(0,i):(t.splice(0,0,new diff_match_patch.Diff(DIFF_EQUAL,a.substring(0,i))),h++),a=a.substring(i),n=n.substring(i)),0!==(i=this.diff_commonSuffix(a,n))&&(t[h][1]=a.substring(a.length-i)+t[h][1],a=a.substring(0,a.length-i),n=n.substring(0,n.length-i))),h-=e+f,t.splice(h,e+f),n.length&&(t.splice(h,0,new diff_match_patch.Diff(DIFF_DELETE,n)),h++),a.length&&(t.splice(h,0,new diff_match_patch.Diff(DIFF_INSERT,a)),h++),h++):0!==h&&t[h-1][0]==DIFF_EQUAL?(t[h-1][1]+=t[h][1],t.splice(h,1)):h++,f=0,e=0,n="",a=""}""===t[t.length-1][1]&&t.pop();var r=!1;for(h=1;h<t.length-1;)t[h-1][0]==DIFF_EQUAL&&t[h+1][0]==DIFF_EQUAL&&(t[h][1].substring(t[h][1].length-t[h-1][1].length)==t[h-1][1]?(t[h][1]=t[h-1][1]+t[h][1].substring(0,t[h][1].length-t[h-1][1].length),t[h+1][1]=t[h-1][1]+t[h+1][1],t.splice(h-1,1),r=!0):t[h][1].substring(0,t[h+1][1].length)==t[h+1][1]&&(t[h-1][1]+=t[h+1][1],t[h][1]=t[h][1].substring(t[h+1][1].length)+t[h+1][1],t.splice(h+1,1),r=!0)),h++;r&&this.diff_cleanupMerge(t)},diff_match_patch.prototype.diff_xIndex=function(t,i){var h,e=0,f=0,n=0,a=0;for(h=0;h<t.length&&(t[h][0]!==DIFF_INSERT&&(e+=t[h][1].length),t[h][0]!==DIFF_DELETE&&(f+=t[h][1].length),!(e>i));h++)n=e,a=f;return t.length!=h&&t[h][0]===DIFF_DELETE?a:a+(i-n)},diff_match_patch.prototype.diff_prettyHtml=function(t){for(var i=[],h=/&/g,e=/</g,f=/>/g,n=/\n/g,a=0;a<t.length;a++){var r=t[a][0],s=t[a][1].replace(h,"&amp;").replace(e,"&lt;").replace(f,"&gt;").replace(n,"&para;<br>");switch(r){case DIFF_INSERT:i[a]='<ins style="background:#e6ffe6;">'+s+"</ins>";break;case DIFF_DELETE:i[a]='<del style="background:#ffe6e6;">'+s+"</del>";break;case DIFF_EQUAL:i[a]="<span>"+s+"</span>"}}return i.join("")},diff_match_patch.prototype.diff_text1=function(t){for(var i=[],h=0;h<t.length;h++)t[h][0]!==DIFF_INSERT&&(i[h]=t[h][1]);return i.join("")},diff_match_patch.prototype.diff_text2=function(t){for(var i=[],h=0;h<t.length;h++)t[h][0]!==DIFF_DELETE&&(i[h]=t[h][1]);return i.join("")},diff_match_patch.prototype.diff_levenshtein=function(t){for(var i=0,h=0,e=0,f=0;f<t.length;f++){var n=t[f][0],a=t[f][1];switch(n){case DIFF_INSERT:h+=a.length;break;case DIFF_DELETE:e+=a.length;break;case DIFF_EQUAL:i+=Math.max(h,e),h=0,e=0}}return i+=Math.max(h,e)},diff_match_patch.prototype.diff_toDelta=function(t){for(var i=[],h=0;h<t.length;h++)switch(t[h][0]){case DIFF_INSERT:i[h]="+"+encodeURI(t[h][1]);break;case DIFF_DELETE:i[h]="-"+t[h][1].length;break;case DIFF_EQUAL:i[h]="="+t[h][1].length}return i.join("\t").replace(/%20/g," ")},diff_match_patch.prototype.diff_fromDelta=function(t,i){for(var h=[],e=0,f=0,n=i.split(/\t/g),a=0;a<n.length;a++){var r=n[a].substring(1);switch(n[a].charAt(0)){case"+":try{h[e++]=new diff_match_patch.Diff(DIFF_INSERT,decodeURI(r))}catch(t){throw new Error("Illegal escape in diff_fromDelta: "+r)}break;case"-":case"=":var s=parseInt(r,10);if(isNaN(s)||s<0)throw new Error("Invalid number in diff_fromDelta: "+r);var _=t.substring(f,f+=s);"="==n[a].charAt(0)?h[e++]=new diff_match_patch.Diff(DIFF_EQUAL,_):h[e++]=new diff_match_patch.Diff(DIFF_DELETE,_);break;default:if(n[a])throw new Error("Invalid diff operation in diff_fromDelta: "+n[a])}}if(f!=t.length)throw new Error("Delta length ("+f+") does not equal source text length ("+t.length+").");return h},diff_match_patch.prototype.match_main=function(t,i,h){if(null==t||null==i||null==h)throw new Error("Null input. (match_main)");return h=Math.max(0,Math.min(h,t.length)),t==i?0:t.length?t.substring(h,h+i.length)==i?h:this.match_bitap_(t,i,h):-1},diff_match_patch.prototype.match_bitap_=function(t,i,h){if(i.length>this.Match_MaxBits)throw new Error("Pattern too long for this browser.");var e=this.match_alphabet_(i),f=this;function n(t,e){var n=t/i.length,a=Math.abs(h-e);return f.Match_Distance?n+a/f.Match_Distance:a?1:n}var a=this.Match_Threshold,r=t.indexOf(i,h);-1!=r&&(a=Math.min(n(0,r),a),-1!=(r=t.lastIndexOf(i,h+i.length))&&(a=Math.min(n(0,r),a)));var s,_,c=1<<i.length-1;r=-1;for(var l,g=i.length+t.length,o=0;o<i.length;o++){for(s=0,_=g;s<_;)n(o,h+_)<=a?s=_:g=_,_=Math.floor((g-s)/2+s);g=_;var p=Math.max(1,h-_+1),d=Math.min(h+_,t.length)+i.length,u=Array(d+2);u[d+1]=(1<<o)-1;for(var m=d;m>=p;m--){var F=e[t.charAt(m-1)];if(u[m]=0===o?(u[m+1]<<1|1)&F:(u[m+1]<<1|1)&F|(l[m+1]|l[m])<<1|1|l[m+1],u[m]&c){var D=n(o,m-1);if(D<=a){if(a=D,!((r=m-1)>h))break;p=Math.max(1,2*h-r)}}}if(n(o+1,h)>a)break;l=u}return r},diff_match_patch.prototype.match_alphabet_=function(t){for(var i={},h=0;h<t.length;h++)i[t.charAt(h)]=0;for(h=0;h<t.length;h++)i[t.charAt(h)]|=1<<t.length-h-1;return i},diff_match_patch.prototype.patch_addContext_=function(t,i){if(0!=i.length){if(null===t.start2)throw Error("patch not initialized");for(var h=i.substring(t.start2,t.start2+t.length1),e=0;i.indexOf(h)!=i.lastIndexOf(h)&&h.length<this.Match_MaxBits-this.Patch_Margin-this.Patch_Margin;)e+=this.Patch_Margin,h=i.substring(t.start2-e,t.start2+t.length1+e);e+=this.Patch_Margin;var f=i.substring(t.start2-e,t.start2);f&&t.diffs.unshift(new diff_match_patch.Diff(DIFF_EQUAL,f));var n=i.substring(t.start2+t.length1,t.start2+t.length1+e);n&&t.diffs.push(new diff_match_patch.Diff(DIFF_EQUAL,n)),t.start1-=f.length,t.start2-=f.length,t.length1+=f.length+n.length,t.length2+=f.length+n.length}},diff_match_patch.prototype.patch_make=function(t,i,h){var e,f;if("string"==typeof t&&"string"==typeof i&&void 0===h)e=t,(f=this.diff_main(e,i,!0)).length>2&&(this.diff_cleanupSemantic(f),this.diff_cleanupEfficiency(f));else if(t&&"object"==typeof t&&void 0===i&&void 0===h)f=t,e=this.diff_text1(f);else if("string"==typeof t&&i&&"object"==typeof i&&void 0===h)e=t,f=i;else{if("string"!=typeof t||"string"!=typeof i||!h||"object"!=typeof h)throw new Error("Unknown call format to patch_make.");e=t,f=h}if(0===f.length)return[];for(var n=[],a=new diff_match_patch.patch_obj,r=0,s=0,_=0,c=e,l=e,g=0;g<f.length;g++){var o=f[g][0],p=f[g][1];switch(r||o===DIFF_EQUAL||(a.start1=s,a.start2=_),o){case DIFF_INSERT:a.diffs[r++]=f[g],a.length2+=p.length,l=l.substring(0,_)+p+l.substring(_);break;case DIFF_DELETE:a.length1+=p.length,a.diffs[r++]=f[g],l=l.substring(0,_)+l.substring(_+p.length);break;case DIFF_EQUAL:p.length<=2*this.Patch_Margin&&r&&f.length!=g+1?(a.diffs[r++]=f[g],a.length1+=p.length,a.length2+=p.length):p.length>=2*this.Patch_Margin&&r&&(this.patch_addContext_(a,c),n.push(a),a=new diff_match_patch.patch_obj,r=0,c=l,s=_)}o!==DIFF_INSERT&&(s+=p.length),o!==DIFF_DELETE&&(_+=p.length)}return r&&(this.patch_addContext_(a,c),n.push(a)),n},diff_match_patch.prototype.patch_deepCopy=function(t){for(var i=[],h=0;h<t.length;h++){var e=t[h],f=new diff_match_patch.patch_obj;f.diffs=[];for(var n=0;n<e.diffs.length;n++)f.diffs[n]=new diff_match_patch.Diff(e.diffs[n][0],e.diffs[n][1]);f.start1=e.start1,f.start2=e.start2,f.length1=e.length1,f.length2=e.length2,i[h]=f}return i},diff_match_patch.prototype.patch_apply=function(t,i){if(0==t.length)return[i,[]];t=this.patch_deepCopy(t);var h=this.patch_addPadding(t);i=h+i+h,this.patch_splitMax(t);for(var e=0,f=[],n=0;n<t.length;n++){var a,r,s=t[n].start2+e,_=this.diff_text1(t[n].diffs),c=-1;if(_.length>this.Match_MaxBits?-1!=(a=this.match_main(i,_.substring(0,this.Match_MaxBits),s))&&(-1==(c=this.match_main(i,_.substring(_.length-this.Match_MaxBits),s+_.length-this.Match_MaxBits))||a>=c)&&(a=-1):a=this.match_main(i,_,s),-1==a)f[n]=!1,e-=t[n].length2-t[n].length1;else if(f[n]=!0,e=a-s,_==(r=-1==c?i.substring(a,a+_.length):i.substring(a,c+this.Match_MaxBits)))i=i.substring(0,a)+this.diff_text2(t[n].diffs)+i.substring(a+_.length);else{var l=this.diff_main(_,r,!1);if(_.length>this.Match_MaxBits&&this.diff_levenshtein(l)/_.length>this.Patch_DeleteThreshold)f[n]=!1;else{this.diff_cleanupSemanticLossless(l);for(var g,o=0,p=0;p<t[n].diffs.length;p++){var d=t[n].diffs[p];d[0]!==DIFF_EQUAL&&(g=this.diff_xIndex(l,o)),d[0]===DIFF_INSERT?i=i.substring(0,a+g)+d[1]+i.substring(a+g):d[0]===DIFF_DELETE&&(i=i.substring(0,a+g)+i.substring(a+this.diff_xIndex(l,o+d[1].length))),d[0]!==DIFF_DELETE&&(o+=d[1].length)}}}}return[i=i.substring(h.length,i.length-h.length),f]},diff_match_patch.prototype.patch_addPadding=function(t){for(var i=this.Patch_Margin,h="",e=1;e<=i;e++)h+=String.fromCharCode(e);for(e=0;e<t.length;e++)t[e].start1+=i,t[e].start2+=i;var f=t[0],n=f.diffs;if(0==n.length||n[0][0]!=DIFF_EQUAL)n.unshift(new diff_match_patch.Diff(DIFF_EQUAL,h)),f.start1-=i,f.start2-=i,f.length1+=i,f.length2+=i;else if(i>n[0][1].length){var a=i-n[0][1].length;n[0][1]=h.substring(n[0][1].length)+n[0][1],f.start1-=a,f.start2-=a,f.length1+=a,f.length2+=a}if(0==(n=(f=t[t.length-1]).diffs).length||n[n.length-1][0]!=DIFF_EQUAL)n.push(new diff_match_patch.Diff(DIFF_EQUAL,h)),f.length1+=i,f.length2+=i;else if(i>n[n.length-1][1].length){a=i-n[n.length-1][1].length;n[n.length-1][1]+=h.substring(0,a),f.length1+=a,f.length2+=a}return h},diff_match_patch.prototype.patch_splitMax=function(t){for(var i=this.Match_MaxBits,h=0;h<t.length;h++)if(!(t[h].length1<=i)){var e=t[h];t.splice(h--,1);for(var f=e.start1,n=e.start2,a="";0!==e.diffs.length;){var r=new diff_match_patch.patch_obj,s=!0;for(r.start1=f-a.length,r.start2=n-a.length,""!==a&&(r.length1=r.length2=a.length,r.diffs.push(new diff_match_patch.Diff(DIFF_EQUAL,a)));0!==e.diffs.length&&r.length1<i-this.Patch_Margin;){var _=e.diffs[0][0],c=e.diffs[0][1];_===DIFF_INSERT?(r.length2+=c.length,n+=c.length,r.diffs.push(e.diffs.shift()),s=!1):_===DIFF_DELETE&&1==r.diffs.length&&r.diffs[0][0]==DIFF_EQUAL&&c.length>2*i?(r.length1+=c.length,f+=c.length,s=!1,r.diffs.push(new diff_match_patch.Diff(_,c)),e.diffs.shift()):(c=c.substring(0,i-r.length1-this.Patch_Margin),r.length1+=c.length,f+=c.length,_===DIFF_EQUAL?(r.length2+=c.length,n+=c.length):s=!1,r.diffs.push(new diff_match_patch.Diff(_,c)),c==e.diffs[0][1]?e.diffs.shift():e.diffs[0][1]=e.diffs[0][1].substring(c.length))}a=(a=this.diff_text2(r.diffs)).substring(a.length-this.Patch_Margin);var l=this.diff_text1(e.diffs).substring(0,this.Patch_Margin);""!==l&&(r.length1+=l.length,r.length2+=l.length,0!==r.diffs.length&&r.diffs[r.diffs.length-1][0]===DIFF_EQUAL?r.diffs[r.diffs.length-1][1]+=l:r.diffs.push(new diff_match_patch.Diff(DIFF_EQUAL,l))),s||t.splice(++h,0,r)}}},diff_match_patch.prototype.patch_toText=function(t){for(var i=[],h=0;h<t.length;h++)i[h]=t[h];return i.join("")},diff_match_patch.prototype.patch_fromText=function(t){var i=[];if(!t)return i;for(var h=t.split("\n"),e=0,f=/^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@$/;e<h.length;){var n=h[e].match(f);if(!n)throw new Error("Invalid patch string: "+h[e]);var a=new diff_match_patch.patch_obj;for(i.push(a),a.start1=parseInt(n[1],10),""===n[2]?(a.start1--,a.length1=1):"0"==n[2]?a.length1=0:(a.start1--,a.length1=parseInt(n[2],10)),a.start2=parseInt(n[3],10),""===n[4]?(a.start2--,a.length2=1):"0"==n[4]?a.length2=0:(a.start2--,a.length2=parseInt(n[4],10)),e++;e<h.length;){var r=h[e].charAt(0);try{var s=decodeURI(h[e].substring(1))}catch(t){throw new Error("Illegal escape in patch_fromText: "+s)}if("-"==r)a.diffs.push(new diff_match_patch.Diff(DIFF_DELETE,s));else if("+"==r)a.diffs.push(new diff_match_patch.Diff(DIFF_INSERT,s));else if(" "==r)a.diffs.push(new diff_match_patch.Diff(DIFF_EQUAL,s));else{if("@"==r)break;if(""!==r)throw new Error('Invalid patch mode "'+r+'" in: '+s)}e++}}return i},diff_match_patch.patch_obj=function(){this.diffs=[],this.start1=null,this.start2=null,this.length1=0,this.length2=0},diff_match_patch.patch_obj.prototype.toString=function(){for(var t,i=["@@ -"+(0===this.length1?this.start1+",0":1==this.length1?this.start1+1:this.start1+1+","+this.length1)+" +"+(0===this.length2?this.start2+",0":1==this.length2?this.start2+1:this.start2+1+","+this.length2)+" @@\n"],h=0;h<this.diffs.length;h++){switch(this.diffs[h][0]){case DIFF_INSERT:t="+";break;case DIFF_DELETE:t="-";break;case DIFF_EQUAL:t=" "}i[h+1]=t+encodeURI(this.diffs[h][1])+"\n"}return i.join("").replace(/%20/g," ")},module.exports=diff_match_patch,module.exports.diff_match_patch=diff_match_patch,module.exports.DIFF_DELETE=DIFF_DELETE,module.exports.DIFF_INSERT=DIFF_INSERT,module.exports.DIFF_EQUAL=DIFF_EQUAL;
+window.DMP=module.exports;})();
+</script>
+<script>
+(function () {
+"use strict";
+// API: same origin when the Worker serves the page, otherwise the Worker's address.
+const REMOTE = "https://gilliam-review.nypenntrack.workers.dev";
+const API = (/workers\.dev$/.test(location.hostname) || location.port === "8787") ? "" : REMOTE;
+const DEADLINE = new Date("2026-10-27T23:59:00-04:00");
+
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} },
+};
+// Access keys arrive in the link's #fragment once, then live in this browser.
+(function takeKeys() {
+  const h = location.hash.slice(1);
+  if (!/(^|&)k=/.test(h)) return;
+  const p = new URLSearchParams(h);
+  if (p.get("k")) ls.set("gl-k", p.get("k"));
+  if (p.get("o")) ls.set("gl-o", p.get("o"));
+  history.replaceState(null, "", location.pathname + location.search + "#/" + (p.get("p") || ""));
+})();
+const KEY = "4ab7c66f034f4772521a3fd6", OWNER = "569930a4f20d6aefc1559fca81fd6782"; // open page: anyone can read and edit
+let CLIENT = ls.get("gl-c");
+if (!CLIENT) { CLIENT = Math.random().toString(36).slice(2) + Date.now().toString(36); ls.set("gl-c", CLIENT); }
+
+const S = { essays: null, essay: null, notes: [], top: [], owner: false, active: null, pending: null, sel: null,
+  view: ls.get("gl-view") || "inline", showClosed: false, editing: false, fig: null, sig: "",
+  layout: ls.get("gl-layout") || "draft", figAspect: 735 / 1950, mode: "comment", draft: null, undo: [], redo: [] };
+
+const $ = (s, r = document) => r.querySelector(s);
+const app = $("#app");
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const words = (s) => (s || "").trim().split(/\s+/).filter(Boolean).length;
+const fmt = (n) => n.toLocaleString("en-US");
+const hue = (s) => { let h = 0; for (const c of s || "?") h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const avatar = (name) => `<span class="av" style="background:hsl(${hue(name)} 50% 42%)">${esc((name || "?").trim().charAt(0).toUpperCase())}</span>`;
+function ago(t) {
+  if (!t) return "";
+  const d = (Date.now() - new Date(t).getTime()) / 1000;
+  if (d < 60) return "just now";
+  if (d < 3600) return Math.floor(d / 60) + " min ago";
+  if (d < 86400) return Math.floor(d / 3600) + " h ago";
+  if (d < 86400 * 6) return Math.floor(d / 86400) + " d ago";
+  return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function name() { return ls.get("gl-name") || ""; }
+function paintName() {
+  $("#namechip").textContent = name() ? "👤 " + name() : "Set your name";
+  $("#ownerchip").hidden = !S.owner;
+}
+$("#namechip").onclick = () => {
+  const n = prompt("Your name (shown on your comments):", name());
+  if (n != null && n.trim()) { ls.set("gl-name", n.trim().slice(0, 60)); paintName(); }
+};
+(function due() {
+  const d = Math.ceil((DEADLINE - Date.now()) / 86400000);
+  $("#due").textContent = d > 1 ? `Due Oct 27 · ${d} days` : d === 1 ? "Due tomorrow" : d === 0 ? "Due today" : "Submitted?";
+})();
+
+async function api(path, opt = {}) {
+  const r = await fetch(API + "/api" + path, {
+    method: opt.method || "GET",
+    headers: { "content-type": "application/json", "x-key": KEY || "", "x-owner": OWNER, "x-client": CLIENT },
+    body: opt.body ? JSON.stringify(opt.body) : undefined,
+  });
+  let data = {};
+  try { data = await r.json(); } catch (e) {}
+  if (!r.ok) { const err = new Error(data.error || "Something went wrong (" + r.status + ")."); err.status = r.status; throw err; }
+  return data;
+}
+
+// Same anchoring rule as the server: find the quote, prefer the copy whose neighbours match.
+function anchor(body, quote, prefix, suffix, hint) {
+  if (!quote) return -1;
+  prefix = prefix || ""; suffix = suffix || "";
+  let best = -1, bestScore = -Infinity;
+  for (let i = body.indexOf(quote); i !== -1; i = body.indexOf(quote, i + 1)) {
+    let s = 0;
+    for (let k = 1; k <= prefix.length && i - k >= 0 && body[i - k] === prefix[prefix.length - k]; k++) s++;
+    const e = i + quote.length;
+    for (let k = 0; k < suffix.length && e + k < body.length && body[e + k] === suffix[k]; k++) s++;
+    const score = s * 1e6 - Math.abs(i - (hint || 0));
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  return best;
+}
+
+// ---------- page length ----------
+// Pieces with a page limit (no word limit, "N page(s)" in the limit note) are laid out at true
+// size in a hidden box and paginated the way Word would: lines break across pages, a figure moves
+// whole to the next page, and widow/orphan control keeps at least two lines of a paragraph together.
+const FORMAT_NOTE = "Measured at true size: US Letter, 1-inch margins, Arial 11 pt, single-spaced, 6 pt after paragraphs, figure 6.5 in wide.";
+const PX_IN = 96, PAGE_H = 9 * PX_IN;               // printable height inside 1-inch margins
+function pageLimit(e) {
+  const m = /(\d+)\s*pages?\b/i.exec((e && e.limit_note) || "");
+  return e && !e.limit_words && m ? +m[1] : 0;
+}
+function supify(t) {
+  if (!/\^[0-9,–-]+\^/.test(t)) return esc(t);
+  return t.split(/(\^[0-9,–-]+\^)/).map((s) => (/^\^[0-9,–-]+\^$/.test(s) ? `<sup>${esc(s.slice(1, -1))}</sup>` : esc(s))).join("");
+}
+function flowHTML(text) {
+  const figH = (6.5 * PX_IN * S.figAspect).toFixed(2);
+  return (text || "").replace(/\r/g, "").split(/\n[ \t]*\n/).map((p) => p.replace(/^\n+|\n+$/g, "")).filter((p) => p.trim()).map((p) =>
+    p.trim() === "[Figure 1]"
+      ? `<div class="pfig" data-fig>${S.fig ? `<img alt="" src="${S.fig}" style="height:${figH}px">` : `<i style="height:${figH}px"></i>`}</div>`
+      : `<p>${supify(p)}</p>`).join("");
+}
+let measureBox = null;
+function measure(text) {
+  if (!measureBox) { measureBox = document.createElement("div"); measureBox.className = "measure"; document.body.appendChild(measureBox); }
+  const html = flowHTML(text);
+  measureBox.innerHTML = `<div class="pflow"><p>x</p></div><div class="pflow">${html}</div>`;
+  const probe = measureBox.firstChild.firstChild, flow = measureBox.lastChild;
+  const L = probe.getBoundingClientRect().height;
+  const top0 = flow.getBoundingClientRect().top;
+  const pages = [];
+  let start = 0, lastBottom = 0;
+  const close = (end, next) => { pages.push({ s: start, e: Math.max(start, Math.min(end, start + PAGE_H)) }); start = next; };
+  for (const el of flow.children) {
+    const r = el.getBoundingClientRect(), top = r.top - top0, h = r.height;
+    if (el.hasAttribute("data-fig")) {
+      if (top + h - start > PAGE_H + 0.5 && top > start + 0.5) close(top, top);
+    } else {
+      const n = Math.max(1, Math.round(h / L));
+      let i = 0;
+      while (i < n) {
+        // how many of the remaining lines fit on this page
+        let k = 0;
+        while (i + k < n && top + (i + k + 1) * L - start <= PAGE_H + 0.5) k++;
+        if (i + k >= n) break;
+        const rest = n - i;                           // lines of this paragraph not yet placed
+        if (rest >= 2) { if (rest - k === 1) k--; if (k === 1) k = 0; }   // widow / orphan control
+        if (k <= 0 && top + i * L <= start + 0.5) k = Math.max(1, k); // a page can't be empty
+        k = Math.max(0, k);
+        close(top + (i + k) * L, top + (i + k) * L);
+        i += k;
+      }
+    }
+    lastBottom = top + h;
+  }
+  pages.push({ s: start, e: Math.max(start, lastBottom) });
+  const used = lastBottom - start;
+  const count = pages.length;
+  return { html, pages, L, count, exact: count - 1 + used / PAGE_H, used };
+}
+function pageStats(text, limit) {
+  const m = measure(text);
+  let over = 0, room = 0;
+  if (m.count > limit) over = m.pages.slice(limit).reduce((a, p) => a + (p.e - p.s), 0) / m.L;
+  else room = ((limit - m.count) * PAGE_H + (PAGE_H - m.used)) / m.L;
+  return { ...m, limit, over: Math.ceil(over - 0.01), room: Math.floor(room + 0.01) };
+}
+// never round an over-limit length down to the limit, or a full one up past it
+const pagesLabel = (st) => (st.count > st.limit ? Math.max(Math.ceil(st.exact * 10) / 10, st.limit + 0.1) : Math.min(Math.floor(st.exact * 10) / 10, st.limit)).toFixed(1);
+function pageBlock(st, big) {
+  const pct = Math.min(100, (st.exact / st.limit) * 100);
+  const detail = st.count > st.limit ? `${fmt(st.over)} line${st.over === 1 ? "" : "s"} over the limit`
+    : `About ${fmt(st.room)} line${st.room === 1 ? "" : "s"} of room left`;
+  return `<div class="wc ${st.count > st.limit ? "over" : ""}" title="${esc(FORMAT_NOTE)}"><span class="n ${big ? "big" : ""}">${pagesLabel(st)}</span> / ${st.limit} page${st.limit > 1 ? "s" : ""}
+    <div class="bar"><i style="width:${pct}%"></i></div><div class="alt" style="margin-top:4px">${detail}</div></div>`;
+}
+
+// ---------- routing ----------
+function route() {
+  const h = location.hash.replace(/^#\/?/, "");
+  return h ? { type: "essay", id: decodeURIComponent(h.split("?")[0]) } : { type: "hub" };
+}
+window.addEventListener("hashchange", (ev) => {
+  if (unposted() && !confirm("You have suggested changes that aren't posted yet. Leave and discard them?")) {
+    history.replaceState(null, "", ev.oldURL.slice(ev.oldURL.indexOf("#")));
+    return;
+  }
+  go();
+});
+window.addEventListener("beforeunload", (ev) => { if (unposted()) { ev.preventDefault(); ev.returnValue = ""; } });
+
+async function go() {
+  hideBubble();
+  S.active = null; S.pending = null; S.editing = false; S.mode = "comment"; S.draft = null;
+  if (!KEY) return noKey();
+  const r = route();
+  try {
+    if (r.type === "hub") await showHub(); else await showEssay(r.id);
+  } catch (e) {
+    if (e.status === 401) return noKey(true);
+    console.error(e && e.stack); app.innerHTML = `<div class="center"><h1>Couldn't load that</h1><p>${esc(e.message)}</p><p style="margin-top:12px"><a href="#/">Back to all pieces</a></p></div>`;
+  }
+  window.scrollTo(0, 0);
+}
+function noKey(bad) {
+  $("#crumb").textContent = "";
+  app.innerHTML = `<div class="center"><h1>${bad ? "This link's key doesn't work" : "Drafts for invited readers"}</h1>
+    <p>${bad ? "Ask Bryson for a fresh link." : "Open the full link Bryson sent you to read and comment on these drafts."}</p></div>`;
+}
+
+// ---------- hub ----------
+async function showHub() {
+  const d = await api("/essays");
+  S.essays = d.essays; S.owner = d.owner; paintName();
+  $("#crumb").textContent = "";
+  document.title = "Gilliam drafts";
+  app.innerHTML = `<div class="hub">
+    <h1>My HHMI Gilliam Fellowship drafts</h1>
+    <p class="lede">Thank you for helping me with these! Open any piece, select text, and leave a comment, just like in a Google Doc. Or switch to <b>Suggest by typing</b> and edit right on the page. Each piece shows the HHMI prompt and its word or page limit.</p>
+    <div class="list">${d.essays.map(hubRow).join("")}</div></div>`;
+}
+function wcBlock(n, limit, note, big) {
+  if (!limit) return `<div class="wc"><span class="n ${big ? "big" : ""}">${fmt(n)}</span> words<div class="bar"></div><div class="alt" style="margin-top:4px">Limit: ${esc(note)}</div></div>`;
+  const pct = Math.min(100, (n / limit) * 100);
+  return `<div class="wc ${n > limit ? "over" : ""}"><span class="n ${big ? "big" : ""}">${fmt(n)}</span> / ${fmt(limit)} words
+    <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+}
+function hubRow(e) {
+  const bits = [];
+  if (e.comments) bits.push(`<b>${e.comments}</b> comment${e.comments > 1 ? "s" : ""}`);
+  if (e.suggestions) bits.push(`<b>${e.suggestions}</b> suggestion${e.suggestions > 1 ? "s" : ""}`);
+  return `<a class="row" href="#/${encodeURIComponent(e.id)}">
+    <span class="num">${e.ord}</span>
+    <span><div class="t">${esc(e.title)}</div><div class="p">${esc(e.prompt)}</div></span>
+    ${pageLimit(e) && e.body != null ? pageBlock(pageStats(e.body, pageLimit(e))) : wcBlock(e.words, e.limit_words, e.limit_note)}
+    <span class="notes">${bits.join("<br>") || "No comments yet"}<br><small>edited ${ago(e.updated_at)}</small></span></a>`;
+}
+
+// ---------- essay ----------
+async function loadEssay(id) {
+  const d = await api("/essays/" + encodeURIComponent(id));
+  S.owner = d.owner; S.essay = d.essay; S.notes = d.notes;
+  const body = d.essay.body;
+  S.top = d.notes.filter((n) => !n.parent_id).map((n) => ({ ...n, pos: anchor(body, n.quote, n.prefix, n.suffix, n.start) }));
+  S.sig = JSON.stringify([d.essay.version, d.notes.map((n) => [n.id, n.status, n.updated_at])]);
+  if (!S.essays) { try { S.essays = (await api("/essays")).essays; } catch (e) {} }
+  if (d.essay.has_fig && !S.fig) {
+    try {
+      const r = await fetch(API + "/api/fig/1", { headers: { "x-key": KEY }, cache: "no-cache" });
+      if (r.ok) {
+        S.fig = URL.createObjectURL(await r.blob());
+        const im = new Image(); im.src = S.fig;
+        await im.decode().catch(() => {});
+        if (im.naturalWidth) S.figAspect = im.naturalHeight / im.naturalWidth;
+      }
+    } catch (e) {}
+  }
+}
+async function showEssay(id) {
+  await loadEssay(id);
+  paintName();
+  const e = S.essay;
+  document.title = e.title + " · Gilliam drafts";
+  $("#crumb").textContent = "/ " + e.title;
+  const list = S.essays || [];
+  const i = list.findIndex((x) => x.id === e.id);
+  const prev = list[i - 1], next = list[i + 1];
+  app.innerHTML = `<div class="wrap">
+    <div class="nav"><a href="#/">← All pieces</a>
+      <span style="text-align:right">${prev ? `<a class="prev" href="#/${encodeURIComponent(prev.id)}">‹ ${esc(prev.title)}</a>` : ""}${prev && next ? `<span class="dot"> &nbsp;·&nbsp; </span>` : ""}${next ? `<a href="#/${encodeURIComponent(next.id)}">${esc(next.title)} ›</a>` : ""}</span></div>
+    <div class="grid">
+      <div>
+        <section class="prompt">
+          <h1>${esc(e.title)}</h1>
+          <div class="lbl">HHMI prompt</div>
+          <p>${esc(e.prompt)}</p>
+          <div class="counts" id="counts"></div>
+        </section>
+        <div class="tools" id="tools"></div>
+        <div id="docbox"></div>
+      </div>
+      <aside><div class="mhead" id="mhead"></div><div class="margin" id="margin"></div></aside>
+    </div></div>`;
+  renderAll();
+}
+
+// The part of a suggestion that really changes: strip what the quote and replacement share at
+// both ends, so "word " -> "word new " shows as inserting "new ", like Google Docs.
+function trimSug(q, r) {
+  let a = 0;
+  while (a < q.length && a < r.length && q[a] === r[a]) a++;
+  let b = 0;
+  while (b < q.length - a && b < r.length - a && q[q.length - 1 - b] === r[r.length - 1 - b]) b++;
+  return { a, b, del: q.slice(a, q.length - b), ins: r.slice(a, r.length - b) };
+}
+function sugText(q, r, short) {
+  const t = trimSug(q, r);
+  if (!t.del && t.ins) return `<div class="sgx">Insert <ins>${esc(t.ins)}</ins>${t.a ? ` after “${esc(short(q.slice(0, t.a).trim(), 40))}”` : ""}</div>`;
+  if (t.del && !t.ins) return `<div class="sgx">Delete <del>${esc(short(t.del, 160))}</del></div>`;
+  return `<div class="sgx">Replace <del>${esc(short(t.del, 160))}</del> with <ins>${esc(t.ins)}</ins></div>`;
+}
+
+// ---------- suggesting mode (type on the page, like Google Docs) ----------
+// S.draft is the reader's version of the text. The page shows a diff of the essay against it:
+// kept text plain, typed text green, removed text struck through (not editable). Every keystroke is
+// applied to S.draft and the page is redrawn with the caret put back, so the browser never owns the text.
+const dmp = window.DMP ? new window.DMP.diff_match_patch() : null;
+if (dmp) dmp.Diff_Timeout = 0.5;
+function diffs(a, b) {
+  if (!dmp) return a === b ? [[0, a]] : [[-1, a], [1, b]];
+  const d = dmp.diff_main(a, b);
+  dmp.diff_cleanupSemantic(d);
+  return d;
+}
+function hunks(orig, draft) {
+  const out = [];
+  let i = 0, cur = null;
+  for (const [op, t] of diffs(orig, draft)) {
+    if (op === 0) { if (cur) { out.push(cur); cur = null; } i += t.length; continue; }
+    if (!cur) cur = { s: i, del: "", ins: "" };
+    if (op === -1) { cur.del += t; i += t.length; } else cur.ins += t;
+  }
+  if (cur) out.push(cur);
+  // a pure insertion has nothing to anchor to, so it carries the word before it (or after it)
+  return out.map((h) => {
+    let s = h.s, quote = h.del, rep = h.ins;
+    if (!quote) {
+      const before = /\S+\s*$/.exec(orig.slice(Math.max(0, s - 80), s));
+      const after = /^\s*\S+/.exec(orig.slice(s, s + 80));
+      if (before) { quote = before[0]; s -= quote.length; rep = quote + rep; }
+      else if (after) { quote = after[0]; rep = rep + quote; }
+    }
+    return { s, quote, replacement: rep, prefix: orig.slice(Math.max(0, s - 32), s), suffix: orig.slice(s + quote.length, s + quote.length + 32) };
+  }).filter((h) => h.quote && h.quote !== h.replacement);
+}
+const unposted = () => S.mode === "suggest" && S.draft != null && S.essay && S.draft !== S.essay.body;
+function suggestHTML(orig, draft) {
+  const fig = (t) => (S.fig && t.includes("[Figure 1]")
+    ? t.split("[Figure 1]").map(esc).join(`[Figure 1]<span class="figwrap" contenteditable="false" data-del><img alt="Figure 1" src="${S.fig}"></span>`)
+    : esc(t));
+  return diffs(orig, draft).map(([op, t]) => op === 0 ? fig(t)
+    : op === 1 ? `<span class="s-ins">${esc(t)}</span>`
+    : `<span class="s-del" contenteditable="false" data-del>${esc(t)}</span>`).join("");
+}
+// text of the reader's version inside a node, skipping struck-through (data-del) text
+function readDraft(root) {
+  let out = "";
+  const walk = (n) => {
+    for (const c of n.childNodes) {
+      if (c.nodeType === 3) out += c.data;
+      else if (c.nodeType === 1) {
+        if (c.hasAttribute("data-del")) continue;
+        if (c.tagName === "BR") { out += "\n"; continue; }
+        if (/^(DIV|P)$/.test(c.tagName) && out && !out.endsWith("\n")) out += "\n";
+        walk(c);
+      }
+    }
+  };
+  walk(root);
+  return out;
+}
+function draftOffset(root, node, off) {
+  const r = document.createRange();
+  r.setStart(root, 0);
+  try { r.setEnd(node, off); } catch (e) { return 0; }
+  return readDraft(r.cloneContents()).length;
+}
+function selOffsets(root) {
+  const sel = getSelection();
+  if (!sel.rangeCount) return { s: S.draft.length, e: S.draft.length };
+  const r = sel.getRangeAt(0);
+  if (!root.contains(r.startContainer)) return { s: S.draft.length, e: S.draft.length };
+  const a = draftOffset(root, r.startContainer, r.startOffset), b = draftOffset(root, r.endContainer, r.endOffset);
+  return { s: Math.min(a, b), e: Math.max(a, b) };
+}
+function placeCaret(root, k) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (t) => (t.parentElement.closest("[data-del]") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  let cum = 0, t, last = null;
+  const r = document.createRange();
+  while ((t = w.nextNode())) {
+    last = t;
+    if (cum + t.length >= k) { r.setStart(t, k - cum); break; }
+    cum += t.length;
+  }
+  if (!t) { if (last) r.setStart(last, last.length); else r.setStart(root, root.childNodes.length); }
+  r.collapse(true);
+  const sel = getSelection();
+  sel.removeAllRanges(); sel.addRange(r);
+}
+let undoAt = 0;
+function setDraft(text, caret, kind) {
+  if (text === S.draft) { placeCaret($("#sdoc"), caret); return; }
+  const t = Date.now();
+  if (kind !== "type" || t - undoAt > 900 || !S.undo.length) S.undo.push({ d: S.draft, c: caret });
+  undoAt = kind === "type" ? t : 0;
+  S.redo = [];
+  S.draft = text;
+  paintSuggest(caret);
+}
+function paintSuggest(caret) {
+  const doc = $("#sdoc");
+  if (!doc) return;
+  doc.innerHTML = suggestHTML(S.essay.body, S.draft);
+  placeCaret(doc, caret);
+  renderTools();
+  renderCounts(S.draft);
+  renderSuggestMargin();
+}
+function renderSuggest() {
+  $("#docbox").innerHTML = `<article class="page suggesting" id="sdoc" contenteditable="true" spellcheck="true" autocapitalize="sentences"></article>`;
+  const doc = $("#sdoc");
+  doc.innerHTML = suggestHTML(S.essay.body, S.draft);
+  renderCounts(S.draft);
+  renderSuggestMargin();
+  const edit = (ins, s, e, kind) => setDraft(S.draft.slice(0, s) + ins + S.draft.slice(e), s + ins.length, kind);
+  doc.addEventListener("beforeinput", (ev) => {
+    const t = ev.inputType;
+    if (t === "insertCompositionText") return;                        // IME: let it through, sync after
+    ev.preventDefault();
+    const { s, e } = selOffsets(doc), d = S.draft;
+    if (t === "historyUndo" || t === "historyRedo") return undoRedo(t === "historyUndo");
+    if (t === "insertText" || t === "insertReplacementText" || t.startsWith("insertFrom")) {
+      let text = ev.data;
+      if (text == null && ev.dataTransfer) text = ev.dataTransfer.getData("text/plain");
+      if (text == null) return;
+      text = text.replace(/\r\n?/g, "\n");
+      if (t === "insertReplacementText" && ev.getTargetRanges && ev.getTargetRanges().length) {
+        const tr = ev.getTargetRanges()[0];
+        return edit(text, draftOffset(doc, tr.startContainer, tr.startOffset), draftOffset(doc, tr.endContainer, tr.endOffset), "replace");
+      }
+      return edit(text, s, e, t === "insertText" && text.length === 1 ? "type" : "paste");
+    }
+    if (t === "insertParagraph") return edit("\n\n", s, e, "para");
+    if (t === "insertLineBreak") return edit("\n", s, e, "para");
+    if (t.startsWith("delete")) {
+      if (s !== e) return edit("", s, e, "del");
+      let a = s, b = s;
+      if (t === "deleteContentBackward") { a = Math.max(0, s - 1); if (a > 0 && /[\udc00-\udfff]/.test(d[a])) a--; }
+      else if (t === "deleteContentForward") { b = Math.min(d.length, s + 1); if (/[\ud800-\udbff]/.test(d[s])) b++; }
+      else if (t === "deleteWordBackward") { const m = /(\S+\s*|\s+)$/.exec(d.slice(0, s)); a = m ? s - m[0].length : s; }
+      else if (t === "deleteWordForward") { const m = /^(\s*\S+|\s+)/.exec(d.slice(s)); b = m ? s + m[0].length : s; }
+      else if (/Backward$/.test(t)) a = d.lastIndexOf("\n", s - 1) + 1;
+      else if (/Forward$/.test(t)) { const n = d.indexOf("\n", s); b = n < 0 ? d.length : n; }
+      if (a === b) return;
+      return edit("", a, b, "del");
+    }
+    // formatting (bold etc.) and anything else is ignored: these are plain-text essays
+  });
+  doc.addEventListener("input", (ev) => { if (!ev.isComposing) syncFromDom(); });
+  doc.addEventListener("compositionend", () => setTimeout(syncFromDom, 0));
+  doc.addEventListener("copy", (ev) => {
+    const { s, e } = selOffsets(doc);
+    if (s === e) return;
+    ev.preventDefault(); ev.clipboardData.setData("text/plain", S.draft.slice(s, e));
+  });
+  doc.addEventListener("cut", (ev) => {
+    const { s, e } = selOffsets(doc);
+    ev.preventDefault();
+    if (s === e) return;
+    ev.clipboardData.setData("text/plain", S.draft.slice(s, e));
+    edit("", s, e, "del");
+  });
+  doc.addEventListener("keydown", (ev) => {
+    if ((ev.metaKey || ev.ctrlKey) && !ev.altKey && ev.key.toLowerCase() === "z") { ev.preventDefault(); undoRedo(!ev.shiftKey); }
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "y") { ev.preventDefault(); undoRedo(false); }
+  });
+  doc.focus();
+}
+// after IME composition or any change the browser made itself, read the page back
+function syncFromDom() {
+  const doc = $("#sdoc");
+  if (!doc) return;
+  const text = readDraft(doc);
+  const sel = getSelection();
+  const k = sel.rangeCount ? draftOffset(doc, sel.focusNode, sel.focusOffset) : text.length;
+  if (text !== S.draft) setDraft(text, k, "ime");
+  else paintSuggest(k);
+}
+function undoRedo(isUndo) {
+  const from = isUndo ? S.undo : S.redo, to = isUndo ? S.redo : S.undo;
+  const st = from.pop();
+  if (!st) return;
+  to.push({ d: S.draft, c: st.c });
+  S.draft = st.d; undoAt = 0;
+  paintSuggest(Math.min(st.c, S.draft.length));
+}
+function renderSuggestMargin() {
+  const hs = hunks(S.essay.body, S.draft);
+  const short = (x, k) => (x.length > k ? x.slice(0, k) + "…" : x);
+  $("#mhead").textContent = hs.length ? `Your suggested changes (${hs.length})` : "Suggesting";
+  $("#margin").style.minHeight = "";
+  $("#margin").innerHTML = hs.length
+    ? `<div class="empty-m" style="margin-bottom:10px">Each change is posted as its own suggestion that Bryson can accept or reject.</div>`
+      + hs.map((h) => `<div class="card static"><div class="ch">${avatar(name() || "?")}<div class="who"><b>${esc(name() || "You")}</b><small>Not posted yet</small></div></div>${sugText(h.quote, h.replacement, short)}</div>`).join("")
+    : `<div class="empty-m">Click anywhere in the text and start typing. Added words show in green, removed words are struck through in red. Nothing is saved until you press Post.</div>`;
+}
+async function postSuggestions(btn) {
+  const hs = hunks(S.essay.body, S.draft);
+  if (!hs.length) return;
+  if (!name()) {
+    const n = prompt("Your name (shown on your suggestions):", "");
+    if (!n || !n.trim()) return;
+    ls.set("gl-name", n.trim().slice(0, 60)); paintName();
+  }
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api(`/essays/${encodeURIComponent(S.essay.id)}/suggestions`, { method: "POST", body: {
+      author: name(), items: hs.map((h) => ({ quote: h.quote, prefix: h.prefix, suffix: h.suffix, start: h.s, replacement: h.replacement })) } });
+    S.mode = "comment"; S.draft = null;
+    await refresh(null);
+    toast(`Posted ${r.n} suggestion${r.n === 1 ? "" : "s"}`);
+  } catch (e) {
+    toast("Couldn't post: " + e.message + " Your changes are still here.");
+    if (btn) btn.disabled = false;
+  }
+}
+
+function openSuggestions() { return S.top.filter((n) => n.kind === "suggest" && n.status === "open" && n.pos >= 0); }
+function withSuggestions(body) {
+  let out = body, lastStart = Infinity;
+  for (const n of openSuggestions().sort((a, b) => b.pos - a.pos)) {
+    if (n.pos + n.quote.length > lastStart) continue;           // skip overlapping ones
+    out = out.slice(0, n.pos) + n.replacement + out.slice(n.pos + n.quote.length);
+    lastStart = n.pos;
+  }
+  return out;
+}
+function renderCounts(text) {
+  const e = S.essay, n = words(text != null ? text : e.body), lim = pageLimit(e);
+  let alt = "";
+  if (lim) {
+    const st = pageStats(text != null ? text : e.body, lim);
+    if (S.mode === "suggest") alt = `<div class="alt">Counting your suggested version</div>`;
+    else if (text == null && openSuggestions().length) {
+      const m = pageStats(withSuggestions(e.body), lim);
+      alt = `<div class="alt">With every open suggestion accepted: <b>${pagesLabel(m)}</b> pages</div>`;
+    }
+    $("#counts").innerHTML = `<div>${pageBlock(st, true)}</div><div class="alt">${fmt(n)} words</div>${alt}
+      <div class="fmtnote" style="flex-basis:100%">${esc(FORMAT_NOTE)} Use Pages view to see where each page breaks.</div>`;
+    return;
+  }
+  if (S.mode === "suggest" && text != null) alt = `<div class="alt">Counting your suggested version (now ${fmt(words(e.body))})</div>`;
+  else if (text == null && openSuggestions().length) {
+    const m = words(withSuggestions(e.body));
+    alt = `<div class="alt">With every open suggestion accepted: <b>${fmt(m)}</b> words</div>`;
+  }
+  $("#counts").innerHTML = `<div>${wcBlock(n, e.limit_words, e.limit_note, true)}</div>${alt}`;
+}
+function renderTools() {
+  const closed = S.top.filter((n) => n.status !== "open").length;
+  const modeSeg = (on) => `<span class="seg" title="Comment on selected text, or type your edits straight onto the page">
+       <button data-t="mcomment" class="${on ? "" : "on"}">Comment</button><button data-t="msuggest" class="${on ? "on sug" : ""}">✎ Suggest by typing</button></span>`;
+  if (S.mode === "suggest" && !S.editing) {
+    const n = hunks(S.essay.body, S.draft).length;
+    $("#tools").innerHTML = `<span class="hint"><b style="color:var(--ins)">Suggesting.</b> Type right on the page. ${n ? `${n} change${n === 1 ? "" : "s"} not posted yet.` : ""}</span>
+       ${modeSeg(true)}
+       <button class="btn" data-t="sdiscard" ${n ? "" : "disabled"}>Discard</button>
+       <button class="btn pri" data-t="spost" ${n ? "" : "disabled"}>Post ${n > 1 ? n + " suggestions" : "suggestion"}</button>`;
+    return;
+  }
+  $("#tools").innerHTML = S.editing
+    ? `<span class="hint">Editing the text directly. Comments stay attached to any text you don't change.</span>
+       <button class="btn" data-t="cancel">Cancel</button><button class="btn pri" data-t="save">Save</button>`
+    : pagesMode()
+    ? `<span class="hint">True-size pages of the current text, where each page breaks. Switch to Draft to comment.</span>
+       <span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft">Draft</button><button data-t="pages" class="on">Pages</button></span>
+       <button class="btn" data-t="copy">Copy text</button>`
+    : `<span class="hint">Select any text to comment or suggest an edit.</span>
+       ${modeSeg(false)}
+       ${pageLimit(S.essay) ? `<span class="seg" title="Draft for commenting, or true-size pages"><button data-t="draft" class="on">Draft</button><button data-t="pages">Pages</button></span>` : ""}
+       <span class="seg" title="How suggested edits look in the text">
+         <button data-t="inline" class="${S.view === "inline" ? "on" : ""}">Show edits</button>
+         <button data-t="clean" class="${S.view === "clean" ? "on" : ""}">Original</button></span>
+       ${closed ? `<button class="btn" data-t="closed">${S.showClosed ? "Hide" : "Show"} resolved (${closed})</button>` : ""}
+       <button class="btn" data-t="copy">Copy text</button>
+       ${S.owner ? `<button class="btn" data-t="versions">Versions</button><button class="btn pri" data-t="edit">Edit text</button>` : ""}`;
+}
+const pagesMode = () => !S.editing && S.mode !== "suggest" && S.layout === "pages" && !!pageLimit(S.essay);
+function renderAll() {
+  renderTools();
+  renderCounts();
+  if (S.editing) return renderEditor();
+  if (S.mode === "suggest") return renderSuggest();
+  if (pagesMode()) return renderPages();
+  renderDoc();
+  renderMargin();
+}
+// Each sheet shows its slice of the true-size flow through a clipping window.
+function renderPages() {
+  const box = $("#docbox");
+  if (!box) return;
+  const lim = pageLimit(S.essay), st = pageStats(S.essay.body, lim);
+  const W = box.clientWidth || 780, k = Math.min(1, W / (8.5 * PX_IN));
+  box.innerHTML = `<div class="sheets">${st.pages.map((p, i) => `<div class="sheetbox" style="width:${8.5 * PX_IN * k}px;height:${11 * PX_IN * k}px">
+    <div class="sheet ${i >= lim ? "over" : ""}" style="transform:scale(${k})">
+      ${i >= lim ? `<div class="overtag">Page ${i + 1} is over the ${lim}-page limit</div>` : ""}
+      <div class="marg"></div>
+      <div class="clip" style="height:${(p.e - p.s).toFixed(2)}px"><div class="pflow" style="margin-top:${(-p.s).toFixed(2)}px">${st.html}</div></div>
+      <div class="pno">${i + 1}</div></div></div>`).join("")}</div>`;
+  $("#margin").innerHTML = `<div class="empty-m">Comments are on the Draft view.</div>`;
+  $("#margin").style.minHeight = "";
+  $("#mhead").textContent = "";
+}
+
+// The essay is one pre-wrap block; highlights are spans over exact character ranges of the body.
+// Anything that is not body text (suggested insertions, the figure) carries data-x so selection
+// offsets skip it.
+function renderDoc() {
+  const body = S.essay.body;
+  const iv = [];
+  for (const n of S.top) {
+    if (n.pos < 0) continue;
+    if (n.status !== "open" && !(S.showClosed && n.status === "resolved")) continue;
+    if (n.kind === "suggest") {                 // show only the part that actually changes
+      const t = trimSug(n.quote, n.replacement || "");
+      iv.push({ s: n.pos + t.a, e: n.pos + n.quote.length - t.b, id: n.id, kind: n.kind, rep: t.ins });
+    } else iv.push({ s: n.pos, e: n.pos + n.quote.length, id: n.id, kind: n.kind, rep: n.replacement });
+  }
+  if (S.pending) iv.push({ s: S.pending.s, e: S.pending.e, id: "pending", kind: "pending" });
+  const cuts = new Set([0, body.length]);
+  iv.forEach((x) => { cuts.add(x.s); cuts.add(x.e); });
+  const figAt = S.essay.has_fig ? body.indexOf("[Figure 1]") : -1;
+  if (figAt >= 0) cuts.add(figAt + 10);
+  const pts = [...cuts].sort((a, b) => a - b);
+  const insAt = (z) => iv.filter((x) => x.kind === "suggest" && x.e === z && x.rep)
+    .map((x) => `<span class="ins${x.id === S.active ? " on" : ""}" data-x="1" data-n="${x.id}">${esc(x.rep)}</span>`).join("");
+  const caret = /\^[0-9,–-]+\^/.test(body);
+  let sup = false, html = insAt(0);
+  const chars = (t) => {
+    if (!caret) return esc(t);
+    let out = "", run = "";
+    const flush = () => { if (run) out += sup ? `<sup>${esc(run)}</sup>` : esc(run); run = ""; };
+    for (const ch of t) {
+      if (ch === "^") { flush(); out += '<span class="cr">^</span>'; sup = !sup; } else run += ch;
+    }
+    flush();
+    return out;
+  };
+  for (let k = 0; k < pts.length - 1; k++) {
+    const a = pts[k], z = pts[k + 1];
+    const cov = iv.filter((x) => x.s <= a && x.e >= z && x.e > x.s);
+    const inner = chars(body.slice(a, z));
+    if (cov.length) {
+      const cls = new Set();
+      cov.forEach((x) => {
+        cls.add(x.kind === "comment" ? "hl" : x.kind === "suggest" ? "sg" : "pend");
+        if (x.id === S.active) cls.add("on");
+      });
+      html += `<span class="${[...cls].join(" ")}" data-n="${cov.map((x) => x.id).join(" ")}">${inner}</span>`;
+    } else html += inner;
+    html += insAt(z);
+    if (figAt >= 0 && z === figAt + 10 && S.fig) html += `<span class="figwrap" data-x="1"><img alt="Figure 1" src="${S.fig}"></span>`;
+  }
+  const box = $("#docbox");
+  box.innerHTML = `<article class="page ${S.view === "clean" ? "clean" : ""}" id="doc">${html}</article>`;
+  box.querySelectorAll("img").forEach((im) => im.addEventListener("load", layoutCards));
+}
+
+function firstText(n) {
+  if (!n) return null;
+  if (n.nodeType === 3) return n;
+  const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  return w.nextNode();
+}
+function lastText(n) {
+  if (n.nodeType === 3) return n;
+  const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  let t = null, x;
+  while ((x = w.nextNode())) t = x;
+  return t;
+}
+function textOffset(root, node, off) {
+  if (node.nodeType !== 3) {
+    if (off < node.childNodes.length) { node = firstText(node.childNodes[off]); off = 0; }
+    else { node = lastText(node); off = node ? node.length : 0; }
+    if (!node) return null;
+  }
+  let total = 0;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let t = w.nextNode(); t; t = w.nextNode()) {
+    const extra = t.parentElement && t.parentElement.closest("[data-x]");
+    if (t === node) return extra ? total : total + off;
+    if (!extra) total += t.length;
+  }
+  return null;
+}
+
+// ---------- margin ----------
+function noteCard(n) {
+  const reps = S.notes.filter((r) => r.parent_id === n.id);
+  const open = n.status === "open";
+  let acts = "";
+  if (open && n.kind === "comment") acts += `<button class="ib ok" title="Resolve" data-a="resolve">✓</button>`;
+  if (open && n.kind === "suggest" && S.owner) acts += `<button class="ib ok" title="Accept" data-a="accept">✓</button><button class="ib no" title="Reject" data-a="reject">✕</button>`;
+  else if (open && n.kind === "suggest" && n.mine) acts += `<button class="ib no" title="Withdraw" data-a="reject">✕</button>`;
+  if (!open && n.kind === "comment") acts += `<button class="ib" title="Re-open" data-a="reopen">↺</button>`;
+  if (S.owner || n.mine) acts += `<button class="ib" title="Delete" data-a="del">🗑</button>`;
+  const short = (s, k) => (s.length > k ? s.slice(0, k) + "…" : s);
+  let what = "";
+  if (n.kind === "suggest") {
+    what = sugText(n.quote, n.replacement || "", short);
+  } else if (n.pos < 0 || !open) {
+    what = `<div class="q">${esc(short(n.quote, 160))}</div>`;
+  }
+  const st = n.status === "resolved" ? `Resolved by ${esc(n.closed_by || "someone")}`
+    : n.status === "accepted" ? "Accepted" : n.status === "rejected" ? `Rejected by ${esc(n.closed_by || "someone")}` : "";
+  return `<div class="card ${n.id === S.active ? "on" : ""} ${open ? "" : "closed"}" data-id="${n.id}">
+    <div class="ch">${avatar(n.author)}<div class="who"><b>${esc(n.author)}</b><small>${n.kind === "suggest" ? "Suggested edit · " : ""}${ago(n.created_at)}</small></div><div class="acts">${acts}</div></div>
+    ${n.pos < 0 && open ? `<div class="detach">The text this pointed to has changed.</div>` : ""}
+    ${what}
+    ${n.text ? `<div class="tx">${esc(n.text)}</div>` : ""}
+    ${st ? `<div class="st">${st}</div>` : ""}
+    ${reps.map((r) => `<div class="rep" data-rid="${r.id}"><div class="ch">${avatar(r.author)}<div class="who"><b>${esc(r.author)}</b> <small>${ago(r.created_at)}</small></div>
+      ${S.owner || r.mine ? `<div class="acts"><button class="ib" title="Delete reply" data-a="delrep">🗑</button></div>` : ""}</div><div class="tx">${esc(r.text)}</div></div>`).join("")}
+    <div class="rb">${!name() ? `<input class="nm" placeholder="Your name" maxlength="60">` : ""}
+      <textarea rows="1" class="rt" placeholder="Reply"></textarea>
+      <div class="row2"><button class="btn pri" data-a="reply">Reply</button></div></div>
+  </div>`;
+}
+function composeCard() {
+  const p = S.pending, isS = p.kind === "suggest";
+  return `<div class="card compose on" data-id="pending">
+    <div class="ch">${avatar(name() || "?")}<div class="who"><b>${esc(name() || "You")}</b><small>${isS ? "Suggest an edit" : "New comment"}</small></div></div>
+    ${!name() ? `<div class="f"><div class="lbl">Your name</div><input class="nm" maxlength="60" placeholder="So Bryson knows who said it"></div>` : ""}
+    ${isS ? `<div class="f"><div class="lbl">Replace the highlighted text with</div><textarea class="rp" rows="3">${esc(p.quote)}</textarea>
+      <div class="alt" style="font-size:12px;color:var(--muted);margin-top:3px">Leave it empty to suggest deleting it.</div></div>
+      <div class="f"><div class="lbl">Why (optional)</div><textarea class="ct" rows="2"></textarea></div>`
+    : `<div class="f"><textarea class="ct" rows="3" placeholder="Add a comment"></textarea></div>`}
+    <div class="row2"><button class="btn" data-a="cancel">Cancel</button><button class="btn pri" data-a="post">${isS ? "Suggest" : "Comment"}</button></div>
+  </div>`;
+}
+function visibleNotes() {
+  return S.top.filter((n) => n.status === "open" || S.showClosed)
+    .sort((a, b) => (a.pos < 0 ? -1 : a.pos) - (b.pos < 0 ? -1 : b.pos) || a.created_at.localeCompare(b.created_at));
+}
+function renderMargin() {
+  const m = $("#margin");
+  const ns = visibleNotes();
+  let html = ns.map(noteCard).join("");
+  if (S.pending) {
+    // slot the composer in reading order so it lands next to its text
+    const idx = ns.findIndex((n) => n.pos > S.pending.s);
+    const cards = ns.map(noteCard);
+    cards.splice(idx < 0 ? cards.length : idx, 0, composeCard());
+    html = cards.join("");
+  }
+  const open = S.top.filter((n) => n.status === "open").length;
+  $("#mhead").textContent = open ? `Comments and suggestions (${open})` : "Comments and suggestions";
+  m.innerHTML = html || `<div class="empty-m">No comments yet. Select text in the draft to add one.</div>`;
+  layoutCards();
+  if (S.pending) {
+    const f = m.querySelector(".compose .nm") || m.querySelector(".compose .rp") || m.querySelector(".compose .ct");
+    if (f) { f.focus({ preventScroll: true }); if (f.classList.contains("rp")) f.select(); }
+  }
+}
+const narrow = () => window.matchMedia("(max-width: 1000px)").matches;
+function layoutCards() {
+  const m = $("#margin"), doc = $("#doc");
+  if (!m || !doc) return;
+  const cards = [...m.querySelectorAll(".card")];
+  if (narrow()) { m.style.minHeight = ""; return; }
+  const mTop = m.getBoundingClientRect().top;
+  const want = cards.map((c) => {
+    const el = doc.querySelector(`[data-n~="${c.dataset.id}"]`);
+    return el ? el.getBoundingClientRect().top - mTop : 0;
+  });
+  const h = cards.map((c) => c.offsetHeight);
+  const top = new Array(cards.length);
+  let y = 0;
+  for (let i = 0; i < cards.length; i++) { top[i] = Math.max(want[i], y); y = top[i] + h[i] + 10; }
+  // pull the active card level with its text, pushing its neighbours out of the way
+  const a = cards.findIndex((c) => c.classList.contains("on"));
+  if (a >= 0 && top[a] > want[a]) {
+    top[a] = Math.max(0, want[a]);
+    for (let i = a - 1; i >= 0; i--) top[i] = Math.min(top[i], top[i + 1] - h[i] - 10);
+    const shift = top[0] < 0 ? -top[0] : 0;
+    if (shift) for (let i = 0; i <= a; i++) top[i] += shift;
+    for (let i = a + 1; i < cards.length; i++) top[i] = Math.max(top[i], top[i - 1] + h[i - 1] + 10);
+  }
+  cards.forEach((c, i) => { c.style.top = top[i] + "px"; });
+  const last = cards.length ? top[cards.length - 1] + h[cards.length - 1] : 0;
+  m.style.minHeight = last + 20 + "px";
+}
+let rz;
+window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => (pagesMode() && $("#docbox") ? renderPages() : layoutCards()), 120); });
+
+function activate(id, scroll) {
+  if (S.active === id) return;
+  S.active = id;
+  renderDoc(); renderMargin();
+  if (scroll) {
+    const el = narrow() ? $(`#margin .card[data-id="${id}"]`) : $(`#doc [data-n~="${id}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+// ---------- events ----------
+app.addEventListener("click", async (ev) => {
+  const t = ev.target.closest("[data-t]");
+  if (t) return tool(t.dataset.t);
+  const hit = ev.target.closest("#doc [data-n]");
+  if (hit && !S.pending) {
+    const sel = getSelection();
+    if (sel && !sel.isCollapsed) return;
+    const ids = hit.dataset.n.split(" ").filter((x) => x !== "pending");
+    if (ids.length) activate(ids.includes(S.active) && ids.length > 1 ? ids[(ids.indexOf(S.active) + 1) % ids.length] : ids[0], narrow());
+    return;
+  }
+  const btn = ev.target.closest("[data-a]");
+  const card = ev.target.closest(".card");
+  if (btn && card) return act(btn.dataset.a, card, btn);
+  if (card && card.dataset.id !== "pending" && !ev.target.closest("textarea,input")) activate(card.dataset.id, false);
+});
+app.addEventListener("keydown", (ev) => {
+  if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {
+    const card = ev.target.closest(".card");
+    if (card) act(card.dataset.id === "pending" ? "post" : "reply", card);
+  }
+  if (ev.key === "Escape" && S.pending) act("cancel");
+});
+
+async function act(a, card, btn) {
+  const id = card && card.dataset.id;
+  const nameIn = card && card.querySelector(".nm");
+  if (nameIn && nameIn.value.trim()) { ls.set("gl-name", nameIn.value.trim().slice(0, 60)); paintName(); }
+  try {
+    if (a === "cancel") { S.pending = null; renderDoc(); renderMargin(); return; }
+    if (a === "post") {
+      if (!name()) { toast("Please add your name first."); return; }
+      const p = S.pending, text = (card.querySelector(".ct") || {}).value || "";
+      const rep = p.kind === "suggest" ? card.querySelector(".rp").value : undefined;
+      if (p.kind === "comment" && !text.trim()) { toast("The comment is empty."); return; }
+      if (p.kind === "suggest" && rep === p.quote) { toast("Change the text to suggest an edit."); return; }
+      btn && (btn.disabled = true);
+      const r = await api(`/essays/${encodeURIComponent(S.essay.id)}/notes`, { method: "POST", body: {
+        kind: p.kind, quote: p.quote, prefix: p.prefix, suffix: p.suffix, start: p.s, replacement: rep, text, author: name() } });
+      S.pending = null;
+      await refresh(r.id);
+      toast(p.kind === "suggest" ? "Suggestion added" : "Comment added");
+      return;
+    }
+    if (a === "reply") {
+      const ta = card.querySelector(".rt");
+      if (!ta.value.trim()) return;
+      if (!name()) { toast("Please add your name first."); return; }
+      await api(`/essays/${encodeURIComponent(S.essay.id)}/notes`, { method: "POST", body: { parent_id: id, text: ta.value, author: name() } });
+      await refresh(id);
+      return;
+    }
+    if (a === "resolve" || a === "reopen" || a === "accept" || a === "reject") {
+      const status = { resolve: "resolved", reopen: "open", accept: "accepted", reject: "rejected" }[a];
+      await api(`/notes/${id}/status`, { method: "POST", body: { status, author: name() || (S.owner ? "Bryson" : "") } });
+      await refresh(a === "reopen" ? id : null);
+      toast({ resolved: "Resolved", open: "Re-opened", accepted: "Accepted and applied to the text", rejected: "Rejected" }[status]);
+      return;
+    }
+    if (a === "del") {
+      if (!confirm("Delete this and its replies?")) return;
+      await api(`/notes/${id}`, { method: "DELETE" });
+      await refresh(null);
+      return;
+    }
+    if (a === "delrep") {
+      const rid = btn.closest("[data-rid]").dataset.rid;
+      if (!confirm("Delete this reply?")) return;
+      await api(`/notes/${rid}`, { method: "DELETE" });
+      await refresh(id);
+    }
+  } catch (e) {
+    toast(e.message);
+    if (btn) btn.disabled = false;
+    if (e.status === 409) await refresh(null);
+  }
+}
+async function refresh(activeId) {
+  await loadEssay(S.essay.id);
+  S.active = activeId;
+  renderAll();
+  if (S.essays) {
+    const x = S.essays.find((e) => e.id === S.essay.id);
+    if (x) x.updated_at = S.essay.updated_at;
+  }
+}
+
+async function tool(t) {
+  if (t === "msuggest") {
+    if (S.mode === "suggest") return;
+    S.mode = "suggest"; S.draft = S.essay.body; S.undo = []; S.redo = []; S.pending = null; S.active = null; hideBubble();
+    renderAll(); return;
+  }
+  if (t === "mcomment" || t === "sdiscard") {
+    if (S.mode !== "suggest") return;
+    const n = hunks(S.essay.body, S.draft).length;
+    if (n && !confirm(`Discard your ${n} unposted change${n === 1 ? "" : "s"}?`)) return;
+    S.mode = "comment"; S.draft = null; renderAll(); return;
+  }
+  if (t === "spost") return postSuggestions($("[data-t=spost]"));
+  if (t === "draft" || t === "pages") { S.layout = t; ls.set("gl-layout", t); S.pending = null; hideBubble(); renderAll(); return; }
+  if (t === "inline" || t === "clean") { S.view = t; ls.set("gl-view", t); renderTools(); renderDoc(); layoutCards(); return; }
+  if (t === "closed") { S.showClosed = !S.showClosed; renderAll(); return; }
+  if (t === "copy") {
+    try { await navigator.clipboard.writeText(S.essay.body.replace(/\^[0-9,–-]+\^/g, "")); toast("Copied the current text"); }
+    catch (e) { toast("Your browser blocked copying."); }
+    return;
+  }
+  if (t === "edit") { S.editing = true; S.pending = null; hideBubble(); renderAll(); return; }
+  if (t === "cancel") { S.editing = false; renderAll(); return; }
+  if (t === "save") {
+    const v = $("#editor").value;
+    try {
+      await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v, base_version: S.essay.version } });
+      S.editing = false; await refresh(null); toast("Saved");
+    } catch (e) { toast(e.message); }
+    return;
+  }
+  if (t === "versions") return versions();
+}
+function renderEditor() {
+  $("#docbox").innerHTML = `<textarea class="editor" id="editor" spellcheck="true"></textarea>`;
+  const ed = $("#editor");
+  ed.value = S.essay.body;
+  let tick;
+  ed.addEventListener("input", () => { clearTimeout(tick); tick = setTimeout(() => renderCounts(ed.value), pageLimit(S.essay) ? 200 : 0); });
+  $("#margin").innerHTML = `<div class="empty-m">Comments come back when you save or cancel.</div>`;
+  $("#margin").style.minHeight = "";
+  ed.focus();
+}
+async function versions() {
+  const dlg = $("#dlg");
+  const d = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions`);
+  dlg.innerHTML = `<div class="dlg"><header><span>Versions of ${esc(S.essay.title)}</span><button class="ib" data-c>✕</button></header>
+    <div class="body" id="vb">${d.versions.map((v) => `<div class="vrow" data-v="${v.version}"><span>Version ${v.version}${v.version === S.essay.version ? " (current)" : ""} · ${esc(v.saved_by || "")}</span>
+      <span style="color:var(--muted)">${fmt(v.words)} words · ${new Date(v.saved_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div>`).join("")}</div></div>`;
+  dlg.showModal();
+  dlg.onclick = async (ev) => {
+    if (ev.target === dlg || ev.target.closest("[data-c]")) return dlg.close();
+    const row = ev.target.closest("[data-v]");
+    if (row) {
+      const v = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions/${row.dataset.v}`);
+      $("#vb").innerHTML = `<p><button class="btn" data-back>‹ All versions</button>
+        ${v.version !== S.essay.version ? `<button class="btn pri" data-restore="${v.version}">Restore this version</button>` : ""}</p><pre>${esc(v.body)}</pre>`;
+      return;
+    }
+    if (ev.target.closest("[data-back]")) { dlg.close(); return versions(); }
+    const rs = ev.target.closest("[data-restore]");
+    if (rs) {
+      const v = await api(`/essays/${encodeURIComponent(S.essay.id)}/versions/${rs.dataset.restore}`);
+      try {
+        await api("/essays/" + encodeURIComponent(S.essay.id), { method: "PUT", body: { body: v.body, base_version: S.essay.version } });
+        dlg.close(); await refresh(null); toast("Restored version " + v.version);
+      } catch (e) { toast(e.message); }
+    }
+  };
+}
+
+// ---------- selection → bubble ----------
+const bubble = $("#bubble");
+function hideBubble() { bubble.classList.remove("show"); S.sel = null; }
+function onSelection() {
+  const doc = $("#doc");
+  if (!doc || S.editing || S.pending) return hideBubble();
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return hideBubble();
+  const r = sel.getRangeAt(0);
+  if (!doc.contains(r.startContainer) || !doc.contains(r.endContainer)) return hideBubble();
+  let s = textOffset(doc, r.startContainer, r.startOffset), e = textOffset(doc, r.endContainer, r.endOffset);
+  if (s == null || e == null) return hideBubble();
+  if (e < s) [s, e] = [e, s];
+  const body = S.essay.body;
+  while (s < e && /\s/.test(body[s])) s++;
+  while (e > s && /\s/.test(body[e - 1])) e--;
+  if (e <= s) return hideBubble();
+  S.sel = { s, e };
+  const rect = r.getBoundingClientRect();
+  bubble.classList.add("show");
+  const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+  if (window.matchMedia("(pointer: coarse)").matches) {
+    bubble.style.left = (window.innerWidth - bw) / 2 + "px";
+    bubble.style.top = window.innerHeight - bh - 18 + "px";
+  } else {
+    bubble.style.left = Math.min(window.innerWidth - bw - 8, Math.max(8, rect.left + rect.width / 2 - bw / 2)) + "px";
+    bubble.style.top = (rect.top - bh - 8 > 64 ? rect.top - bh - 8 : rect.bottom + 8) + "px";
+  }
+}
+let st;
+document.addEventListener("selectionchange", () => { clearTimeout(st); st = setTimeout(onSelection, 150); });
+window.addEventListener("scroll", () => { if (S.sel) onSelection(); }, { passive: true });
+bubble.addEventListener("mousedown", (e) => e.preventDefault());
+bubble.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-k]");
+  if (!b || !S.sel) return;
+  const { s, e: end } = S.sel, body = S.essay.body;
+  S.pending = { kind: b.dataset.k, s, e: end, quote: body.slice(s, end), prefix: body.slice(Math.max(0, s - 32), s), suffix: body.slice(end, end + 32) };
+  S.active = "pending";
+  getSelection().removeAllRanges();
+  hideBubble();
+  renderDoc(); renderMargin();
+  if (narrow()) { const c = $(".card.compose"); if (c) c.scrollIntoView({ behavior: "smooth", block: "center" }); }
+});
+
+// ---------- live updates from other readers ----------
+setInterval(async () => {
+  if (document.hidden || !KEY) return;
+  const busy = S.pending || S.editing || S.mode === "suggest" || (document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName) && document.activeElement.value);
+  if (busy || (S.sel && !getSelection().isCollapsed)) return;
+  try {
+    if (route().type === "essay" && S.essay) {
+      const before = S.sig, act = S.active;
+      await loadEssay(S.essay.id);
+      if (S.sig !== before) { S.active = S.top.some((n) => n.id === act) ? act : null; renderAll(); }
+    } else if (route().type === "hub" && $(".hub")) {
+      const d = await api("/essays");
+      if (JSON.stringify(d.essays) !== JSON.stringify(S.essays)) { S.essays = d.essays; $(".list").innerHTML = d.essays.map(hubRow).join(""); }
+    }
+  } catch (e) {}
+}, 30000);
+
+paintName();
+go();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S.essay && S.mode !== "suggest" && pageLimit(S.essay) && route().type === "essay" && !S.editing && $("#counts")) { renderCounts(); if (pagesMode()) renderPages(); } });
+})();
+</script>
+</body>
+</html>
