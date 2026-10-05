@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /gilliam/
+Disallow: /review/
 
 Sitemap: https://brysonloflin.com/sitemap.xml
