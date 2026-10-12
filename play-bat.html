@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -13,10 +13,13 @@
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -184,10 +187,11 @@ gtag('config', 'G-MGSKT82EGR', { 'anonymize_ip': true});
 
 
 <div class="full-bleed">
-<link rel="stylesheet" href="assets/css/wyd.css?v=29">
+<link rel="stylesheet" href="assets/css/wyd.css?v=30">
 <div class="gpage theme-bat">
 
 <section class="g-hero">
+<div class="g-diorama" id="wyd-diorama" aria-hidden="true"></div>
 <div class="g-inner">
 <p class="g-kicker">A survival game · the odds come from real vampire bat studies</p>
 <h1>You are a vampire bat.</h1>
@@ -199,6 +203,7 @@ you save. Survive <span class="wyd-n" data-n="BAT.nights" data-f="w">ten</span> 
 <button class="g-start" id="wyd-start">🦇 Begin the first night</button>
 <a class="g-learnlink" href="learn-bat.html">Learn the real science →</a>
 </div>
+<label class="g-tips"><input type="checkbox" id="wyd-tips" checked=""> <span id="wyd-tips-label">Show tips for the first two nights</span></label>
 <p class="g-foot">Every run is recorded anonymously: your choices, never your name. The logs describe how people play and will one day let the other bats hunt with real players' strategies.</p>
 </div>
 </section>
@@ -279,11 +284,11 @@ old fail on roughly a third (Wilkinson 1984). You start young: your hidden hunti
 around a <span class="wyd-n" data-n="BAT.playerFail" data-f="pct">28%</span> fail rate and improves
 by ×<span class="wyd-n" data-n="BAT.learnRate" data-f="n">0.93</span> with every fed night, down to a
 floor of <span class="wyd-n" data-n="BAT.learnFloor" data-f="pct">8%</span>, the direction real
-juveniles learn in. Roughly 60 fasting hours is fatal (Wilkinson 1984; McNab 1973), so you begin
-with <span class="wyd-n" data-n="BAT.energyStart" data-f="w">two</span> nights of fuel, and any
-unfed night costs <span class="wyd-n" data-n="BAT.unfedBurn" data-f="w">one</span>, or
-<span class="wyd-n" data-n="BAT.unfedBurnHard" data-f="n">1.5</span> in rain, in the storms, or
-after a flight to the far valley, whether or not a bite was ever rolled. When your reserve hits
+juveniles learn in. Roughly <span class="wyd-n" data-n="BAT.starveHours" data-f="n">70</span> fasting hours is fatal (Wilkinson 1984; McNab 1973). Blood reads out of 100, a full crop:
+you begin with <span class="wyd-n" data-n="BAT.energyStart" data-f="bp">67</span>, two nights of fuel, and any
+unfed night costs <span class="wyd-n" data-n="BAT.unfedBurn" data-f="bp">33</span>, or
+<span class="wyd-n" data-n="BAT.unfedBurnHard" data-f="bp">50</span> in rain, in the storms, or
+after a flight to the far valley, whether or not a bite was ever rolled. When your blood hits
 zero, each roost-mate <em>who fed that night</em> rescues you with
 P&nbsp;=&nbsp;<span class="wyd-n" data-n="BAT.rescueBase" data-f="f2">0.02</span>&nbsp;+&nbsp;<span class="wyd-n" data-n="BAT.rescueSlope" data-f="f2">0.60</span>&nbsp;×&nbsp;bond<sup>k</sup> (k is the season's exponent, below),
 capped at <span class="wyd-n" data-n="BAT.rescueCap" data-f="n">0.9</span>: real donations track
@@ -292,10 +297,10 @@ On your first <span class="wyd-n" data-n="BAT.youngNights" data-f="w">two</span>
 youngster: if you beg and any roost-mate the beg can ask is hanging beside you, she feeds you, no roll (most of
 Wilkinson's observed sharing went to young bats; the rule is <span class="wyd-flag">model</span>). From night
 <span class="wyd-n" data-n="youngFrom" data-f="w">three</span> the curve above decides.
-You do not have to hit zero to be fed: on any unfed night, a present partner who ate and trusts you
+You do not have to hit zero to be fed: on any unfed night that still leaves you some blood, a present partner who ate and trusts you
 at least <span class="wyd-n" data-n="BAT.friendFeedTrust" data-f="f2">0.70</span> brings up part of
 her meal with P&nbsp;<span class="wyd-n" data-n="BAT.friendFeedP" data-f="f2">0.35</span>
-(<span class="wyd-n" data-n="BAT.friendFeedBlood" data-f="n">0.5</span> blood,
+(<span class="wyd-n" data-n="BAT.friendFeedBlood" data-f="bp">17</span> blood,
 <span class="wyd-n" data-n="BAT.pts.fedByFriend" data-f="n">10</span> points), which is what a
 couple of close friends are for; the values are <span class="wyd-flag">model</span>. Donations are
 graded, a sip to a full crop, and build bonds in proportion; grooming escalates into sharing (Carter
@@ -305,12 +310,12 @@ while your crop is still nearly full. You can give on any dawn, fed or not, as l
 <span class="wyd-n" data-n="giveKeepPts" data-f="n">33</span> of your 100 blood, a night of fuel (what you bring up is the
 last meal you took, not a reserve; <span class="wyd-flag">model</span>), and blood is never free to give: whatever is left in your crop
 at the season's end scores <span class="wyd-n" data-n="BAT.pts.endBlood" data-f="n">45</span>
-points per unit, and flying out with <span class="wyd-n" data-n="BAT.desperateAt" data-f="n">1</span>
+points for every <span class="wyd-n" data-n="BAT.unfedBurn" data-f="bp">33</span>, and flying out with <span class="wyd-n" data-n="BAT.desperateAt" data-f="bp">33</span>
 or less adds <span class="wyd-n" data-n="BAT.hungryMod" data-f="pts">12</span> points to your fail
 chance (a bat on empty hunts worse; <span class="wyd-flag">model</span>). Grooming runs well beyond hygienic need and tracks partnerships
-(Wilkinson 1986; Carter &amp; Leffer 2015), and it keeps the mites off: below
-<span class="wyd-n" data-n="BAT.infestBelow" data-f="n">0.5</span> fur they move in and drain
-<span class="wyd-n" data-n="BAT.parasiteDrain" data-f="n">0.5</span> blood a night (Lewis 1995).
+(Wilkinson 1986; Carter &amp; Leffer 2015), and it keeps the mites off: once your mite risk passes
+<span class="wyd-n" data-n="BAT.infestBelow" data-f="pct">50%</span> they can move in and drain
+<span class="wyd-n" data-n="BAT.parasiteDrain" data-f="bp">17</span> blood a night (Lewis 1995).
 Bright moonlight suppresses vampire bat foraging (Crespo, Burns, Mitchell &amp; Linhart 1972,
 <em>J Mammal</em> 53:366-368; Saldaña-Vázquez &amp; Munguía-Rosas 2013): a bright night adds
 <span class="wyd-n" data-n="BAT.moonBright" data-f="pts">10</span> points to every bat's fail chance
@@ -325,18 +330,19 @@ individually distinctive contact calls (Ripperger &amp; Carter 2021; Carter et a
 <span class="wyd-n" data-n="dealMax" data-f="w">five</span> animals (most often three; how many
 of a herd sleep within reach is never the same twice) from three tiers, and size is the legend:</p>
 <ul class="wyd-tiers">
-<li><b>Calf</b>: meal <span class="wyd-n" data-n="COW_TABLE.calf.yield" data-f="d1">0.75</span>,
+<li><b>Calf</b>: meal <span class="wyd-n" data-n="COW_TABLE.calf.yield" data-f="bp">25</span> blood,
 thin skin (bite <span class="wyd-n" data-n="COW_TABLE.calf.mod" data-f="spct">−4%</span>), occupied
 <span class="wyd-n" data-n="COW_TABLE.calf.occ" data-f="pct">10%</span> of the time. Real vampires
 hit calves and the most accessible animals first (Turner 1975); the values are
 <span class="wyd-flag">model</span>.</li>
-<li><b>Steer</b>: meal <span class="wyd-n" data-n="COW_TABLE.steer.yield" data-f="d1">1.0</span>,
+<li><b>Steer</b>: meal <span class="wyd-n" data-n="COW_TABLE.steer.yield" data-f="bp">33</span> blood,
 the standard dinner, occupied <span class="wyd-n" data-n="COW_TABLE.steer.occ" data-f="pct">25%</span>
 of the time.</li>
-<li><b>Prime cow</b>: meal <span class="wyd-n" data-n="COW_TABLE.prime.yield" data-f="d1">1.5</span>,
+<li><b>Prime cow</b>: meal <span class="wyd-n" data-n="COW_TABLE.prime.yield" data-f="bp">50</span> blood,
 and someone usually got there first: occupied
 <span class="wyd-n" data-n="COW_TABLE.prime.occ.base" data-f="pct">55%</span> of the time on night
-one, rising <span class="wyd-n" data-n="COW_TABLE.prime.occ.perNight" data-f="pts">3</span> points a
+one (every animal is half as likely to be taken on the first
+<span class="wyd-n" data-n="BAT.rampNights" data-f="w">two</span> nights), rising <span class="wyd-n" data-n="COW_TABLE.prime.occ.perNight" data-f="pts">3</span> points a
 night to <span class="wyd-n" data-n="COW_TABLE.prime.occ.cap" data-f="pct">75%</span>, because
 favored hosts are re-attacked night after night and old wounds reopened (Greenhall 1972; Turner
 1975); the occupancy curve is <span class="wyd-flag">model</span>.</li>
@@ -350,17 +356,19 @@ Schmidt &amp; Lopez-Forment 1971), so you get exactly
 <span class="wyd-n" data-n="BAT.bitesPerNight" data-f="w">one</span> bite roll a night: a miss wakes
 the herd and the hunt is over. The far valley, open on nights
 <span class="wyd-n" data-n="BAT.farFrom" data-f="n">3</span> to
-<span class="wyd-n" data-n="BAT.farTo" data-f="n">8</span>, is the gamble: it deals its own
+<span class="wyd-n" data-n="BAT.farTo" data-f="n">8</span> (shut in a squall or a drought), is the gamble: it deals its own
 <span class="wyd-n" data-n="dealMin" data-f="w">one</span> to
 <span class="wyd-n" data-n="dealMax" data-f="w">five</span> animals with prime cows weighted
 ×<span class="wyd-n" data-n="PASTURES.far.primeWeight" data-f="n">2</span>, cattle nobody bleeds are
 fatter (meals ×<span class="wyd-n" data-n="PASTURES.far.yieldMult" data-f="n">1.3</span>), few bats
 fly that far (occupancy ×<span class="wyd-n" data-n="PASTURES.far.occMult" data-f="n">0.5</span>),
-and a meal taken there pays <span class="wyd-n" data-n="BAT.pts.farFed" data-f="n">12</span> extra
+and a meal taken there pays <span class="wyd-n" data-n="BAT.pts.farFed" data-f="n">20</span> extra
 points. Against that, your bite is <span class="wyd-n" data-n="BAT.farFail" data-f="spct">+10%</span>
 more likely to fail and a hungry night costs the
-<span class="wyd-n" data-n="BAT.unfedBurnHard" data-f="n">1.5</span> blood flight. In the sim the
-far valley leaves the expected score unchanged but raises the ceiling and the death rate:
+<span class="wyd-n" data-n="BAT.unfedBurnHard" data-f="bp">50</span> blood flight. In the P37 sim the
+far valley, flown from the hollow, still costs 4 to 6 points on average but pays off on a nearly empty
+crop or a rich night, and raises the ceiling and the death rate (flown from the outpost it is the better
+hunt, see the roosts below):
 several-kilometer excursions are routine (Wilkinson 1985a); every value is
 <span class="wyd-flag">model</span>. Sleeping at the valley outpost scouts the far herd (bite
 <span class="wyd-n" data-n="BAT.scoutMod" data-f="spct">−3%</span> there).</p>
@@ -379,41 +387,48 @@ animal costs one hour, each wait costs one, and at zero you fly home unfed. Squa
 <span class="wyd-flag">model</span>, with the energetic direction from McNab 1973. A rich night
 (<span class="wyd-n" data-n="BAT.richP" data-f="pct">8%</span> of dark, calm nights) is bite
 <span class="wyd-n" data-n="BAT.richMod" data-f="spct">−5%</span> and meal
-<span class="wyd-n" data-n="BAT.richBonus" data-f="sn">+0.25</span>, also
+<span class="wyd-n" data-n="BAT.richBonus" data-f="sbp">+8</span> blood, also
 <span class="wyd-flag">model</span>. The picked animal's <em>bite lands</em> bar is your chance of landing a
 bite tonight with every term folded in (your skill, the moon, the weather, the far valley, an open
 wound, fever, hunger, the luck damper); tap it for the itemized list. Hunger does not count against you on
 the first <span class="wyd-n" data-n="BAT.youngNights" data-f="w">two</span> nights. Dark hours themselves
 are not shown as a bar: the pasture line tells you how many are left.</p>
 
-<p><strong>The encounter.</strong> If another bat is at the wound you have four verbs.
-<b>Join</b> is tolerated with
+<p><strong>The encounter.</strong> If another bat is at the wound you see who she is and your real
+chance with every move. A stranger's type is read from her tell from the first meeting (a young bat,
+an adult, a big dominant female). <b>Share the wound</b> is offered only with a roost-mate, and is
+tolerated with
 P&nbsp;=&nbsp;<span class="wyd-n" data-n="BAT.joinBase" data-f="f2">0.05</span>&nbsp;+&nbsp;<span class="wyd-n" data-n="BAT.joinSlope" data-f="f2">0.50</span>&nbsp;×&nbsp;bond;
-a stranger gets the base <span class="wyd-n" data-n="BAT.joinBase" data-f="pct">5%</span>.
+a stranger never shares.
 Simultaneous feeding is rare in the field, 5 cases in 36.6 hours across 65 bats, mostly mother and
 young (Wilkinson 1985a), and bond predicts who forages together (Ripperger &amp; Carter 2021);
 the slope is <span class="wyd-flag">model</span>. A refusal is a feeding-place confrontation
 call, no injury, and that animal is done with you tonight (Sailler &amp; Schmidt 1978, a captive
 study, cited as such). Tolerated, you co-feed and the bond warms
 <span class="wyd-n" data-n="BAT.cofeedBond" data-f="sn">+0.05</span> on both sides (Ripperger
-&amp; Carter 2021; Carter et al. 2020). <b>Displace</b> wins
+&amp; Carter 2021; Carter et al. 2020); a shared wound never pays the fed-alone bonus. <b>Shove</b> wins
 <span class="wyd-n" data-n="BAT.displaceWin.young" data-f="pct">50%</span> of the time against a
-young stranger, <span class="wyd-n" data-n="BAT.displaceWin.adult" data-f="pct">30%</span> against
+young bat, <span class="wyd-n" data-n="BAT.displaceWin.adult" data-f="pct">30%</span> against
 an adult and <span class="wyd-n" data-n="BAT.displaceWin.dominant" data-f="pct">15%</span> against
 a dominant one; a roost-mate rolls as an adult
 (<span class="wyd-n" data-n="BAT.displaceWin.mate" data-f="pct">30%</span>), the attempt costs
 <span class="wyd-n" data-n="BAT.displaceMateBond" data-f="sf2">−0.10</span> bond win or lose, and
 she remembers. Larger bats displace smaller ones at a wound, an adult male over a yearling
 (Wilkinson 1985a); nobody is ever hurt, the loser lifts away; the odds are
-<span class="wyd-flag">model</span>. A stranger's rank stays hidden until you have joined or
-pushed her, then it sits on a chip: that is how displacements at a feeder reveal a hierarchy, and
-since no female roost rank exists (Crisp, Brent &amp; Carter 2021), rank here is feeder-scoped
-only. <b>Wait</b>: bouts end, so she leaves with P
+<span class="wyd-flag">model</span>. A lost shove takes the dark hour (a fight takes time) and that
+animal is done with you. Since no female roost rank exists (Crisp, Brent &amp; Carter 2021), rank
+here is feeder-scoped only. A shove is a short <b>wing-off</b>: a marker sweeps a bar with a green
+zone in the middle, wider the better your odds. A tap in the green adds up to
+<span class="wyd-n" data-n="BAT.wingoff.bonusMax" data-f="pct">15%</span> to the shove odds, a tap
+outside takes up to <span class="wyd-n" data-n="BAT.wingoff.penaltyMax" data-f="pct">10%</span>, and
+no tap rolls exactly the odds above, which stay the centre. It is there for feel, not biology
+(<span class="wyd-flag">model</span>); our simulation puts a good tapper at about 41% of shoves won
+instead of 33%, worth about 8 points a season. <b>Wait her out</b>: bouts end, so she leaves with P
 <span class="wyd-n" data-n="BAT.waitLeaveP" data-f="n">0.5</span> each dark hour, and the drained
-wound then yields <span class="wyd-n" data-n="BAT.waitDrain" data-f="n">0.5</span> less (never
-below <span class="wyd-n" data-n="BAT.waitFloor" data-f="n">0.5</span>); sequential feeding at one
+wound then yields <span class="wyd-n" data-n="BAT.waitDrain" data-f="bp">17</span> blood less (never
+below <span class="wyd-n" data-n="BAT.waitFloor" data-f="bp">17</span>); sequential feeding at one
 wound is observed (Wilkinson 1985a), the drain is <span class="wyd-flag">model</span>.
-<b>Leave</b> costs nothing beyond the hour already spent.</p>
+<b>Pick another animal</b> costs nothing beyond the hour already spent.</p>
 
 <p><strong>The roosts.</strong> Vampire bats use several roost trees and move between them
 (Wilkinson 1985a). Each game draws <span class="wyd-n" data-n="roostMin" data-f="n">3</span> or
@@ -438,26 +453,59 @@ you beg, because sharing happens among familiar associates (Wilkinson 1984). At 
 sick, P&nbsp;=&nbsp;<span class="wyd-n" data-n="BAT.roosts.sickBase" data-f="f2">0.02</span>&nbsp;+&nbsp;<span class="wyd-n" data-n="BAT.roosts.sickCrowd" data-f="f2">0.05</span>&nbsp;×&nbsp;crowding&nbsp;+&nbsp;<span class="wyd-n" data-n="BAT.roosts.sickRisk" data-f="f2">0.12</span>&nbsp;×&nbsp;the
 roost's disease score, ×<span class="wyd-n" data-n="BAT.roosts.sickFirst" data-f="n">1.5</span> on a
 first visit and ×<span class="wyd-n" data-n="BAT.roosts.sickHome" data-f="n">0.7</span> at home:
-<span class="wyd-n" data-n="BAT.roosts.sickNights" data-f="w">two</span> dawns of one less action
-and half the groom-backs. Sick bats groom less and are groomed less (Stockmaier, Bolnick, Page
+<span class="wyd-n" data-n="BAT.roosts.sickNights" data-f="w">two</span> dawns of
+<span class="wyd-n" data-n="sickStamPts" data-f="n">67</span> less stamina (out of 100), groom-backs at
+<span class="wyd-n" data-n="BAT.roosts.sickGroomBack" data-f="pct">50%</span> of their odds, a bite
+<span class="wyd-n" data-n="BAT.roosts.sickMod" data-f="pts">15</span> points likelier to fail, and no
+bringing up blood for anyone. Sick bats groom less and are groomed less (Stockmaier, Bolnick, Page
 &amp; Carter 2018; Ripperger, Stockmaier &amp; Carter 2020); the rates are
 <span class="wyd-flag">model</span>. Or a resident may bite you,
 P&nbsp;=&nbsp;<span class="wyd-n" data-n="BAT.roosts.aggroBase" data-f="f2">0.01</span>&nbsp;+&nbsp;<span class="wyd-n" data-n="BAT.roosts.aggroRisk" data-f="f2">0.10</span>&nbsp;×&nbsp;the
 aggression score, ×<span class="wyd-n" data-n="BAT.roosts.aggroFirst" data-f="n">1.15</span> while you
 are the stranger and 0 when a bat you trust at least
 <span class="wyd-n" data-n="BAT.roosts.allyTrust" data-f="f2">0.50</span> hangs beside you:
-<span class="wyd-n" data-n="BAT.roosts.injuryBlood" data-f="n">0.32</span> blood at once and
+<span class="wyd-n" data-n="BAT.roosts.injuryBlood" data-f="bp">11</span> blood at once and
 <span class="wyd-n" data-n="BAT.roosts.injuryNights" data-f="w">two</span> dawns of a stiff wing
 (residents guard a roost against strangers, Wilkinson 1985b; rates <span class="wyd-flag">model</span>).
-Mites are a separate roll with a separate cure. The valley outpost overlooks the far valley and
-scouts it: bite <span class="wyd-n" data-n="BAT.scoutMod" data-f="spct">−3%</span> there.</p>
+Mites are a separate roll with a separate cure.</p>
+
+<p><strong>The other roosts.</strong> Each roost you can sleep at besides the hollow offers one trade, an
+upside paid for with a downside, and its card says so in these numbers. The <em>barn eaves</em> hang over
+the herd: the next night a near bite gets
+<span class="wyd-n" data-n="ROOST_TYPES.barn.trade.nearFail" data-f="spct">−8%</span> on its fail chance
+and a calm near miss costs
+<span class="wyd-n" data-n="ROOST_TYPES.barn.trade.missBurn" data-f="bl">17</span> blood instead of
+<span class="wyd-n" data-n="BAT.unfedBurn" data-f="bl">33</span>, but the rafters are fought over (aggression
+at least <span class="wyd-n" data-n="ROOST_TYPES.barn.trade.aggroFloor" data-f="f2">0.60</span>). The
+<em>mango hollow</em> is big and warm: never fewer than
+<span class="wyd-n" data-n="ROOST_TYPES.mango.trade.sizeFloor" data-f="n">10</span> bats, bonds grow
+×<span class="wyd-n" data-n="ROOST_TYPES.mango.trade.warmMult" data-f="n">1.5</span> as fast and newcomers
+are groomed back in full, but it is damp: the dawn fever chance is
+×<span class="wyd-n" data-n="ROOST_TYPES.mango.trade.sickMult" data-f="n">2</span>. The <em>culvert</em> is
+cool and quiet: a fever or a wound clears at the dawn there, the fever chance is
+×<span class="wyd-n" data-n="ROOST_TYPES.culvert.trade.sickMult" data-f="n">0.3</span>, catching it from a
+bat you touch ×<span class="wyd-n" data-n="ROOST_TYPES.culvert.trade.contactMult" data-f="n">0.25</span>, and
+nobody fights, but only
+<span class="wyd-n" data-n="ROOST_TYPES.culvert.trade.sizeCap" data-f="n">5</span> bats at most sleep there.
+The <em>valley outpost</em> overlooks the far valley: the next night a far bite gets
+<span class="wyd-n" data-n="ROOST_TYPES.outpost.trade.scoutMod" data-f="spct">−15%</span> on its fail chance
+and a far miss costs
+<span class="wyd-n" data-n="ROOST_TYPES.outpost.trade.farMissBurn" data-f="bl">25</span> blood instead of
+<span class="wyd-n" data-n="BAT.unfedBurnHard" data-f="bl">50</span>, but the ridge is cold:
+<span class="wyd-n" data-n="ROOST_TYPES.outpost.trade.coldBurn" data-f="bl">3</span> blood gone by dawn.
+These are model trade-offs, plausible (damp, crowded roosts spread disease; a small bat loses heat on an
+exposed perch; roosting by the cattle shortens the commute) but not sourced; every value is
+<span class="wyd-flag">model</span>. Priced in the sim (20,000 seasons a cell): sleeping away for the right
+reason now costs about nothing (a card-reading bat ends within 2 points of one who never leaves), each roost
+pays off in its own situation and loses outside it, and from the outpost the far valley is the better hunt
+every time, which is what the cold night there buys.</p>
 
 <p><strong>The year.</strong> Two things have already happened to the colony when a season opens,
 and they hold all <span class="wyd-n" data-n="BAT.nights" data-f="w">ten</span> nights: one that
 favours a couple of close friends (a rough year of scarred males, a stingy year where only close
-friends feed a beggar, a sickly year, a quiet year of half-empty roosts) and one that favours a wide
-circle (a generous year, a restless year of roost-hopping, a crowded year, a lean year of thin
-herds). You read them once, in the first dusk's briefing, and their icons stay in the status bar.
+friends feed a beggar, a sickly year, a lean year of thin herds) and one that favours a wide
+circle (a generous year, a restless year of roost-hopping, a crowded year, a quiet year of
+half-empty roosts). You read them once, in the first dusk's briefing, and their icons stay in the status bar.
 Each is a trade: the sim holds every year's median score within 5% of the others, so there is no
 good year to refresh for, only a different one. Two more <em>surprises</em> land on random nights
 between <span class="wyd-n" data-n="EVENT_HIDDEN.nightLo" data-f="n">4</span> and
@@ -497,20 +545,20 @@ bat pays <span class="wyd-n" data-n="BAT.shares.1.ptsHun" data-f="n">11</span> p
 with diminishing returns, while a save pays in full; with one donation a dawn, each has to be worth
 making.</p>
 
-<p><strong>The luck damper, and desperate hours.</strong> One constant is pure engineering, and it
+<p><strong>The luck damper, and hunger.</strong> One constant is pure engineering, and it
 is labeled that way here. After <span class="wyd-n" data-n="BAT.damperAfter" data-f="w">two</span>
 straight unfed nights your next bite is
 <span class="wyd-n" data-n="BAT.damperMod" data-f="pts">10</span> points easier, and the night
 says so: <em>you fly careful tonight</em>. It has no field analog and the game does not pretend it
 has one. Its reason is variance capping: in a
 <span class="wyd-n" data-n="BAT.nights" data-f="w">ten</span>-night run, two bad rolls must not
-become a death spiral you never chose. Separately, when your reserve is at
-<span class="wyd-n" data-n="BAT.desperateAt" data-f="n">1</span> or below, the high-variance
-options (an occupied prime cow, the far valley) turn amber and read <em>desperate hours</em>, the
-energy-budget rule, risk-prone under deficit (Stephens 1981). Since the 2026-09-04 relaunch this is
-no longer framing only: flying out that hungry adds the
-<span class="wyd-n" data-n="BAT.hungryMod" data-f="pts">12</span>-point <em>hungry</em> term to your
-bite, itemized in the Skill stat.</p>
+become a death spiral you never chose. Separately, when your blood is at
+<span class="wyd-n" data-n="BAT.desperateAt" data-f="bp">33</span> or below, the high-variance
+options (an occupied prime cow, the far valley) are tagged <em>risky</em>, the
+energy-budget rule, risk-prone under deficit (Stephens 1981). It is not framing only: flying out that
+hungry adds the <span class="wyd-n" data-n="BAT.hungryMod" data-f="pts">12</span>-point <em>hungry</em>
+term to your bite (not on the first <span class="wyd-n" data-n="BAT.youngNights" data-f="w">two</span>
+nights), itemized when you tap the animal's <em>bite lands</em> bar.</p>
 
 <p><strong>Plausible, for play</strong> (invented for the game, flagged so you know): the learning
 rate, bond decay (<span class="wyd-n" data-n="BAT.decay" data-f="n">0.02</span> a night), your two
@@ -531,12 +579,12 @@ bonus if nobody in the hollow died. Death keeps the ledger you earned. The 2026-
 rebuilt this economy because players had found that handing blood to every bat every night was
 always best: the leaderboard restarted that day, and the earlier board is kept under
 <em>Before the relaunch</em>. <code>sim/batsim4.py</code> Monte-Carlos 20,000 seasons per policy
-from the same data file. Medians for a bat who never leaves the hollow: sharing widely 716 in an open
-season and 557 in a tight one; keeping two close friends 694 and 645; never giving blood 670 and 614.
-So a wide circle wins open and low-contagion seasons, a couple of close friends wins tight and
-high-contagion ones, and the years swing that gap by up to 80 points either way. Every year's median
-sits within 5% of the others; survival runs 63 to 68% for the sensible styles; a roost wound decides
-under 3% of deaths. The far valley, always taken, scores the same median as never going (639 against
+from the same data file (the October 2026 baseline, 20,000 paired seasons a policy). Medians for a
+bat who never leaves the hollow: keeping a few close friends 738 (it survives 75% of seasons),
+sharing widely 737 (69%), and a first-time player who grooms a little and rarely gives 516 (58%).
+A wide circle wins open and low-contagion seasons, a couple of close friends wins tight and
+high-contagion ones, and the years swing that gap either way. Every year's median sits within 5% of
+the others, and a roost wound decides under 3% of deaths. The far valley, always taken, scores the same median as never going (639 against
 646) with a higher ceiling and a survival rate of 57% against 64%: a real gamble, not a trap. Only
 flagged constants were tuned to get there; no cited number moved.</p>
 </div>
@@ -547,12 +595,13 @@ flagged constants were tuned to get there; no cited number moved.</p>
 /* NIGHT FLIGHT P4: the hero and the notes above read their numbers from bat-data.js once the
    page has loaded, so this copy cannot drift from the constants the engine plays with. The
    static text is the fallback if a key is missing. Formats: pct 28% · spct +8% / −5% · pts 10
-   (unsigned points) · n 0.5 · d1 1.0 · f2 0.60 · sf2 −0.10 · sn +0.25 · w two · W Two. */
+   (unsigned points) · bl 17 (blood out of 100) · n 0.5 · d1 1.0 · f2 0.60 · sf2 −0.10 · sn +0.25 · w two · W Two ·
+   bp 33 (blood out of 100) · sbp +8. */
 document.addEventListener("DOMContentLoaded", function(){
-  var roots; try { roots = {BAT:BAT, COW_TABLE:COW_TABLE, PASTURES:PASTURES, YEARS:YEARS, EVENT_HIDDEN:EVENT_HIDDEN, YEAR_SLOTS:{n:YEAR_SLOTS}}; } catch(e){ return; }
+  var roots; try { roots = {BAT:BAT, COW_TABLE:COW_TABLE, PASTURES:PASTURES, ROOST_TYPES:ROOST_TYPES, YEARS:YEARS, EVENT_HIDDEN:EVENT_HIDDEN, YEAR_SLOTS:{n:YEAR_SLOTS}}; } catch(e){ return; }
   var B = roots.BAT;
   var derived = { storms: B.nights - B.stormStart + 1, doorNights: Math.ceil(B.energyStart / B.unfedBurn),
-                  youngFrom: (B.youngNights || 0) + 1, giveKeepPts: Math.round(((B.slider && B.slider.giveKeep) || 0) / B.energyCap * 100),
+                  youngFrom: (B.youngNights || 0) + 1, sickStamPts: Math.round(B.roosts.sickStamina * 100 / B.staminaPerNight), giveKeepPts: Math.round(((B.slider && B.slider.giveKeep) || 0) / B.energyCap * 100),
                   squallFrom: B.rampNights + 1, squallTo: B.stormStart - 1,
                   dealMin: 1, dealMax: (B.dealCount || []).length,
                   roostMin: 3, roostMax: B.roosts && B.roosts.countP4 > 0 ? 4 : 3 };
@@ -570,13 +619,17 @@ document.addEventListener("DOMContentLoaded", function(){
     pct: function(v){ return pct(v) + "%"; },
     spct: function(v){ return sign(v) + pct(v) + "%"; },
     pts: function(v){ return String(pct(v)); },
+    bl: function(v){ return String(Math.round(v / B.energyCap * 100)); },   // P37: blood on the 0 to 100 scale the game shows
     n: function(v){ return String(v); },
     d1: function(v){ return v % 1 === 0 ? v.toFixed(1) : String(v); },
     f2: function(v){ return v.toFixed(2); },
     sf2: function(v){ return sign(v) + Math.abs(v).toFixed(2); },
     sn: function(v){ return sign(v) + String(Math.abs(v)); },
     w: function(v){ return WORDS[v] != null ? WORDS[v] : String(v); },
-    W: function(v){ var s = F.w(v); return s.charAt(0).toUpperCase() + s.slice(1); }
+    W: function(v){ var s = F.w(v); return s.charAt(0).toUpperCase() + s.slice(1); },
+    /* P37: blood reads out of 100 (a full crop) everywhere in the game, so the notes do too */
+    bp: function(v){ return String(Math.round(v / B.energyCap * 100)); },
+    sbp: function(v){ return sign(v) + String(Math.round(Math.abs(v) / B.energyCap * 100)); }
   };
   var els = document.querySelectorAll(".wyd-n[data-n]");
   for(var i = 0; i < els.length; i++){
@@ -591,13 +644,44 @@ document.addEventListener("DOMContentLoaded", function(){
 </div>
 </div>
 <script>window.WYD_SPECIES = "bat"; window.WYD_BOARD = "leaderboard_v2"; window.WYD_BOARD_OLD = "leaderboard";</script>
-<script src="assets/js/wyd-core.js?v=29"></script>
-<script src="assets/js/bat-data.js?v=29"></script>
-<script src="assets/js/bat-copy.js?v=29"></script>
-<script src="assets/js/bat-log.js?v=29"></script>
-<script src="assets/js/bat-sound.js?v=29"></script>
-<script src="assets/js/bat-stage.js?v=29"></script>
-<script src="assets/js/bat-game.js?v=29"></script>
+<script src="assets/js/wyd-core.js?v=30"></script>
+<script src="assets/js/bat-data.js?v=30"></script>
+<script src="assets/js/bat-copy.js?v=30"></script>
+<script src="assets/js/bat-log.js?v=30"></script>
+<script src="assets/js/bat-sound.js?v=30"></script>
+<script src="assets/js/bat-stage.js?v=30"></script>
+<script src="assets/js/bat-game.js?v=30"></script>
+<script>
+/* P36 the attract scene: the game's own stage behind the intro, a bat looping over a sleeping
+   herd. Visual only: it reads no game state and never touches the dice. It is mounted while the
+   intro is on screen and destroyed when it is not (a run hides the intro), so only one stage loop
+   ever runs; reduced motion gets one still frame. */
+(function(){
+  var host = document.getElementById("wyd-diorama");
+  if(!host || !window.WydStage || !window.IntersectionObserver) return;
+  var st = null, gen = 0;
+  var PATH = [[540,214],[720,252],[870,200],[650,176],[430,238],[280,196]];
+  function loop(my){
+    var i = 0;
+    (function next(){
+      if(my !== gen || !st || st.dead) return;
+      var p = PATH[i++ % PATH.length];
+      st.batTo(p[0], p[1], 2600, WydStage.EASE.soft, 500).then(next);
+    })();
+  }
+  function mount(){
+    if(st) return;
+    host.innerHTML = "";
+    st = WydStage.mount(host, {cover:true, moon:"bright", phase:"night", look:"herd",
+      cows:[{id:"a", tier:"steer"}, {id:"b", tier:"calf"}, {id:"c", tier:"prime"}, {id:"d", tier:"steer"}], slots:[440, 575, 705, 865]});
+    var my = ++gen;
+    if(st.reduced){ st.batTo(640, 206, 0); st.pose("flap"); return; }
+    setTimeout(function(){ if(my !== gen || !st) return; st.pose("flap"); loop(my); }, 900);
+  }
+  function unmount(){ gen++; if(st){ st.destroy(); st = null; } }
+  new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting) mount(); else unmount(); }); }).observe(host);
+})();
+</script>
 
 
 

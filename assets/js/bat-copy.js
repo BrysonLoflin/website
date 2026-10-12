@@ -40,6 +40,7 @@ const COPY = {
   stormWarn:     "You can smell rain on the wind. The storms are two nights away. If you want friends who will feed you, build those bonds now.",
   damper:        "You fly careful tonight.",   // (test)
   damperNote:    "{n} unfed nights in a row. Your next bite gets {mod} to its fail chance, because two bad rolls shouldn't end a season.",   // {n} {mod}
+  savedInNight:  "{by} fed {name} while you slept. She lives.",   // P37 A10: a starving roost-mate you did not feed, saved by another bat; {by} {name}
   grief:         "The roost is quieter. <strong>{names}</strong> didn't wake at dusk. Starved, and nobody had enough to give.",   // {names}
   huntNight1Label:"Follow the colony out",
   huntNearLabel: "Hunt the near paddock",
@@ -47,8 +48,8 @@ const COPY = {
   huntFarLabel:  "Push to the far valley",
   /* P29, Bryson's own wording: "Meals worth 1.3x, less bats, cows are 7% harder to bite, lose 50
      blood if you don't feed." The numbers stay filled from the data so the card cannot drift. */
-  huntFarStats:  "Meals worth {farYield}x, fewer bats, cows are {farFail}% harder to bite, lose {burnHard} blood if you don't feed.",   // {farYield} {farFail} {burnHard}
-  huntFarStatsScouted:"Meals worth {farYield}x, fewer bats, cows are {scoutPct}% harder to bite (you scouted them), lose {burnHard} blood if you don't feed.",   // {farYield} {scoutPct} {burnHard}
+  huntFarStats:  "+{pts} points a meal. Meals worth {farYield}x (your crop has room for {room} tonight), {farFree}% fewer bats. But cows are {farFail}% harder to bite, and you lose {burnHard} blood if you don't feed.",   // P37: Bryson's P29 line plus the points and the room; {pts} {farYield} {room} {farFree} {farFail} {burnHard}
+  huntFarStatsScouted:"+{pts} points a meal. Meals worth {farYield}x (your crop has room for {room} tonight), {farFree}% fewer bats. Cows are {odds} to bite (you scouted them from the outpost), and you lose {burnHard} blood if you don't feed.",   // {pts} {farYield} {room} {farFree} {odds} {burnHard}
   huntFarSub:    "fat animals nobody bleeds (meals x{farYield}) and about {farFree}% fewer bats at the wounds. The catch: your bite is {farFail}% more likely to fail out there, and a hungry night costs {burnHard} blood for the long flight",   // {farFail} {burnHard}
   huntFarScouted:"{n} fat animals (meals x{farYield}), about {farFree}% fewer bats at the wounds. You watched this herd from the outpost, so a bite there is only {scoutPct}% more likely to fail than at home, not {farFail}%; a hungry night still costs {burnHard} blood for the flight",   // {n} {scoutPct} {farFail} {burnHard} ({scout} = the signed form, unused now)
   huntStormSub:  "one to three animals huddled in the rain, {ticks} dark hours",   // {ticks}
@@ -75,7 +76,7 @@ const COPY = {
   roostPickBtn:  "Sleep here →",   // (test)
   roostPickWait: "Pick a roost first, on the picture or the cards below",
   roostPickWaitShort: "Pick a roost first",   // P26: on a phone the cards are right under the button, so the long version is two wasted lines
-  roostShortKnown: "{n} residents · {f} friends",   // the phone card's one stat line; {n} {f}
+  roostShortKnown: "{n} here tonight · {f} friends",   // the phone card's one stat line; {n} {f}
   roostShortNew: "not visited yet",   // the disabled button before a pick
   helpRoostHead: "Choosing where to sleep",   // the one-time explainer on the first night you get the choice
   helpRoostText: "Every night from now on you choose where to sleep. Only the bats hanging beside you can feed you if you run out of blood, so going home means your friends, and a new roost means strangers who might become friends, or might carry sickness or bite. Tap a roost on the picture to size it up, then sleep there.",
@@ -83,18 +84,34 @@ const COPY = {
   sleepIntro:    "Only the bats hanging beside you can feed you if you run empty. Go back to the friends you have, or gamble on a roost full of bats you don't know yet?",
   roostTapHint:  "Tap a roost on the picture, or a card below, to size it up.",
   stormDusk:     "The wind is wrong. Nobody moves roosts in a storm, so tonight everyone shelters where they are and you go home to the hollow.",   // (test)
+  stormDuskAway: "The wind is wrong. Nobody moves roosts in a storm, so tonight everyone shelters where they are and you ride it out at {roost}.",   // P37 A7: when a big storm has taken the hollow; {roost}
   roostHome:     "home",   // (test) tag
   roostYou:      "you slept here last",   // (test) tag
-  roostKnownSub: "{n} residents you have met",   // (test) {n}
+  roostKnownSub: "{n} residents you have met sleep here tonight",   // (test) keep "residents you have met"; P37 A4: counts tonight's sleepers; {n}
   roostUnknown:  "unknown",   // (test) tag
-  roostRumor:    "A familiar voice from {roost}: {name} sleeps there.",   // (test) {roost} {name}
+  roostRumor:    "A familiar voice from {roost}: {name} sleeps there tonight.",   // (test) {roost} {name}
   roostNoRumor:  "Nobody here can feed you yet: you do not know a single bat in this roost.",   // (test)
   roostGuard:    "Nobody here will feed a stranger. Sleep here and you starve.",   // (test) P32: on a card whose beg pool is empty while your blood is 0
   roostFriends:  "your friends here: {names}",   // {names}
   roostSickHere: "you fell ill here",   // (test)
   roostHurtHere: "you were bitten here",   // (test)
-  roostScouts:   "overlooks the far valley, so your bites there fail less often ({mod})",   // {mod}
-  roostScoutsSoon:"overlooks the far valley, which opens on night {n}",   // (test) {n}
+  tradeNone:     "Nothing here helps you hunt. You come for the bats who sleep here.",   // P37: an away roost with no trade of its own
+  tradeNoneShort:"No hunting edge",
+  /* P37 roost trades: the card line (desktop) and its short form (the phone card). Every number is live. */
+  tradeBarn:     "Over the herd: tomorrow's bite +{near}%, a miss costs {burn} blood (not {usual}).",   // {near} {burn} {usual}
+  tradeBarnRisk: "Rafters fought over: at least {p}% wound risk.",   // {p}
+  tradeBarnSafe: "Rafters fought over, but a friend there keeps you safe.",
+  tradeBarnShort:"Bite +{near}%, miss {burn} 🩸, wound {p}%+",   // {near} {burn} {p}
+  tradeMango:    "Big and warm ({n}+ bats): bonds grow {warm}x as fast, newcomers groom you back. Damp: about {p}% fever risk.",   // {n} {warm} {p}
+  tradeMangoShort:"Bonds x{warm}, fever ~{p}%",   // {warm} {p}
+  tradeCulvert:  "Cool and dry: fever and wounds clear here, coughs spread {contact}% less, no fights. At most {cap} bats.",   // {contact} {cap}
+  tradeCulvertShort:"Heals you, max {cap} bats",   // {cap}
+  tradeOutpost:  "Tomorrow far bites are {s}% likelier to land, a far miss costs {burn} blood (not {usualFar}). Cold ridge: -{cold} blood by dawn.",   // {s} {burn} {usualFar} {cold}
+  tradeOutpostShort:"Far bite +{s}%, cold -{cold} 🩸",   // {s} {cold}
+  tradeOutpostSoon:"The far valley opens on night {n}.",   // {n}
+  tradeMoon:     "Moon: {moon}.",   // {moon}
+  moonWordDark:  "dark", moonWordDim:"half", moonWordBright:"bright",
+  farHarder:     "{n}% harder", farEasier:"{n}% easier",   // P37: the far button's bite odds, from the outpost they can be easier than at home; {n}
 
   /* ── The flight out ── */
   skip:          "Skip →",
@@ -110,19 +127,23 @@ const COPY = {
   intelHead:     "Size up an animal",
   intelEmpty:    "Tap an animal to size it up.",
   intelMeal:     "meal +{yield}",   // (test) {yield}
+  intelMealFits: "only {fits} fits in your crop",   // P37 A3: under the meal when your crop cannot take all of it; {fits}
+  stageMealFits: "+{fits} fits",   // P37 A3: the animal's tag on the stage when your crop is nearly full; {fits}
   termSkill:     "your skill", termMoon:"{moon} moon", termSquall:"squall", termStorm:"storm", termRich:"easy night",
-  termFar:       "far valley", termScout:"scouted", termCalf:"thin calf skin", termWound:"open wound", termDamper:"flying careful", termSick:"feverish",
+  termFar:       "far valley", termScout:"scouted", termHerd:"the herd is below you", termCalf:"thin calf skin", termWound:"open wound", termDamper:"flying careful", termSick:"feverish",
   termHungry:    "hungry",   // (test) P10: an empty crop makes you a worse hunter
   occUnknown:    "another bat is already drinking here, and you don't know her.",   // (test)
   occKnown:      "a shape you know is already drinking here: {name}",   // {name}
   occStar:       "★ another bat is already feeding here, investigate?",   // P28: the small star on a picked animal that someone is already on
   occTag:        "· a bat is drinking",   // (test) the tag under an occupied animal on the stage
-  occDeal:       "You get past her first, which costs the hour, and a shared wound never pays the fed-alone bonus.",   // (test)
+  occDeal:       "You have to get past her first. Shove her off or wait her out and the fed-alone bonus is still yours; only sharing the wound gives it up.",   // (test) P37: the prime case, where the bonus exists
+  occDealPlain:  "You have to get past her first: share the wound, shove her off, or wait her out.",   // P37: an occupied calf or steer (no fed-alone bonus to talk about)
   occLocked:     "this cow is done with you tonight",   // (test) keep "done with you"
   approach:      "Approach {name}",   // (test) keep "Approach the"; {name}
   approachDefault:"Approach",
   approachSub:   "one dark hour · one bite a night, no second try",
-  occDealShort:  "You get past her first, and no fed-alone bonus.",   // P32 phones: the cost of an occupied animal, under the star
+  occDealShort:  "Only sharing the wound loses the fed-alone bonus.",   // P32 phones, P37 corrected: a won shove or a wait still pays it (prime only)
+  meterGetIn:    "get in {p}%",   // P37: the bar over an occupied animal, your best single try at getting to the wound; {p}
   approachNone:  "no dark hours left",
   flyHome:       "Fly home empty",
   flyHomeSub:    "an unfed night costs {burn} blood",   // (test) {burn}
@@ -133,32 +154,43 @@ const COPY = {
   /* ── The encounter (another bat is at the wound) ── */
   encHeadMate:   "{name}.",   // (test) {name}
   encHeadMet:    "{name}, again.",   // (test) {name}
-  encHeadStranger:"A stranger at the cow.",   // (test) keep "stranger"
+  encHeadStranger:"A stranger at the cow: {type}.",   // (test) keep "stranger"; {type} P37: named from her tell
+  clsYoung:      "a young bat", clsAdult:"an adult", clsDominant:"a big dominant female",   // P37: a rival's type, read from her tell
   encAsk:        "How do you respond?",   // P29: the encounter's whole prose on a phone
-  meetMate:      "Someone's already feeding. It's {name}, from your roost. How do you respond?",   // {name}
-  meetRival:     "Someone's already feeding, and you don't know this bat: {tell}. How do you respond?",   // {tell}
-  meetRivalMet:  "Someone's already feeding. You know this one. {name}: {tell}. How do you respond?",   // {name} {tell}
+  meetMate:      "Someone's already feeding. It's {name}, from your roost, so you could ask to share. How do you respond?",   // {name}
+  meetRival:     "Someone's already feeding, and you don't know this bat: {tell}. That's {type}, and a stranger won't share. How do you respond?",   // {tell} {type}
+  meetRivalMet:  "Someone's already feeding. You know this one: {name}, {type}, {tell}. How do you respond?",   // {name} {type} {tell}
   /* P28 (Bryson: the encounter buttons "are way too large. they should be condensed and can fit as
      just that text with a small X% Success for each or Odds unknown"). The long sentences are kept
      below because the desktop still has room for them; the phone gets these. */
   verbOdds:      "{p}% success",   // P28; {p}
-  verbOddsCost:  "{p}% success, costs bond",   // P28, the roost-mate case: pushing a friend off is not free; {p}
-  joinLabel:     "Join", joinSub:"about {p}% chance {subj} lets you in", joinSubStranger:"a stranger almost never lets you in: about {p}%",   // {p} {subj}
-  displaceLabel: "Push {obj} off", displaceSub:"about {p}% chance {subj} gives way", displaceSubUnknown:"odds unknown until you try", displaceSubMate:"about {p}% she gives way, and it costs your bond",   // (test) keep "costs" + "bond"; {obj}
-  waitLabel:     "Wait", waitSub:"about {p}% {subj} leaves each hour; the wound runs slower after",   // {p} {subj}
-  leaveLabel:    "Leave", leaveSub:"back to the herd; the hour is spent",
+  verbOddsCost:  "{p}%, costs bond",   // P28, the roost-mate case: pushing a friend off is not free; {p}
+  joinLabel:     "Share the wound", joinShort:"Share", joinSub:"about {p}% {subj} lets you in; if not, this cow is done with you",   // {p} {subj} P37: offered only with roost-mates
+  displaceLabel: "Shove", displaceShort:"Shove", displaceSub:"about {p}% {subj} gives way; lose and the fight takes the hour", displaceSubMate:"about {p}% she gives way; it costs your bond, and a loss takes the hour",   // (test) keep "costs" + "bond"
+  waitLabel:     "Wait {obj} out", waitShort:"Wait", waitSub:"about {p}% {subj} leaves each hour; the wound runs slower after",   // {obj} {p} {subj}
+  leaveLabel:    "Pick another animal", leaveShort:"Other animal", leaveSub:"back to the herd, no extra hour",
+  leaveLabelHome:"Fly home", leaveShortHome:"Home", leaveSubBrief:"no hour lost", leaveSubBriefHome:"unfed",   // P37: the same button when no dark hours are left
   leaveSubNoHours:"no dark hours left: home with an empty stomach",   // (test) keep "empty"
-  encSkipHint:   "tap anywhere to skip the standoff",
   joinTolerated: "{Subj} shifts along the wound and lets you in. Shoulder to shoulder, you both feed.",   // (test) keep "shoulder to shoulder"
   rebuff:        "A rattling scream right in your ear. The wound is claimed, and this cow is done with all of you tonight.",   // (test) keep "rattling scream"
   displaceWin:   "{Subj} gives up the wound and lifts away. Nobody gets hurt. That's how dominance usually works!",
-  displaceLose:  "{Subj} rears up, wings wide, and you're already airborne. No blood spilled, only yours to burn.",   // (test) keep "rears"
+  displaceLose:  "{Subj} rears up, wings wide, and knocks you back into the grass. No blood spilled, but the fight took the hour.",   // (test) keep "rears"
   waitSuccess:   "The drips slow and stop. {Subj} drops into the dark, full. Your turn!",
   waitStill:     "{Subj} is still there, still drinking. The wound runs on and your dark hours run out.",   // (test) keep "still there"
-  leave:         "You lift off and circle back over the herd. The dark hours keep ticking.",   // (test) keep "circle back"
+  leave:         "You lift off and circle back over the herd. No hour lost, but the night is not getting any longer.",   // (test) keep "circle back"
   rollLine:      "Roll {r} against {p}: {result}.",   // (test) {r} {p} {result}
   rollTolerated: "tolerated", rollRefused:"refused", rollYields:"{subj} gives way", rollHolds:"{subj} holds", rollLeaves:"{subj} leaves", rollStill:"still there",   // (test)
-  riskRefused:   "refused", riskHolds:"she holds", riskStill:"still there",   // labels on the little risk bars
+  winJoin:       "lets you in", winShove:"gives way", winWait:"leaves this hour",   // P37: labels on the green chance-of-success bars under each verb
+  /* P37 the wing-off (Bryson: "I like the tap one"): pressing Shove starts a two-second face-off */
+  woHead:        "Wing-off! Tap in the green.",
+  woHeadStill:   "Tap to shove.",   // reduced motion: the marker sits still
+  woBase:        "Your odds: {p}%. Green is wider when your odds are better.",   // {p}
+  woNoteStill:   "Reduced motion: the marker stays still and a tap rolls the shown odds, {p}%.",   // {p}
+  woBarAria:     "Wing-off bar: tap, or press Space, while the marker is in the green",
+  woIn:          "In the green: +{n}.", woOut:"Outside the green: {n}.", woNone:"No tap: the shown odds.", woStill:"The shown odds.",   // {n} points moved
+  woOdds:        "Your odds now: {p}%.",   // {p}
+  capWingoff:    "the wing-off",
+  chipShoveLost: "{name} held the wound; the fight took the hour",   // P37 night summary: a lost shove on the last dark hour; {name}
 
   /* ── The bite and the flight home ── */
   fed:           "You feed on the warm blood of the cow for twenty minutes. You fly home with a full belly.",   // the h3 above it already says Success!
@@ -201,6 +233,7 @@ const COPY = {
 
   /* ── No blood left: saved, or not ── */
   rescueHead:    "Saved!",   // (test) keep "Saved"
+  rescueBtn:     "On to the dawn →",   // P37 A11: the rescue card's button (you begged at the roost, so "Fly home at dawn" was wrong)
   rescueYoung:   "You're young, and the colony knows it. {name} fed you tonight without being asked twice. From night {n} you have to earn it.",   // P32; {name} {n}
   deathBtn:      "See how it went →",   // P32: the death card's button (it used to say Fly home at dawn)
   /* P29 the beg, played out one bat at a time (Bryson asked for anticipation). */
@@ -232,11 +265,13 @@ const COPY = {
   /* ── Dawn: the roost ── */
   dawnHead:      "Dawn. Who do you look after?",
   dawnAt:        "You hang at {roost}.",   // (test) keep "You hang at"; {roost}
-  dawnNew:       "Your first dawn here. The residents give you room, not warmth: strangers get groomed back half as often, and nobody here feeds a beggar they barely know.",   // (test) keep "Your first dawn here"
+  dawnNew:       "Your first dawn here. The residents give you room, not warmth: this dawn they groom a stranger back half as often.",   // (test) keep "Your first dawn here"; P37 A8: the stranger beg rule has already passed by the time you read this
+  dawnNewEase:   "Your first dawn here. It is a restless year, so nobody minds a stranger.",   // P37 A8: the same line in a restless year
   dawnCues:      "You notice: {cues}.",   // {cues}
   dawnAway:      "Away tonight: {names}. {isare} sleeping at another roost, so {they} cannot feed you if you run out.",   // (test) {names} {isare} {they}
   dawnVisitors:  "Visiting tonight: {names}.",   // (test) {names}
   dawnNeeds:     "Who needs you",
+  needsMore:     "and {n} more on the web",   // P37: the strip shows six at most; {n}
   /* P28 (Bryson: the dawn paragraph "is way too long. there should just be a small stat that lists
      any friends you have in the colony, and that paragraph and the one saying you have x stamina
      should be taken away"). Phones get this line instead of both paragraphs. */
@@ -249,32 +284,40 @@ const COPY = {
   dawnNoShare:   " Groom to build bonds. No sharing tonight, you need every drop to get through the night.",   // P32: the give bar opens whenever you can keep a night of blood, fed or not
   mitesWarn:     "<strong>🕷 Mites!</strong> Get a roost-mate to groom you to clear them.",
   furWarn:       "Nobody has groomed you in a while (fur {hyg} of 1), and your mite risk is climbing.",   // {hyg}
-  warnStarving:  "<strong>{names} {isare} starving.</strong> A starving bat that nobody feeds dies at dusk.",   // {names} {isare}
-  warnYouCould:  " You fed tonight. You could be the one who saves her.",
-  warnOthersMight:" You have no blood to give, but her other friends might.",
+  warnStarving:  "<strong>{names} {isare} starving.</strong> A starving bat nobody feeds today may not wake at dusk.",   // P37 A10: most are saved by somebody; about 1 in 8 is not   // {names} {isare}
+  warnYouCould:  " You have blood to spare. You could be the one who feeds her.",
+  warnOthersMight:" You cannot feed her this dawn, but her other friends might.",
   warnRefuse:    "{n} begging bat{s} will remember being refused (bond -{cost}{owe}).",   // {n} {s} {cost} {owe}
   warnRefuseShort:"{n} begging bat{s} will remember this (bond -{cost}).",   // P28 phones: the long one wrapped and clipped; {n} {s} {cost}
   warnOwe:       ", -{cost} for a bat who once saved you",   // {cost}
-  sickDawn:      "You wake up feverish. Something in this roost has you. For {n} dawns you groom less and get groomed less.",   // (test) keep "feverish"; {n}
+  sickDawn:      "You wake up feverish. Something in this roost has you. For {n} dawns: {stam} less stamina, bats groom you back {back}% as often, your bite is {bite}% likelier to fail, and you can't bring up blood for anyone.",   // (test) keep "feverish"; P37 A8: every effect; {n} {stam} {back} {bite}
   sickOver:      "The fever breaks. You wake up clear.",
   hurtDawn:      "A scarred bat drives you off the warm cluster in the dark. You bleed, and you remember: {blood} blood, and {n} dawns of a stiff wing.",   // (test) keep "drives you off"; {blood} {n}
   hurtOver:      "The wound has closed.",
-  caughtFrom:    "You caught it from {name}: for {n} dawns you groom less and get groomed less.",   // (test) keep "caught it from"; {name} {n}
+  caughtFrom:    "You caught it from {name}. For {n} dawns: {stam} less stamina, bats groom you back {back}% as often, your bite is {bite}% likelier to fail, and you can't bring up blood for anyone.",   // (test) keep "caught it from"; P37 A8; {name} {n} {stam} {back} {bite}
   hudSick:       "Sick", hudHurt:"Wounded",   // (test) HUD chips
+
+  /* ── P37 phones: a one-row status bar. The year and event icons, the mite risk and the sick or
+     wounded chips sit behind a tap on the night cell, in this sheet ── */
+  sheetKicker:   "Tonight and this year",
+  sheetYou:      "You",
+  sheetEvents:   "This year and its events. Tap one to read it.",
+  hudBloodTight: "🩸 {n}", hudStaminaTight:"⚡ {n}",   // phones with two or more flags on the night cell; {n}
+  flagMites:     "mite risk is high", flagEvent:"something happened tonight",
+  realLifeTap:   "tap to read",
 
   /* ── Dawn: the partner panel ── */
   panelPickHead: "Pick a roost-mate",
   panelPickText: "Tap a bat. Green lines are <strong>your</strong> bonds, the bats most likely to feed you when a night goes wrong. Faint lines are their bonds with each other. Every bond fades -{decay} a night if you leave it alone, grooming builds it back up, and a bat you groom often grooms you back.",   // {decay}
   panelWarmFast: " The bats here take to you quickly.",
   panelWarmSlow: " The bats here are slow to take to you.",
-  panelStarvWarn:" <strong class=\"wyd-warnink\">A starving bat dies at dusk unless somebody, maybe you, feeds her.</strong>",
+  panelStarvWarn:" <strong class=\"wyd-warnink\">A starving bat may die unless somebody, maybe you, feeds her.</strong>",   // P37 A10
   panelSpread:   "Spread thin: you are looking after {n} bonds and you can manage about {free}. Every one of them is fading {extra} faster.",   // (test) keep "Spread thin: you are looking after {n} bonds" + "manage about {free}"
-  panelRescue:   "if you run out of blood tonight, she feeds you about {p}% of the time",   // (test) keep "about {p}%"; {p}
-  panelRescueYoung:"if you run out of blood tonight she feeds you: the colony looks after a youngster on the first {n} nights",   // P32; {n}
+  panelRescue:   "next time you come home empty, if she has eaten, she feeds you about {p}% of the time",   // (test) keep "about {p}%"; P37 A6: a forecast; {p}
+  panelRescueYoung:"next time you come home empty, if she has eaten, she feeds you: the colony looks after a youngster on the first {n} nights",   // P32; P37 A6: only while the next night is a young one; {n}
   panelRescueFar:"not close enough to ask yet: you would need a bond of {t} for her to feed you",   // P32: bats below the beg pool's floor; {t}
-  panelRescueUnfed:"if you run out of blood tonight she has nothing to give you: she went hungry too",
   bondLabel:     "Bond {trust}",   // {trust}
-  chipStarving:  "☠ starving: dies at dusk unless fed",
+  chipStarving:  "☠ starving: she may die if nobody feeds her",   // P37 A10: was "dies at dusk unless fed"; other bats save most of them
   chipBegging:   "she came home empty",
   chipFedWhy:    "She fed tonight, so she is one of the bats who can feed you if you run out.",   // (test)
   chipBeggingWhy:"She came home empty, so she has nothing to give you tonight, and she needs blood herself.",
@@ -323,16 +366,17 @@ const COPY = {
   traitHint:     "{tag}: {hint}.",
   panelOneShare: "You can bring up one meal a dawn. Who gets it? ({n} left tonight, or a second one if you are still nearly full of blood.)",   // (test) P10 lever 3; {n}
   shareWhyOne:   "you have already given a meal this dawn",   // (test) P10 lever 3
-  shareWhyNotHungry:"not hungry", shareWhyNoStamina:"no stamina left", shareWhyLow:"you need enough blood to get through the night too",   // P32: the give bar no longer needs a fed night, only a night of blood in hand
+  shareWhyNotHungry:"not hungry", shareWhyNoStamina:"not enough stamina left", shareWhyLow:"you need enough blood to get through the night too",   // P32: the give bar no longer needs a fed night, only a night of blood in hand
   shareWhyFever: "feverish: you can't bring food back up",   // (test) keep "feverish"
   sleepBtn:      "Sleep until dusk →",
   /* P26 the two dawn bars. Both read as a percentage of what tonight left you, both stop every 5%,
      and neither will go past what you are actually holding. */
-  nfSleepStarving: "Still starving: {names}. Without blood, they die at dusk.",
+  nfSleepStarving: "Still starving: {names}. If nobody feeds them, they may not wake at dusk.",   // P37 A10
   nfNetworkKey: "Network key",
   nfKeyFriend: "Friend: a thicker green ring means a closer bond.",
-  nfKeyHungry: "Red: hungry. A pulsing ring means starving.",
-  nfKeyCough: "Amber: coughing.",
+  nfKeyHungry: "Light red ring: hungry, she came home empty.",   // P37 A2: hungry is crimson again, lighter than starving
+  nfKeyStarving: "Deep red, filled and pulsing: starving.",
+  nfKeyCough: "Amber ears and an amber outer ring: coughing, even when she is hungry too.",
   nfKeyVisitor: "V badge: visiting from another roost.",
   nfKeyUnknown: "Grey: a bat you barely know.",
   nfKeyLinks: "Faint lines: bonds between other bats.",
@@ -345,6 +389,8 @@ const COPY = {
   nfDonation: "{n} meal left; another only if you are nearly full.",
   nfStamina: "stamina spent",
   nfBond: "bond gained",
+  nfBondMax: "bond gained (max)",   // P37 C1: the give bar is past the full-crop mark
+  slGiveBondCap: "Past {mark}, more blood still helps her, but your bond stops growing.",   // P37 C1; {mark}
   nfGroomBack: "grooms you back",
   nfBloodLeft: "blood left",
   nfPoints: "points",
@@ -432,10 +478,10 @@ const COPY = {
   evCattleText:  "All the cattle are sick. Their blood is only worth <strong>{mult}</strong> as much as before, for the next {n} nights.",   // {mult} {n}
   evPlagueTitle: "Plague!",
   evPlagueHud:   "everyone sick for {n} nights",   // {n}
-  evPlagueText:  "A sickness sweeps the colony. Every bat is coughing, you included, for {n} dawns: fewer actions, fewer groom-backs, and nobody can share.",   // {n}
+  evPlagueText:  "A sickness sweeps the colony. Every bat is coughing, you included, for {n} dawns: less stamina, fewer groom-backs, a worse bite, and you can't share blood.",   // {n}  P37 A8: only you are stopped from sharing
   evDominantTitle:"Dominant bats move in!",
   evDominantHud: "angry bats everywhere, {n} nights",   // {n}
-  evDominantText:"A dominant group has infiltrated the colony. Every roost now has at least one angry bat who will probably hurt you, for {n} nights, unless a bat you trust hangs beside you.",   // {n}
+  evDominantText:"A dominant group has infiltrated the colony. For {n} nights every roost has an angry bat, and each dawn there is about a {bite}% chance she bites you, unless a bat you trust hangs beside you.",   // {n} {bite}  P37 A8: was "will probably hurt you" (it is about one dawn in ten)
   evDeafTitle:   "Injured ears!",
   evDeafHud:     "half your calls miss, {n} nights",   // {n}
   evDeafText:    "A loud noise has left you half deaf for the next {n} nights. Bats find each other by their calls, so half the time the bat you reach for at dawn turns out to be somebody else.",   // {n}
@@ -445,7 +491,7 @@ const COPY = {
   evDriveText:   "A rancher moved a new herd into the valley. For {nights} nights there are {n} more animals within reach, and the big ones are twice as common.",   // {n} {nights}
   evDroughtTitle:"Drought!",
   evDroughtHud:  "thin herds, {n} nights",   // {n}
-  evDroughtText: "A dry spell. The far valley is empty and the herds nearby are thin: no more than {max} animals within reach for {n} nights. Expect company at every wound.",   // {max} {n}
+  evDroughtText: "A dry spell. The far valley is empty and the herds nearby are thin: no more than {max} animals within reach for {n} nights.",   // {max} {n}  P37 A8: no "company at every wound" (the wounds are no busier)
   evNewcomersTitle:"Newcomers!",
   evNewcomersHud:"+{n} strangers per roost",   // {n}
   evNewcomersText:"A wave of strangers has joined the colony: {n} new bats in every roost. They don't know you yet, but every one of them could become a friend.",   // {n}
@@ -456,18 +502,18 @@ const COPY = {
   evMoonHud:     "full moon for {n} nights",   // {n}
   evMoonText:    "Clear skies and a full moon for {n} nights running. The cattle can see you coming, and so can everything that eats bats.",   // {n}
   evColdsnapTitle:"Cold snap!",
-  evColdsnapHud: "long grooms cost {cost}, {n} nights",   // {cost} {n}
-  evColdsnapText:"A cold front settles in for {n} nights. Everyone huddles tight, which makes long grooming easy: it costs only {cost} stamina.",   // {cost} {n}
+  evColdsnapHud: "grooming costs {save}% less, {n} nights",   // {save} {n}
+  evColdsnapText:"A cold front settles in for {n} nights. Everyone huddles tight, which makes grooming easy: every groom costs {save}% less stamina.",   // {save} {n}  P37 A8: there is no long groom any more
 
   /* ── The year (P9, 2026-09-03 evening): two permanent changes drawn at the start, read once in the
         first-dusk popup, then icons top right of the status bar for the whole season ── */
-  yrKicker:      "Night 1 · the season ahead",   // (test) the popup header at the first dusk
-  yrHead:        "Welcome to bat world!",   // (test) Bryson's words, 2026-09-04
-  yrLead:        "Before you get started, there are always two special qualities for your season. Let's see what you got:",   // (test)
+  yrKicker:      "The season ahead",   // (test) P37: the header of the year briefing, on the night-2 dusk now
+  yrHead:        "Welcome to bat world!",   // (test) Bryson's words, 2026-09-04; P37: the night-1 flight's headline
+  yrLead:        "These hold all season. Tap one for the numbers.",   // (test) P37: shortened for the night-2 dusk
   yrAgain:       "This one holds all season. Tap its icon in the status bar to read it again.",   // (test) the note under a year popup
   yrHudHead:     "This year",   // (test) the header in a year icon's hover text
   yrRoughTitle:  "A rough year", yrRoughHud:"angry bats in every roost; animals x{occ} as likely to be taken",
-  yrRoughText:   "Angry bats in every roost bite anyone without a trusted friend beside them, but the cattle are less crowded: any animal is x{occ} as likely to have a bat on it.",   // {occ}
+  yrRoughText:   "Angry bats in every roost: without a trusted friend beside you, at least {bite}% of dawns end in a bite. But the cattle are less crowded: any animal is x{occ} as likely to have a bat on it.",   // {occ} {bite}  P37 A8: the real odds
   yrStingyTitle: "A stingy year", yrStingyHud:"only close friends feed you when you run out; grooming builds bonds {groom} times faster",
   yrStingyText:  "Only close friends will feed you when you run out, but every grooming builds a bond {groom} times faster.",   // {groom}
   yrSicklyTitle: "A sickly year", yrSicklyHud:"a cough that never leaves ({cough} times as many coughing bats); meals x{mult}",
@@ -477,11 +523,37 @@ const COPY = {
   yrGenerousTitle:"A generous year", yrGenerousHud:"any bat who knows you may feed you; meals x{mult}",
   yrGenerousText:"Even a half friend will feed you when you run out, but the cattle are thin: every meal is worth x{mult}.",   // {mult}
   yrRestlessTitle:"A restless year", yrRestlessHud:"{switch}% of bats change roost each night; nobody minds a stranger",
-  yrRestlessText:"Friends won't stay where you left them, about {switch}% of the colony moves each night, but a new roost costs you nothing on your first night.",   // {switch}
+  yrRestlessText:"Friends won't stay where you left them, about {switch}% of the colony moves each night, but nobody minds a stranger: on your first night at a new roost the bats there groom you back as readily as anyone, and any bat who knows you a little may feed you.",   // {switch}  P37 A8: sickness and bites still find a newcomer
   yrCrowdedTitle:"A crowded year", yrCrowdedHud:"roosts {size} the usual size; {free} more bonds you can look after",
   yrCrowdedText: "Roosts are {size} times the usual size: more bats to know and {free} more bonds you can look after, but sickness spreads faster.",   // {size} {free}
   yrLeanTitle:   "A lean year", yrLeanHud:"never more than {max} animals, x{occ} as likely to be taken; meals x{mult}",
   yrLeanText:    "Never more than {max} animals in reach and each one x{occ} as likely to be taken already, but the ones left are fat: meals x{mult}.",   // {max} {occ} {mult}
+  /* P37 (B1): one sentence per year for the night-2 briefing, no numbers (the numbers are one tap away) */
+  yrRoughShort:  "Angry bats in every roost, but the cattle are less crowded.",
+  yrStingyShort: "Only close friends feed you when you run out, but grooming works faster.",
+  yrSicklyShort: "A cough goes around all year, but the herds are fat.",
+  yrQuietShort:  "Small roosts, and the bats in them warm to you quickly.",
+  yrGenerousShort:"Any bat who knows you may feed you, but the cattle are thin.",
+  yrRestlessShort:"Bats change roosts often, and nobody minds a stranger.",
+  yrCrowdedShort:"Big roosts: more friends to make, and sickness spreads faster.",
+  yrLeanShort:   "Few animals and more bats on each, but every meal is fat.",
+  yrTapMore:     "tap for the numbers",   // read out (not shown) on each year row that opens its popup
+
+  /* ── P37 coach lines: the first two nights as a quick tutorial (one line each, shown only with tips on) ── */
+  tipsToggle:    "Show tips for the first two nights",   // the switch under the Begin button
+  coachHide:     "hide tips",   // the small control at the end of every coach line
+  coachHideAria: "Hide the tips for the first two nights",
+  coachFlight:   "You're a young vampire bat, and tonight you need a meal. Follow the colony out.",
+  coachPasture:  "Tap an animal to size it up: calves are easy, prime cows are big.",
+  coachApproach: "Like those odds? Tap Approach. You get one bite a night, so choose well.",
+  coachNight:    "Blood is your fuel: what you carry lasts {n} empty night{s}, then you must beg.",   // {n} {s}
+  coachNightFull:"Blood is your fuel: a full crop lasts {n} empty night{s}, then you must beg.",   // P37: said only when the crop is full; {n} {s}
+  coachNightEmpty:"You're out of blood, so you have to beg a roost-mate to feed you.",
+  coachDawnGive: "{name} came home empty. Bring some up for her: bats remember who fed them.",   // {name}
+  coachDawnGroom:"Tap a bat to groom her: bonds are what feed you when you run dry.",
+  coachDawnSleep:"That's how friends are made. Spend what you like, then sleep until dusk.",
+  coachRoost:    "Home is where your friends are. Only they can feed you.",
+  coachDawn2:    "Friends feed you in the storms on nights {a} and {b}. Grooming builds a bond; giving blood builds it faster.",   // {a} {b}
 
   /* ── Popups (P9): the OK button, the dawn hazard popup, the dawn-event popup, the help popups ── */
   popOk:         "OK →",   // (test) every popup's button
@@ -489,6 +561,8 @@ const COPY = {
   hzHeadSick:    "You wake up feverish.",
   hzHeadHurt:    "You wake up bleeding.",
   hzHeadBoth:    "You wake up feverish and bleeding.",
+  hzHeadHealed:  "You wake up well.",   // P37: the culvert
+  hzHealed:      "The cool, still air of the culvert did its work: no fever, no wound.",   // P37
   deKicker:      "Dawn · at the roost",   // (test) the header of a dawn-event popup (squabble, pup, newcomer)
   helpKicker:    "How it works",   // (test)
   helpDawnHead:  "The roost at dawn",
@@ -504,6 +578,7 @@ const COPY = {
   /* ── P11 (Bryson): the night summary is the outcome word plus a row of change chips.
      Every number the old prose carried is one chip; nothing else is on the screen. ── */
   chipMeal:      "+{meal} 🩸 from {cow}",   // (test) {cow} {meal}
+  chipMealFull:  "+{meal} 🩸 from {cow}, and your crop is full",   // P37 A3: the meal was bigger than the room left; {meal} = what went in; {cow}
   chipPts:       "+{pts} points: you fed tonight",   // {pts}
   chipPrimeSolo: "+{pts} points: prime cow, fed alone",   // {pts}
   chipFarFed:    "+{pts} points: far valley meal",   // {pts}
@@ -532,7 +607,7 @@ const COPY = {
   roundNoBlood:  "no meal, no blood left",   // P26: was a hard-coded "no meal, reserve empty" in bat-game.js, and "reserve" is a name for blood that P25 retired
 
   /* ── P11: the dawn network legend (one line under the web) ── */
-  netLegend:     "Green ring: a friend, thicker means closer · red: hungry · pulsing red: starving · amber: coughing · V badge: visiting from another roost · grey: a bat you barely know (in a crowded roost, tap her for her name) · faint lines: their own bonds",
+  netLegend:     "Green ring: a friend, thicker means closer · light red: hungry · deep red, pulsing: starving · amber: coughing · V badge: visiting from another roost · grey: a bat you barely know (in a crowded roost, tap her for her name) · faint lines: their own bonds",
 
   /* ── P11: the log and exit buttons folded into the status bar ── */
   hudTipPrompt:  "Tap any bar to see what it means.",   // (test) P28: one line on a phone, where the old wording ran to three
@@ -540,8 +615,15 @@ const COPY = {
   tipMenu:       "Log, sound, help, exit",   // the phone's one menu button
   menuKicker:    "Menu",
   menuLogShow:   "Show the night log", menuLogHide:"Hide the night log",
-  menuSoundOn:   "Turn sound on", menuSoundOff:"Turn sound off",
+  menuSound:     "Sound settings",   // P37: opens the three switches
+  sndKicker:     "Sound",   // P37 D3: the sound settings panel
+  sndFx:         "Effects", sndFxSub:"bites, moos, wingbeats and clicks",
+  sndMusic:      "Music", sndMusicSub:"a quiet piano under the night",
+  sndAmb:        "Ambience", sndAmbSub:"crickets, wind, rain and the dawn birds",
+  sndOn:         "On", sndOff:"Off",
+  sndNote:       "Remembered on this device.",
   menuHelp:      "How it works",
+  menuSheet:     "This year, events and mite risk",   // P37 phones: the same sheet the night cell opens
   menuExit:      "Exit to the start (progress is saved)",
   tipLog:        "Show or hide the running log of what happened tonight.",
   tipExit:       "Leave the game. Your progress saved at the start of this night.",
@@ -556,9 +638,10 @@ const COPY = {
   condTagBright: "· full moon", condTagDim:"· half moon", condTagDark:"· no moon",   // (test) the word beside the night's icon
   tipBlood:      "The blood you are carrying, out of {cap}. An unfed night costs you {burn} of it, and at zero you have to beg. A meal never takes you past {cap}, so anything above the end of the bar is spilled.",   // {cap} {burn}
   tipTicks:      "Dark hours left tonight. Approaching an animal costs one, waiting costs one. At zero you fly home.",
+  tipStaminaNight:"Stamina is spent at dawn. What you see is what last dawn left; you get your new stamina when you land at a roost.",   // P37 A11: appended to the stamina tip during the night
   tipStamina:    "What you have left to spend on other bats this dawn, out of {full}. Grooming spends whatever you set the bar to, and bringing up blood spends the same again. You get the whole {full} back at the next dawn, so there is no saving it. You start short when you are hungry ({lowCost} less at {lowAt} blood or under), feverish ({sickCost} less) or carrying a wound ({hurtCost} less).",   // {full} {lowAt} {lowCost} {sickCost} {hurtCost}
   tipGroomed:    "Mite risk climbs the longer nobody grooms you. Past {thr}%, mites can move in and drain {drain} 🩸 every night. Being groomed BACK is the lever: groom a bat and she may return it, which brings your risk down.",   // {thr} {drain}
-  tipMites:      "Mites are draining half a blood every night. Get a roost-mate to groom you to clear them.",
+  tipMites:      "Mites are draining {drain} blood every night. Get a roost-mate to groom you to clear them.",   // {drain}  P37: read out of 100 like every other blood
   tipRoost:      "How many bats are hanging with you tonight, and where. Only bats present can feed you or be fed.",
   tipScore:      "Your score: nights survived, meals, shared wounds, lives saved, the blood you still carry and the bonds you hold at the end.",
   tipState:      "Sick: two dawns of fewer actions, fewer groom-backs, no sharing, and a worse bite. Wounded: two dawns of one less action.",
@@ -571,8 +654,8 @@ const COPY = {
   skillNoPickTip:"You have not picked an animal, so this is a plain steer.",
   meterSick:     "Sickness", meterTight:"Tight blood", meterAttention:"Attention", meterSwitch:"Roost shuffling",   // the four season bars
   tipHelp:       "How the game works, again.",
-  tipSound:      "Sound effects on or off. Remembered on this device.",
-  meterMeal:"meal {n} 🩸", meterBite:"bite lands {p}%",   // (test) P21 Bryson: the bars above a picked animal say what they are; {n} {cap} {p}
+  tipSound:      "Sound: effects, music and ambience, each on or off. Remembered on this device.",
+  meterMeal:"meal {n} 🩸", meterMealFits:"meal {n} 🩸, {fits} fits", meterBite:"bite lands {p}%",   // (test) P21 Bryson: the bars above a picked animal say what they are; {n} {cap} {p}
   mealSpill:     "you can only hold {cap}, so {spill} 🩸 of this one spills",   // (test) {cap} {spill}
   endLedgerHead: "Where the score came from",   // (test)
   endLedgerTotal:"Total",

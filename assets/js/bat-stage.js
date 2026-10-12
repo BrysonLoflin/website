@@ -8,10 +8,13 @@
                      slot), each cow's resident (the prototype #rivalBat rig tucked on the
                      back + a crimson feeding bead at the wound; hidden unless occupied), the
                      player bat rig, blood, dust, pulse rings, the vignette
-   Every SVG asset below is copied VERBATIM from the prototype (paths, primitives, colors);
-   nothing organic is drawn here. New animals or poses are Bryson's traces (see the TODOs).
+   P36 (2026-10-10, Bryson picked look A, "Paper Moon"): the same stage and the same API, redrawn
+   as a lit paper diorama. Bryson lifted the trace-only rule for this job, so the cow, the bat,
+   the tree and the hills are drawn here: cut-paper planes with deckled edges and a soft shadow
+   between them, a moon that shows its phase, paper clouds, a fibre grain. Every coordinate the
+   choreography uses (perch, neck, halo, hover, look targets) is derived from the drawing.
    API (actor-agnostic; scenes only call these):
-     const st = WydStage.mount(hostEl, {moon, storm, far, phase, look,
+     const st = WydStage.mount(hostEl, {moon, storm, far, phase, look, cover,
                                         cows:[{id, tier, occupied, occupant}], slots:[x…]})
      st.setPhase(p) st.pose(p) st.batTo(x,y,ms,ease,lead) st.arcTo(x,y,ms) st.perch(cowId)
      st.blood(cowId) st.kick(cowId) st.leave(cowId) st.flung(x,y,delayMs) st.rival(cowId, state) st.pulse(cowId)
@@ -21,6 +24,7 @@
       (choice on: root role=group + the front svg exposed, so the cow buttons reach the a11y tree)
      st.commit(cowId) st.approach(cowId) st.confront(cowId) st.rebuff(cowId) st.yield(cowId)
      st.shuffle(cowId) st.slowDrips(cowId) st.visibleX() → [x0, x1]
+     P37 the wing-off: st.faceoff(cowId) st.lunge(cowId)
    batTo's `lead` (ms) resolves the promise that many ms BEFORE the move ends, so a chained
    leg starts while this one is still easing out (no stop at the seam; the CSS transition
    re-targets from the current position). Without a lead it resolves 40 ms after the move.
@@ -43,9 +47,8 @@ const VW = 960, VH = 400;
    ground band under the hooves. The sky gradient's lower stops follow DY too (SKY_Y2 /
    SKY_MID below), so the horizon tone matches the prototype's brightened grade while the
    top of the frame stays #1b2a44.
-   Wide hosts (desktop, wider than 2.4:1) widen the viewBox instead of letterboxing; the
-   flanks are covered by FLANKS below: straight-edged tangent continuations of the three
-   two hill ridges (straight-edged polygons) and flat ground rects, plus a few more stars. */
+   Wide hosts (desktop, wider than 2.4:1) widen the viewBox instead of letterboxing; the P36
+   paper planes are cut from x -940 to 1900, so the flanks are simply more of the same hills. */
 const DY = -90;
 /* prototype sky: userSpaceOnUse 0..540 with the middle stop at .55 (y 297). Lifted with the
    land: y2 = 540 + DY, middle stop at (297 + DY) / (540 + DY). */
@@ -77,95 +80,141 @@ function bezier(p1x, p1y, p2x, p2y){
   };
 }
 const easeDrift = bezier(.37,.1,.63,.9);
-const SIL = "#05080c";
+const SIL = "#070b13";      // the cut-paper ink: a hair lifted from black, so the moonlit rim reads
 
-/* ── assets, verbatim from the prototype ── */
-const WING_L = "M-4,-4 C-16,-14 -36,-18 -54,-10 C-49,-3 -44,1 -37,4 C-33,1 -30,1 -27,5 C-22,2 -19,2 -15,7 C-11,4 -7,5 -4,8 Z";
-const WING_R = "M4,-4 C16,-14 36,-18 54,-10 C49,-3 44,1 37,4 C33,1 30,1 27,5 C22,2 19,2 15,7 C11,4 7,5 4,8 Z";
-const EAR_L = "M-7,-18 L-2,-9 L-11,-8 Z";
-const EAR_R = "M7,-18 L2,-9 L11,-8 Z";
-const SNAG = "M96,470 L110,470 L107,372 L150,318 L145,313 L106,358 L104,318 L128,276 L122,273 L101,310 L98,270 L90,270 L88,376 L60,346 L55,351 L88,392 Z";
-const GRASS = [
-  "M210,470 l4,-14 l3,14 l4,-10 l3,10 Z",
-  "M330,476 l4,-12 l3,12 l4,-9 l3,9 Z",
-  "M560,478 l4,-13 l3,13 l4,-9 l3,9 Z",
-  "M720,472 l4,-12 l3,12 l4,-10 l3,10 Z",
-  "M880,478 l4,-14 l3,14 l4,-9 l3,9 Z",
+/* ── P36 paper assets ──
+   A seeded generator (visual only, never the game's dice) cuts the deckled edges, so every
+   mount of the stage cuts the same hills. */
+function seeded(seed){ return ()=>{ seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const r1 = n=> Math.round(n * 10) / 10;
+/* a hand-cut ridge from x -940 to 1900 (covers the widest desktop viewBox, 2800 units): a slow swell with
+   small jitter along it, closed down below the land plane */
+function deckle(y0, amp, seed, phase, jag, bottom){
+  const r = seeded(seed), pts = [];
+  for(let x = -940; x <= 1900; x += 18){
+    const swell = Math.sin(x / 210 + phase) * amp * .6 + Math.sin(x / 97 + phase * 2.3) * amp * .25;
+    pts.push(r1(x) + "," + r1(y0 + swell + (r() - .5) * jag));
+  }
+  return {edge: "M" + pts.join(" L"), fill: "M" + pts.join(" L") + " L1900," + (bottom || 560) + " L-940," + (bottom || 560) + " Z"};
+}
+/* the paper planes, back to front: [base y, swell, seed, phase, jag, fill, storm fill]. Each
+   casts a soft shadow onto the plane behind it: two stacked offset copies instead of an SVG
+   filter, so a phone can pan the layer for free. .wst-edge is the moonlit cut edge. */
+const PLANES = [
+  [338, 26, 3, .4, 2.2, "#34507c", "#26364f"],
+  [392, 16, 9, 2.1, 2.0, "#243b60", "#1b2a42"],
+  [452, 7, 21, 1.2, 1.6, "#172a47", "#121f35"],
 ];
-const HILL_BACK  = "M0,340 Q180,290 380,330 T960,315 V540 H0 Z";
-const HILL_FRONT = "M0,400 Q240,360 480,392 T960,380 V540 H0 Z";
-const GROUND     = "M0,460 Q240,442 480,456 T960,450 V540 H0 Z";
-const BLOOD      = "M0,0 C4,6 5,11 3,15 C1,18 -3,18 -5,14 C-6,10 -4,5 0,0 Z";
-/* flank extensions (only visible on wide hosts): each ridge continued along its end
-   tangent as a straight edge to x = -480 / 1440. Fills match the ridge they extend.
-   Each flank runs one unit INTO the main shape (x 1 / 959, along the same tangent) so the
-   shared anti-aliased edge never shows as a lighter seam. */
-const FLANKS =
-  '<path d="M1,339.7 L-480,473 V540 H1 Z" fill="#2c405a"/><path d="M959,315.1 L1440,246 V540 H959 Z" fill="#2c405a"/>' +
-  '<path d="M1,399.8 L-480,480 V540 H1 Z" fill="#1d2e42"/><path d="M959,380.2 L1440,292 V540 H959 Z" fill="#1d2e42"/>' +
-  '<rect x="-480" y="452" width="481" height="88" fill="#152233"/><rect x="959" y="452" width="481" height="88" fill="#152233"/>';
-const STARS_FLANK = [[-400,80,1.4,1],[-300,150,1.1,2],[-180,40,1.6,3],[-90,120,1.0,2],[1040,60,1.3,1],[1140,140,1.1,3],[1260,30,1.5,2],[1380,110,1.2,1]];
+function planes(storm){
+  return PLANES.map(p=>{
+    const d = deckle(p[0], p[1], p[2], p[3], p[4]);
+    return `<g class="wst-plane">` +
+      `<path d="${d.fill}" fill="#03060c" opacity=".22" transform="translate(0,-6)"/>` +
+      `<path d="${d.fill}" fill="#03060c" opacity=".32" transform="translate(0,-2.5)"/>` +
+      `<path d="${d.fill}" fill="${storm ? p[6] : p[5]}"/><path class="wst-edge" d="${d.edge}"/></g>`;
+  }).join("");
+}
+/* the foreground lip: a strip of cut grass in front of the herd along the bottom of the frame */
+function lip(){
+  const r = seeded(5); let g = "";
+  for(let i = 0; i < 66; i++){
+    const x = r1(-920 + r() * 2800), h = r1(9 + r() * 15);
+    g += `M${x},492 l3,-${h} l3,${h} l3,-${r1(h * .7)} l3,${r1(h * .7)} Z `;
+  }
+  const d = deckle(487, 3, 33, 0, 1.4, 600);
+  return `<path d="${d.fill}" fill="#03060c" opacity=".35" transform="translate(0,-2.5)"/><path d="${d.fill}"/><path d="${g}"/>`;
+}
+/* paper cloud strips: a few soft bumps on a flat base */
+const cloud = (x, y, w, k)=> `M${x},${y} q${r1(w*.12)},-${r1(14*k)} ${r1(w*.28)},-${r1(6*k)} q${r1(w*.1)},-${r1(12*k)} ${r1(w*.3)},-${r1(4*k)} ` +
+  `q${r1(w*.16)},-${r1(8*k)} ${r1(w*.3)},${r1(4*k)} q${r1(w*.08)},${r1(6*k)} ${r1(w*.12)},${r1(6*k)} Z`;
+const CLOUD1 = `<path d="${cloud(120, 156, 230, 1)}"/>`;
+const CLOUD2 = `<path d="${cloud(560, 232, 280, .8)}"/><path d="${cloud(-300, 120, 200, .8)}"/><path d="${cloud(1080, 190, 180, .7)}"/>`;
+
+/* the bat (front view; shoulders at +-5,-5). Wing pivots live in wyd.css (transform-origin). */
+const WING_L = "M-5,-7 C-14,-17 -30,-23 -46,-21 C-55,-20 -63,-16 -69,-10 C-64,-8 -59,-6 -56,-2 Q-52,-8 -47,0 Q-42,-6 -36,3 Q-30,-3 -23,5 Q-16,0 -10,6 Q-7,2 -4,4 Z";
+const WING_R = "M5,-7 C14,-17 30,-23 46,-21 C55,-20 63,-16 69,-10 C64,-8 59,-6 56,-2 Q52,-8 47,0 Q42,-6 36,3 Q30,-3 23,5 Q16,0 10,6 Q7,2 4,4 Z";
+const EAR_L = "M-6,-17 L-9,-27 L-1.5,-19 Z";
+const EAR_R = "M6,-17 L9,-27 L1.5,-19 Z";
+/* the hollow tree (land units, base on y 470; the bat hangs under the right branch's tip) */
+const SNAG = "M70,470 C78,420 84,370 82,320 C80,290 70,270 54,248 L62,244 C76,260 86,276 92,296 C96,270 104,248 118,230 L126,236 C112,258 104,280 102,306 C112,292 128,282 150,278 L152,286 C130,292 114,304 106,326 C104,370 108,420 118,470 Z";
+const SNAG_HOLE = '<ellipse class="wst-hollow" cx="94" cy="382" rx="7" ry="13"/>';
+const BLOOD = "M0,0 C4,6 5,11 3,15 C1,18 -3,18 -5,14 C-6,10 -4,5 0,0 Z";
 /* [cx, cy, r, twinkle class 1..3] */
 const STARS = [[90,60,1.6,1],[180,130,1.2,2],[300,50,1.8,3],[420,110,1.1,1],[520,40,1.5,2],
-  [620,150,1.2,3],[700,70,1.7,1],[860,200,1.3,2],[930,90,1.5,3],[250,200,1.0,1],[560,210,1.0,2],[40,170,1.3,3]];
-/* dark nights: more of the same primitive, no moon */
+  [620,150,1.2,3],[700,70,1.7,1],[860,200,1.3,2],[930,90,1.5,3],[250,200,1.0,1],[560,210,1.0,2],[40,170,1.3,3],
+  [140,24,.9,2],[380,182,.8,3],[470,78,.9,1],[650,28,.8,2],[740,170,.9,3],[905,40,.8,1],[60,110,.8,2],[330,140,.7,1]];
+const STARS_FLANK = [[-400,80,1.4,1],[-300,150,1.1,2],[-180,40,1.6,3],[-90,120,1.0,2],[1040,60,1.3,1],[1140,140,1.1,3],[1260,30,1.5,2],[1380,110,1.2,1],
+  [-450,180,.8,3],[-240,96,.9,1],[1090,200,.8,2],[1330,170,.9,3]];
+/* dark nights: more of the same, no moon */
 const STARS_DARK = [[130,30,1.1,2],[360,160,1.0,3],[470,20,1.3,1],[660,105,1.0,2],[760,40,1.2,3],
-  [900,150,1.0,1],[210,90,1.2,3],[600,60,1.0,1],[800,120,1.4,2],[350,235,1.0,2]];
-const CLOUD1 = '<ellipse cx="240" cy="150" rx="120" ry="16"/><ellipse cx="310" cy="140" rx="70" ry="12"/>';
-const CLOUD2 = '<ellipse cx="640" cy="230" rx="150" ry="14"/>';
-/* COW: composed from rounded primitives only (no freehand organic path), prototype #cowShape */
+  [900,150,1.0,1],[210,90,1.2,3],[600,60,1.0,1],[800,120,1.4,2],[350,235,1.0,2],[790,96,1.6,1],[830,150,1.1,3]];
+
+/* the cow: one drawn shape facing left, hooves on y 0, about 176 x 86 at scale 1. The tail is a
+   filled taper (so the <use> fill paints all of it); .wst-rim is the moonlit edge along the back. */
+const COW_BODY = "M-100,-50 C-101,-42 -97,-35 -90,-34 C-84,-33 -78,-37 -72,-43 C-66,-46 -60,-44 -56,-40 " +
+  "C-53,-38 -51,-36 -50,-33 L-50,0 L-42,0 L-41,-22 L-38,-22 L-36,0 L-28,0 L-27,-31 " +
+  "C-10,-35 18,-35 34,-32 L36,0 L44,0 L46,-24 L50,-24 L55,0 L64,0 L65,-27 " +
+  "C70,-38 75,-49 75,-61 C75,-72 68,-79 56,-81 C30,-85 -20,-83 -44,-77 " +
+  "C-54,-75 -62,-71 -68,-65 C-74,-63 -80,-63 -86,-63 C-94,-62 -100,-57 -100,-50 Z";
 const COW_SHAPE =
-  '<rect x="-46" y="-60" width="92" height="46" rx="22"/>' +
-  '<rect x="-72" y="-48" width="24" height="42" rx="10" transform="rotate(16 -60 -27)"/>' +
-  '<ellipse cx="-52" cy="-52" rx="8" ry="4" transform="rotate(-28 -52 -52)"/>' +
-  '<rect x="-38" y="-18" width="8" height="18" rx="3"/>' +
-  '<rect x="-22" y="-18" width="8" height="18" rx="3"/>' +
-  '<rect x="16"  y="-18" width="8" height="18" rx="3"/>' +
-  '<rect x="32"  y="-18" width="8" height="18" rx="3"/>' +
-  '<path d="M46,-52 C56,-46 57,-32 52,-20" fill="none" stroke="#05080c" stroke-width="5" stroke-linecap="round"/>';
+  `<path d="${COW_BODY}"/>` +
+  '<path d="M-84,-62 C-80,-70 -74,-72 -70,-70 C-73,-66 -77,-63 -84,-62 Z"/>' +
+  '<path d="M-88,-63 C-90,-70 -88,-75 -84,-77 C-85,-72 -84,-68 -82,-64 Z"/>' +
+  '<path d="M72,-64 C79,-51 81,-35 79,-19 L81,-19 C83,-36 81,-53 75,-65 Z"/>' +
+  '<path d="M80,-23 C85,-18 85,-10 81,-6 C77,-9 76,-16 80,-23 Z"/>' +
+  '<path class="wst-rim" d="M-86,-63 C-80,-63 -74,-63 -68,-65 C-62,-71 -54,-75 -44,-77 C-20,-83 30,-85 56,-81 C68,-79 75,-72 75,-61"/>';
 const RIG =
   '<g class="wst-bob">' +
     '<g class="wst-wing wst-wing-l"><path d="' + WING_L + '"/></g>' +
     '<g class="wst-wing wst-wing-r"><path d="' + WING_R + '"/></g>' +
-    '<ellipse class="wst-body" cx="0" cy="0" rx="9" ry="13"/>' +
+    '<ellipse class="wst-body" cx="0" cy="0" rx="8" ry="12"/>' +
+    '<circle class="wst-body wst-head" cx="0" cy="-13" r="6.6"/>' +
     '<path class="wst-ear" d="' + EAR_L + '"/>' +
     '<path class="wst-ear" d="' + EAR_R + '"/>' +
+    '<circle class="wst-eye" cx="-2.4" cy="-14" r=".95"/><circle class="wst-eye" cx="2.4" cy="-14" r=".95"/>' +
   '</g>';
-/* the three cow slots: prototype positions, perch points (bat on the back) and neck
-   (bite) points; tiers calf / steer / prime = the prototype's S / M / L */
+/* the three cow tiers. COW_K x the prototype's tier scale keeps the herd's spacing (five primes
+   140 apart only touch at the nose). Every landmark is read off the drawing: perch = the bat on
+   the back, neck = the bite, the halo under the hooves, the tag above the back. */
+const COW_K = 0.78;
+function cowSlot(x, y, s, tag){
+  const k = s * COW_K;
+  return {x, y, s:k, halo:{rx:Math.round(88*k + 6), ry:Math.round(9 + 6*k)}, tagY:Math.round(-86*k - 16),
+    perch:{x:Math.round(x - 6*k), y:Math.round(y - 83*k - 15)}, neck:{x:Math.round(x - 62*k), y:Math.round(y - 46*k)}, tag};
+}
 const COW_SLOTS = {
-  calf:  {x:370, y:462, s:0.62, halo:{rx:52, ry:12}, tagY:-58, perch:{x:366, y:412}, neck:{x:334, y:436}, tag:"small · quick meal"},
-  steer: {x:545, y:468, s:0.85, halo:{rx:66, ry:14}, tagY:-72, perch:{x:541, y:400}, neck:{x:497, y:432}, tag:"medium · good blood"},
-  prime: {x:760, y:474, s:1.08, halo:{rx:82, ry:16}, tagY:-90, perch:{x:756, y:390}, neck:{x:700, y:428}, tag:"large"},
+  calf:  cowSlot(370, 462, 0.62, "small · quick meal"),
+  steer: cowSlot(545, 468, 0.85, "medium · good blood"),
+  prime: cowSlot(760, 474, 1.08, "large"),
 };
 const DEFAULT_COWS = [{id:"a", tier:"calf"}, {id:"b", tier:"steer"}, {id:"c", tier:"prime"}];
 const FAR_SHIFT = 70;                 // far valley: the herd sits further right
-const SNAG_PERCH = {x:120, y:300};    // where the player bat hangs at dusk (prototype start)
-/* P5 roost silhouettes (2026-09-03). Rule (ARCH.md): no new organic shapes. The hollow is the
-   approved snag; the outpost is the snag mirrored and shrunk about its base; the mango hollow
-   is the snag widened plus a second, smaller mirrored trunk; the culvert and the barn are
-   straight-edged primitives (rects and one triangle) with an opening in the front-hill colour
-   so the hanging bat reads against it. Each carries the perch the player bat hangs from at
-   dusk and returns to at dawn, in land coordinates (the group is translated by DY). The main
-   shape keeps class wst-snag so the P3b/P4 harness scripts that measure it keep working. */
-const HOLE = "#1d2e42";
+const SNAG_PERCH = {x:150, y:300};    // where the player bat hangs at dusk (under the tree's right branch)
+/* P5 roost silhouettes. The hollow is the tree; the outpost is the tree mirrored and shrunk about
+   its base; the mango hollow is the tree widened plus a second, smaller mirrored trunk; the
+   culvert and the barn are straight-edged cuts with an opening the bat hangs in front of. The
+   outpost and mango perches are the snag's perch run through their transforms. The main shape
+   keeps class wst-snag (run-p5 checks for it). */
+const HOLE = "#22375a";
 const ROOSTS = {
-  snag:    { perch:{x:120, y:300},
-             svg:`<path class="wst-snag" fill="${SIL}" d="${SNAG}"/>` },
-  outpost: { perch:{x:92, y:317},
-             svg:`<path class="wst-snag" fill="${SIL}" d="${SNAG}" transform="translate(200,470) scale(-0.9,0.9) translate(0,-470)"/>` },
-  mango:   { perch:{x:126, y:280},
-             svg:`<path class="wst-snag" fill="${SIL}" d="${SNAG}" transform="translate(100,470) scale(1.3,1.12) translate(-100,-470)"/>` +
-                 `<path fill="${SIL}" d="${SNAG}" transform="translate(262,470) scale(-0.6,0.7) translate(0,-470)"/>` },
+  snag:    { perch:{x:150, y:300},
+             svg:`<path class="wst-snag" d="${SNAG}"/>${SNAG_HOLE}` },
+  outpost: { perch:{x:65, y:317},    // (200 - .9x, 470 + .9(y - 470))
+             svg:`<g transform="translate(200,470) scale(-0.9,0.9) translate(0,-470)"><path class="wst-snag" d="${SNAG}"/>${SNAG_HOLE}</g>` },
+  mango:   { perch:{x:165, y:280},   // (100 + 1.3(x - 100), 470 + 1.12(y - 470))
+             svg:`<g transform="translate(100,470) scale(1.3,1.12) translate(-100,-470)"><path class="wst-snag" d="${SNAG}"/>${SNAG_HOLE}</g>` +
+                 `<path class="wst-sil" d="${SNAG}" transform="translate(262,470) scale(-0.6,0.7) translate(0,-470)"/>` },
   culvert: { perch:{x:128, y:428},
-             svg:`<rect class="wst-snag" fill="${SIL}" x="40" y="380" width="28" height="90"/>` +
+             svg:`<rect class="wst-snag" x="40" y="380" width="28" height="90"/>` +
                  `<rect fill="${HOLE}" x="68" y="411" width="104" height="35"/>` +
-                 `<rect fill="${SIL}" x="68" y="402" width="110" height="9"/><rect fill="${SIL}" x="68" y="446" width="110" height="9"/>` +
-                 `<rect fill="${SIL}" x="172" y="396" width="8" height="20"/><rect fill="${SIL}" x="172" y="440" width="8" height="20"/>` +
-                 `<rect fill="${SIL}" x="40" y="466" width="140" height="6"/>` },
+                 `<rect class="wst-sil" x="68" y="402" width="110" height="9"/><rect class="wst-sil" x="68" y="446" width="110" height="9"/>` +
+                 `<rect class="wst-sil" x="172" y="396" width="8" height="20"/><rect class="wst-sil" x="172" y="440" width="8" height="20"/>` +
+                 `<rect class="wst-sil" x="40" y="466" width="140" height="6"/>` },
   barn:    { perch:{x:111, y:414},
-             svg:`<rect class="wst-snag" fill="${SIL}" x="36" y="384" width="150" height="86"/>` +
-                 `<polygon fill="${SIL}" points="28,384 111,326 194,384"/>` +
+             svg:`<rect class="wst-snag" x="36" y="384" width="150" height="86"/>` +
+                 `<polygon class="wst-sil" points="28,384 111,326 194,384"/>` +
                  `<rect fill="${HOLE}" x="86" y="392" width="50" height="44"/>` +
                  `<rect fill="${HOLE}" x="150" y="430" width="26" height="40"/>` },
 };
@@ -249,19 +298,26 @@ function mount(host, opts){
 
   const starList = STARS.concat(STARS_FLANK, moon === "dark" ? STARS_DARK : []);
   const stars = starList.map(s=> `<circle class="wst-star wst-tw${s[3]}" cx="${s[0]}" cy="${s[1]}" r="${s[2]}"/>`).join("");
-  const moonR = moon === "bright" ? 56 : 44;
+  /* the moon shows its phase: bright = the full disc, dim = the lit half the HUD's "half moon"
+     names, dark = no moon (more stars instead). A paper disc, so it casts a small shadow. */
+  const moonR = moon === "bright" ? 44 : 40;
   const moonOp = storm ? .35 : 1;
-  const haloOp = moon === "dark" ? 0 : (moon === "bright" ? 1 : .55) * moonOp;
+  const haloOp = moon === "dark" ? 0 : (moon === "bright" ? 1 : .5) * moonOp;
+  const moonShape = moon === "bright"
+    ? `<circle cx="790" cy="120" r="${moonR}"/>`
+    : `<path d="M790,${120 - moonR} A${moonR},${moonR} 0 0 1 790,${120 + moonR} A${moonR * .28},${moonR} 0 0 1 790,${120 - moonR} Z"/>`;
   const moonG = moon === "dark" ? "" :
     `<g class="wst-moon" opacity="${moonOp}">
-      <circle cx="790" cy="120" r="${moonR}" fill="#e9e3d0"/>
-      <circle cx="772" cy="104" r="9" fill="#d8d1bc"/>
-      <circle cx="806" cy="140" r="6" fill="#d8d1bc"/>
-      <circle cx="798" cy="112" r="4" fill="#ddd6c2"/>
+      <g transform="translate(3,4)" class="wst-moonshadow">${moonShape}</g>
+      <g class="wst-moondisc">${moonShape}</g>
+      ${moon === "bright" ? `<circle class="wst-crater" cx="776" cy="108" r="7.5"/><circle class="wst-crater" cx="804" cy="136" r="5"/><circle class="wst-crater" cx="799" cy="104" r="3"/><circle class="wst-crater" cx="782" cy="134" r="2.4"/>`
+                           : `<circle class="wst-crater" cx="806" cy="108" r="5"/><circle class="wst-crater" cx="812" cy="134" r="3.4"/>`}
     </g>`;
-  const clouds =
-    `<g class="wst-cloud wst-drift1">${CLOUD1}</g><g class="wst-cloud wst-drift2">${CLOUD2}</g>` +
-    (storm ? `<g class="wst-cloud wst-cloud-storm wst-drift2">${CLOUD1}${CLOUD2}</g>` : "");
+  /* paper cloud strips, each with its own cast shadow (an offset copy) */
+  const cl = (cls, d)=> `<g class="wst-cloud ${cls}"><g class="wst-cloudshadow" transform="translate(3,4)">${d}</g>${d}</g>`;
+  const clouds = cl("wst-drift1", CLOUD1) + cl("wst-drift2", CLOUD2) +
+    (storm ? cl("wst-cloud-storm wst-drift2", `<g transform="translate(-60,-24) scale(1.15,1)">${CLOUD1}${CLOUD2}</g>`) +
+             cl("wst-cloud-storm wst-drift1", `<g transform="translate(220,-60) scale(1.3,1.1)">${CLOUD1}</g>`) : "");
   const back = document.createElementNS(NS, "svg");
   back.setAttribute("class", "wst-back");
   back.setAttribute("viewBox", `0 0 ${VW} ${VH}`);
@@ -270,9 +326,9 @@ function mount(host, opts){
   back.innerHTML = `
     <defs>
       <linearGradient id="wst-sky-${u}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${SKY_Y2}">
-        <stop offset="0"   stop-color="#1b2a44"/>
-        <stop offset="${SKY_MID}" stop-color="#2a4059"/>
-        <stop offset="1"   stop-color="#476384"/>
+        <stop offset="0"   stop-color="${storm ? "#0c121d" : "#101a2e"}"/>
+        <stop offset="${SKY_MID}" stop-color="${storm ? "#18243a" : "#22385a"}"/>
+        <stop offset="1"   stop-color="${storm ? "#2b3c58" : "#4f6f99"}"/>
       </linearGradient>
       <radialGradient id="wst-moonglow-${u}" cx=".5" cy=".5" r=".5">
         <stop offset="0"  stop-color="rgba(240,235,215,.55)"/>
@@ -280,18 +336,14 @@ function mount(host, opts){
         <stop offset="1"  stop-color="rgba(240,235,215,0)"/>
       </radialGradient>
     </defs>
-    <rect x="-960" y="0" width="2880" height="${VH}" fill="url(#wst-sky-${u})"/>
+    <rect x="-1400" y="0" width="3760" height="${VH}" fill="url(#wst-sky-${u})"/>
     <g class="wst-pan wst-pan-back">
     <g class="wst-stars">${stars}</g>
     <circle class="wst-halo" cx="790" cy="120" r="150" fill="url(#wst-moonglow-${u})" opacity="${haloOp}"/>
     ${moonG}
     ${clouds}
     <g class="wst-land" transform="translate(0,${DY})">
-      ${FLANKS}
-      <path d="${HILL_BACK}" fill="#2c405a"/>
-      <path d="${HILL_FRONT}" fill="#1d2e42"/>
-      <rect x="0" y="452" width="960" height="88" fill="#152233"/>
-      <path d="${GROUND}" fill="#152233"/>
+      ${planes(storm)}
     </g>
     </g>`;
 
@@ -307,13 +359,13 @@ function mount(host, opts){
      resident looks the same until the engine reveals it. */
   const cowsHtml = Object.values(cows).map(c=>{
     const haloStroke = c.occupied ? "#c6303c" : "#67c09b";
-    const pr = 46 * c.s / 1.08, py = -70 * c.s / 1.08;
+    const pr = 58 * c.s, py = -48 * c.s;
     const rx = c.perch.x - c.x + RIVAL_OFFSET.x, ry = c.perch.y - c.y + RIVAL_OFFSET.y;
     const nx = c.neck.x - c.x, ny = c.neck.y - c.y;
     return `<g class="wst-cow${c.occupied ? " wst-occ" : ""}" data-cow="${c.id}" data-tier="${c.tier}" transform="translate(${c.x},${c.y})" aria-hidden="true">
-      <ellipse class="wst-hit" cx="0" cy="${(-34*c.s).toFixed(1)}" rx="${c.halo.rx}" ry="${(40*c.s).toFixed(1)}" fill="transparent"/>
+      <ellipse class="wst-hit" cx="0" cy="${(-44*c.s).toFixed(1)}" rx="${c.halo.rx}" ry="${(50*c.s).toFixed(1)}" fill="transparent"/>
       <ellipse class="wst-halo-ring" cx="0" cy="2" rx="${c.halo.rx}" ry="${c.halo.ry}" fill="none" stroke="${haloStroke}" stroke-width="2"/>
-      <g class="wst-breathe"><use href="#wst-cow-${u}" transform="scale(${c.s})"/></g>
+      <g class="wst-breathe"><use class="wst-cowshadow" href="#wst-cow-${u}" transform="translate(3,2) scale(${c.s})"/><use class="wst-cowsil" href="#wst-cow-${u}" transform="scale(${c.s})"/></g>
       <g class="wst-res${c.occupied ? "" : " wst-hidden"}">
         <g class="wst-bat wst-rival wst-tuck" transform="translate(${rx},${ry}) scale(.75)">${RIG}</g>
         <circle class="wst-bead" cx="${nx}" cy="${ny}" r="4"/>
@@ -333,8 +385,8 @@ function mount(host, opts){
     <defs>
       <g id="wst-cow-${u}">${COW_SHAPE}</g>
       <radialGradient id="wst-vig-${u}" cx=".5" cy=".45" r=".75">
-        <stop offset=".6" stop-color="rgba(0,0,0,0)"/>
-        <stop offset="1"  stop-color="rgba(0,0,0,.3)"/>
+        <stop offset=".55" stop-color="rgba(2,5,10,0)"/>
+        <stop offset="1"  stop-color="rgba(2,5,10,.5)"/>
       </radialGradient>
     </defs>
     <g class="wst-camera">
@@ -347,7 +399,6 @@ function mount(host, opts){
           <g class="wst-roostsil">${ROOSTS[r.sil].svg}</g>
           <text class="wst-tag" x="${RP.cx}" y="252">${r.tag}</text>
         </g>`).join("")}
-        <g class="wst-grass" fill="${SIL}" aria-hidden="true">${GRASS.map(d=>`<path d="${d}"/>`).join("")}</g>
         ${cowsHtml}
         <g class="wst-bloodg" aria-hidden="true">
           <path class="wst-blood" fill="#c6303c" d="${BLOOD}"/>
@@ -358,6 +409,7 @@ function mount(host, opts){
         </g>
         <g class="wst-puff" aria-hidden="true"><circle cx="-10" cy="0" r="3"/><circle cx="4" cy="-6" r="2.5"/><circle cx="12" cy="2" r="3"/></g>
         <g class="wst-move" aria-hidden="true"><g class="wst-bat wst-tuck">${RIG}</g></g>
+        <g class="wst-lip" aria-hidden="true">${lip()}</g>
       </g>
     </g>
     </g>
@@ -458,10 +510,13 @@ function mount(host, opts){
     /* the canvas and the svgs fill the stage's padding box (1px border), so size from root;
        the meet / slice decision follows the CSS height breakpoint (NARROW_MQ) */
     const w = root.clientWidth || host.clientWidth, h = root.clientHeight || 1;
-    const meet = !NARROW_MQ.matches;
+    /* P36 opts.cover (the intro's attract scene): fill any box. A box wider than the stage widens
+       the view (meet, as on desktop); a taller box crops the sky (slice, bottom-anchored, as on a
+       phone). The game's own stage keeps following the phone breakpoint. */
+    const meet = opts.cover ? (w / h >= VW / VH) : !NARROW_MQ.matches;
     root.classList.toggle("wst-meet", meet); root.classList.toggle("wst-slice", !meet);
     const p = meet ? "xMidYMid meet" : "xMidYMax slice";
-    const W = meet ? Math.max(VW, Math.min(1920, Math.round(VH * w / h))) : VW;
+    const W = meet ? Math.max(VW, Math.min(2800, Math.round(VH * w / h))) : VW;   // P36: up to 2800 (a short encounter stage reached 2080)
     const vx = Math.round((VW - W)/2);
     const vb = vx + " 0 " + W + " " + VH;
     back.setAttribute("preserveAspectRatio", p); front.setAttribute("preserveAspectRatio", p);
@@ -505,7 +560,7 @@ function mount(host, opts){
       }
       const hit = el.querySelector(".wst-hit");
       hit.setAttribute("rx", Math.max(c.halo.rx, minR).toFixed(1));
-      hit.setAttribute("ry", Math.max(40 * c.s, minR).toFixed(1));
+      hit.setAttribute("ry", Math.max(50 * c.s, minR).toFixed(1));
     });
   }
   /* the roost row on the current frame: on a phone the row scales down (bases on the ground) and
@@ -522,11 +577,29 @@ function mount(host, opts){
       r.x = x; r.k = k;
       const el = roostEls[r.id]; if(!el) return;
       el.setAttribute("transform", `translate(${(x - RP.cx*k).toFixed(1)},${(RP.base*(1-k)).toFixed(1)}) scale(${k})`);
+      tagFit(el, r.tag, k < 1, i);
       const hit = el.querySelector(".wst-hit");
       hit.setAttribute("rx", Math.max(118, minR/k).toFixed(1)); hit.setAttribute("ry", Math.max(112, minR/k).toFixed(1));
     });
     // the player bat follows its roost when the row re-fits
     if(nearRoost !== null && roosts[nearRoost]){ const p = roostPerch(nearRoost); setMove(p.x, p.y, 0); }
+  }
+  /* P36: a roost's name on a phone. The row is scaled down there, so long names ran into each
+     other (P35 baseline: "the valley outpost" over "the mango hollow"). Narrow rows set each
+     name on two lines (split at the space nearest the middle) and lift every other name, so
+     neighbours never share a line. The text content stays the whole name. */
+  function tagFit(el, text, narrow, i){
+    const t = el.querySelector(".wst-tag"); if(!t) return;
+    const words = String(text || "").split(" ");
+    if(!narrow || words.length < 2){ t.textContent = text || ""; t.setAttribute("y", 252); return; }
+    let best = 1, bd = 1e9;
+    for(let j = 1; j < words.length; j++){ const d = Math.abs(words.slice(0, j).join(" ").length - words.slice(j).join(" ").length); if(d < bd){ bd = d; best = j; } }
+    const y = i % 2 ? 196 : 238;
+    t.setAttribute("y", y);
+    t.innerHTML = "";
+    [words.slice(0, best).join(" ") + " ", words.slice(best).join(" ")].forEach((w, j)=>{
+      const sp = document.createElementNS(NS, "tspan"); sp.setAttribute("x", RP.cx); sp.setAttribute("dy", j ? "1.1em" : "0"); sp.textContent = w; t.appendChild(sp);
+    });
   }
   /* camera pan for the current lookX: 0 when the whole composition is visible (meet hosts
      and wide slice hosts); otherwise translate so lookX sits at the frame centre, clamped
@@ -846,6 +919,11 @@ function mount(host, opts){
       if(!fo) return;
       if(!html){ fo.style.display = "none"; box.innerHTML = ""; return; }
       box.innerHTML = html; fo.style.display = "";
+      /* P37: a third bar (an occupied animal's get-in chance) needs more than the 104 units the box
+         was cut for: grow it upward from the same bottom edge, never shrink below the original */
+      if(!fo.dataset.y0){ fo.dataset.y0 = fo.getAttribute("y"); fo.dataset.h0 = fo.getAttribute("height"); }
+      const h0 = +fo.dataset.h0, need = Math.max(h0, Math.ceil(box.offsetHeight || 0));
+      fo.setAttribute("height", need); fo.setAttribute("y", +fo.dataset.y0 - (need - h0));
     },
     /* your own bars in the stage corner; empty hides */
     you(html){ if(dead) return; you.innerHTML = html || ""; you.hidden = !html; },
@@ -855,7 +933,7 @@ function mount(host, opts){
     labelRoost(id, text, tag){
       const el = roostEls[id], r = roosts[id]; if(dead || !el) return;
       if(text) el.setAttribute("aria-label", text);
-      if(tag !== undefined){ r.tag = tag; const t = el.querySelector(".wst-tag"); if(t) t.textContent = tag; }
+      if(tag !== undefined){ r.tag = tag; tagFit(el, tag, r.k < 1, Object.keys(roosts).indexOf(String(id))); }
     },
     selectRoost(id){
       if(dead) return;
@@ -901,6 +979,10 @@ function mount(host, opts){
       if(dead) return;
       st.select(id);
       Object.values(cowEls).forEach(el=> el.classList.toggle("wst-dim", el.dataset.cow !== id));
+      /* P36: on a phone (slice host) the camera frames the committed animal and the hover point at
+         its head, so a standoff at the end of the herd is not cut off at the frame's edge. A no-op
+         where the whole composition is visible (desktop). */
+      if(cows[id]) st.look(cows[id].x - 30, 700);
     },
     /* fly from wherever the bat is to the hover point beside the cow (the wound side), a low
        arc: a drift crest that leads into the act approach (≈ ms total, default 900) */
@@ -968,6 +1050,25 @@ function mount(host, opts){
         if(dead) return;
       }
       el.classList.add("wst-cofeed");
+    },
+    /* P37 the wing-off: your bat closes in beside the resident and both flare, face to face (the
+       existing rigs and poses only). Instant under reduced motion. */
+    async faceoff(id){
+      const c = cows[id], r = resEls[id]; if(dead || !c) return;
+      if(r){ r.classList.remove("wst-hidden"); setRes(id, 0, 0, 0); }
+      setRival(id, "flare");
+      st.pose("flare");
+      nearCow = id;
+      await st.batTo(c.neck.x + HOVER.dx * 0.55, c.perch.y + HOVER.dy * 0.45, 260, EASE.act);
+    },
+    /* the tap: a quick dart at the resident and back, with the crimson ring and a shake */
+    async lunge(id){
+      const c = cows[id]; if(dead || !c) return;
+      const x0 = batX, y0 = batY;
+      st.shake();
+      await st.batTo(x0 + 18, y0 + 6, 110, EASE.act);
+      if(dead) return;
+      await st.batTo(x0, y0, 220, EASE.soft);
     },
     /* the wait beat: the resident's feeding bead pulses at half speed */
     slowDrips(id){

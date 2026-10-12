@@ -19,8 +19,8 @@
 
 /* version tags for the play-style log (bat-log.js): bump DATA_VERSION whenever a constant a
    player can see changes, so logged runs stay comparable. Not player-facing: no META entry. */
-const GAME_VERSION = 5;
-const DATA_VERSION = "2026-09-06";   // P32 (the 2026-09-06 review, deploy 1): the colony feeds a youngster on nights 1-2, no hunger term on those nights, contagion from night 3 at contactSick 0.25, giving allowed whenever you keep a night of blood; before that: P10 strategy levers: friends feed you, blood carries over, one donation a dawn, bond quality in the ledger (2026-09-04, home PC)
+const GAME_VERSION = 6;
+const DATA_VERSION = "2026-10-11";   // P37 (the 2026-10-11 review): a lost shove costs the hour, share a wound only with roost-mates, the wing-off, refusals only when you could have given, the gift bond cap, far meal 20 points, the roost trades, only coughing bats infect on nights 1-2; before that: P32 (the 2026-09-06 review, deploy 1): the colony feeds a youngster on nights 1-2, no hunger term on those nights, contagion from night 3 at contactSick 0.25, giving allowed whenever you keep a night of blood; before that: P10 strategy levers: friends feed you, blood carries over, one donation a dawn, bond quality in the ledger (2026-09-04, home PC)
 
 /* ── cast ───────────────────────────────────────────────────────────────────────────── */
 const PARTNER_NAMES  = ["Quinoa","Fig","Juniper","Mango","Sage","Pepper","Hazel","Clover"];   // the hollow's core (dealt first)
@@ -140,6 +140,7 @@ const BAT = {
     giveOpen:0.10,        // the give bar for a bat who is merely hungry (0.3 blood, today's "a meal")
     giveSaveOpen:0.30,    // ... and for one whose life is in the balance, which is where the points curve turns
     giveFloor:0.05,       // the smallest gift the bar will offer
+    giftBondCap:"gen",    // P37 C1 (Bryson approved, sim GIFTCAP a): the give bar's BOND gain stops growing at this share tier's blood (a full crop, 0.5); a bigger gift still lifts her and still pays its points, it just cannot deepen the bond more than a full crop did. sliderFit turns it into gainCapBlood below
     giveKeep:1.0,         // P32 (Bryson: "you should be able to give anytime above 33"): the give bar opens on any dawn, fed or not, and stops where it would leave you under this much blood (a night of fuel). batsim5 part4 D2 at T = 1.0: +4 to +9 median for the giving policies, spread still 320 behind, survival unchanged
   },
   shareStamina:1,     // (P26: superseded by the proportional cost above; kept for the tier fallback and the sim)
@@ -180,18 +181,30 @@ const BAT = {
 
   /* the encounter (rows 18, 20-25) */
   openWoundMod:-0.05,         // bite bonus at any contested or waited wound (reopening is near-instant)
-  joinBase:0.05,              // P(tolerated) = joinBase + joinSlope x trust (a stranger: joinBase only)
+  joinBase:0.05,              // P(tolerated) = joinBase + joinSlope x trust; P37: offered only with roost-mates (a stranger never shares)
   joinSlope:0.50,
   cofeedBond:0.05,            // tolerated join: bond +0.05 both sides
   displaceWin:{young:0.50, adult:0.30, dominant:0.15, mate:0.30},   // P(the resident yields) by class; a roost-mate rolls as an adult
-  displaceMateBond:-0.10,     // shoving a roost-mate costs this bond, win or lose, and is remembered
+  displaceMateBond:-0.10,     // shoving a roost-mate costs this bond, win or lose, and is remembered; P37: a LOST shove also costs the dark hour
   waitLeaveP:0.5,             // WAIT: the resident leaves with this P per dark hour
   waitDrain:0.5,              // a waited wound yields waitDrain less ...
   waitFloor:0.5,              // ... but never less than this
+  /* P37 (Bryson: "Rebuild the fight. I like the tap one."): the wing-off. A shove is a two-second
+     face-off with a timing bar; a marker sweeps across it and a green zone sits in the middle, wider
+     the better your odds. One tap moves the shove odds around the displaceWin value, which stays the
+     centre: no tap, or a tap under reduced motion, rolls exactly the shown odds. Still ONE roll. */
+  wingoff:{
+    bonusMax:0.15,            // a tap dead centre adds this to the shove odds, falling to 0 at the zone's edge
+    penaltyMax:0.10,          // a tap outside the zone costs up to this ...
+    falloff:0.30,             // ... reached this far (in bar widths) past the zone's edge
+    zoneBase:0.15,            // zone width = zoneBase + zoneSlope x the shown odds (bar widths), centred on the bar
+    zoneSlope:0.50,
+    sweepMs:1150,             // one full swing of the marker (a sine, left to right and back)
+    windowMs:2600 },          // no tap by then: the shown odds are rolled
 
   /* framing (row 40) and badges (bible section 5) */
   desperateAt:1,              // blood <= this: the "desperate hours" tint AND (P10 lever 2b) the hungry bite term
-  hungryMod:0.12,             // P10: flying out on blood <= desperateAt costs you: bite +0.05, itemized as "hungry" (reverses the P4 "desperate hours carry no modifier" ruling; giving blood away is no longer free)
+  hungryMod:0.12,             // P10: flying out on blood <= desperateAt costs you: bite +0.12, itemized as "hungry" (reverses the P4 "desperate hours carry no modifier" ruling; giving blood away is no longer free)
   badges:{bonded:0.8, connector:2.5, rank:3},   // Bonded: any trust >= 0.8; The Connector: sum of real bonds (living bats at trust >= roosts.knownTrust) >= 2.5 (P4: 4.0 over eight flat 0.5 bonds; P5 draws the hollow at 0.12-0.75, batsim4 puts 2.5 at the survivors' p80); Made of Rank: displacement wins >= 3
 
   /* P5 roosts (rows 28-31, rewritten to Bryson's 2026-09-02 spec and his 2026-09-03 additions:
@@ -241,6 +254,7 @@ const BAT = {
   season:{
     contagionLo:0.0, contagionHi:1.0,   // contagion ~ U(lo, hi)
     contactSick:0.25,        // P(you catch it) per bat you groomed or shared with at a dawn, at contagion 1, WHETHER OR NOT she is coughing (0.05 never bit; P10 raised 0.18 -> 0.46; P32 lowered it to 0.25 because a one-in-three chance per grooming bout has no source and read as "do not groom" on night 1; the coughing x5 keeps the visible risk real; re-swept in build_nightflight/review_2026-09/sim) ...
+    youngContactCoughOnly:1, // P37 (B2): on nights <= BAT.youngNights only a COUGHING contact can pass the sickness on; a healthy bat you fed or groomed carries 0. From night youngNights+1, contactSick x contagion as before. 0 turns the rule off. Sim (p37/sim/candidates.md section 5): +7 to +15 median, +1 survival point
     contagionFrom:1,         // P32: the night contact risk starts on. Left at 1: the gate sim (build_nightflight/review_2026-09/balance_gate_deploy1.md) showed that starting on night 3 erased the only regime where a few close friends beat a wide circle (+2 instead of +20), while 0.25 from night 1 keeps it (+22)
     sickBatMult:5,           // ... x this if that bat was coughing
     coughP:0.20,             // a resident coughs on a given night with P = coughP x contagion x her roost's disease score ...
@@ -268,7 +282,7 @@ const BAT = {
   pts:{night:15,      // survived the night
        fed:8,         // fed
        primeSolo:14,  // on top of fed: a prime cow, fed alone
-       farFed:12,     // P12: on top of fed: a meal taken in the far valley (the daring pays in points; the flight risks blood)
+       farFed:20,     // P12: on top of fed: a meal taken in the far valley (the daring pays in points; the flight risks blood). P37 L5 (Bryson approved): 12 -> 20
        unfed:5,       // consolation on any unfed night that ends with blood > 0
        cofeed:6,      // tolerated join
        displace:10,   // displacement win (the bond cost is real)
@@ -314,28 +328,53 @@ const PASTURES = {
           yieldMult:1.3, occMult:0.5 },   // P12 (Bryson 2026-09-04: "extra benefit but higher risk"): fat, rarely bled cattle and few bats fly that far; tuned in sim/batsim4_2026-09-04_far.txt
   storm:{ label:"Near paddock (storm)", primeWeight:1, far:false, burnHard:true } };
 
-/* ── roost types (P5): the hollow is home; the others are drawn 2-3 per game. Fiction only;
-   the stage draws each `sil` from the approved snag or straight-edged primitives. `pasture`
-   is the linked pasture (the outpost scouts the far valley: BAT.scoutMod on a far bite). ── */
+/* ── roost types (P5): the hollow is home; the others are drawn 2-3 per game. The stage draws
+   each `sil` from the approved snag or straight-edged primitives. `pasture` is the linked pasture
+   (the outpost scouts the far valley).
+   P37 (Bryson: "make the big choices real"): each away roost carries one TRADE, an upside and a
+   downside, designed and priced in build_nightflight/p37/sim/roost_trades.md (batsim9, 20,000
+   seasons a cell). A key that is absent is the old rule. The engine reads them through tradeVal:
+     nearFail     bite term on a near-paddock hunt flown from here (the herd sleeps below you)
+     missBurn     the blood a calm near miss costs when you flew from here (no flight home)
+     aggroFloor   the roost's aggression is at least this at the dawn there
+     aggroMult    x the dawn wound chance there
+     sickMult     x the dawn sickness chance there
+     contactMult  x the per-contact contagion of a dawn spent there
+     heal         a fever and a wound clear at the dawn there (after the hazard roll)
+     warmMult     x the roost's warm-up (bond gains, and groom-backs through warmRecip)
+     welcome      no strangerRecip halving on a first dawn there
+     sizeFloor / sizeCap   clamp the roost's drawn size
+     scoutMod     replaces BAT.scoutMod on a far hunt flown from here
+     farMissBurn  the blood a far miss costs when you flew from here
+     coldBurn     blood lost by the dawn there (never below 0)
+   The hollow has none. With these, no away roost is dominant and each is fair in its niche
+   (reader lines: barn +1.5, culvert -2.5, mango +0.8, outpost -1.1 points, all loyal medians
+   within 0.4%). The far valley flown from the outpost is the best hunt in every state: that is
+   the trade working (you pay a night away for it). ── */
 const ROOST_TYPES = {
   hollow: { name:"the hollow",         sil:"snag",    pasture:"near",
             fiction:"the hollow tree above the near paddock, where you were born",
             cueSick:"the air is close and the floor is wet", cueAggro:"a scarred male hangs by the entrance" },
   outpost:{ name:"the valley outpost", sil:"outpost", pasture:"far",
+            trade:{scoutMod:-0.15, farMissBurn:0.75, coldBurn:0.1},   // P37: the far herd is yours tomorrow; the ridge is cold
             fiction:"a split snag on the ridge above the far valley; whoever dens here sees the far herd first",
             cueSick:"the crack smells of old guano", cueAggro:"two big males share the top of the split" },
   culvert:{ name:"the culvert",        sil:"culvert", pasture:"near",
+            trade:{heal:true, sickMult:0.3, contactMult:0.25, aggroMult:0, sizeCap:5},   // P37: cool and dry, you recover here; only a few bats
             fiction:"the pipe under the ranch road, dry at this season, cool and echoing",
             cueSick:"water stands at the low end and the walls sweat", cueAggro:"a heavy bat hangs alone at the mouth, facing in" },
   mango:  { name:"the mango hollow",   sil:"mango",   pasture:"near",
+            trade:{warmMult:1.5, welcome:true, sizeFloor:10, sickMult:2.0},   // P37: big and warm, newcomers welcome; damp, so more fever
             fiction:"the second tree, down by the river, older and wider than yours",
             cueSick:"the hollow is crowded and the floor is soft", cueAggro:"a scarred female drives the young ones to the edge" },
   barn:   { name:"the barn eaves",     sil:"barn",    pasture:"near",
+            trade:{nearFail:-0.08, missBurn:0.5, aggroFloor:0.6},   // P37: the herd right below you; the rafters are fought over
             fiction:"the rafters over the herd's own shed; the cattle sleep right beneath you",
             cueSick:"dust, and a cough somewhere in the dark", cueAggro:"the rafters are claimed beam by beam" } };
 const ROOST_DRAW = ["outpost","culvert","mango","barn"];   // the non-home types a game draws from (shuffled, 2-3 taken)
 
-/* ── the rival cast (stranger occupants; class hidden until you JOIN or DISPLACE, tell always shown) ── */
+/* ── the rival cast (stranger occupants). P37: the class is named from the tell at the first meeting
+   (a young bat, an adult, a big dominant female) and the shove odds are always shown ── */
 /* subj / Subj / obj fill the {subj} {Subj} {obj} placeholders in COPY (roost-mates are she / She / her) */
 const RIVALS = {
   bramble:{ name:"Bramble", cls:"dominant", subj:"she", Subj:"She", obj:"her", tell:"she does not pause her feeding as you circle" },
@@ -432,6 +471,9 @@ const YEARS = {
     starv: fitSat(sip.blood, sip.ptsStarv, gen.blood, gen.ptsStarv),
     hun:   fitSat(sip.blood, sip.ptsHun,   gen.blood, gen.ptsHun),
     gain:  fitSat(sip.blood, sip.gain,     gen.blood, gen.gain),
+    /* P37 C1: the blood past which a gift adds no more bond (the full crop's 0.5); the engine's
+       giftGainAt and the give readout both clamp the blood here, and dump-data.js exports it */
+    gainCapBlood: S[BAT.slider.giftBondCap] ? S[BAT.slider.giftBondCap].blood : Infinity,
   });
 })();
 
@@ -534,7 +576,7 @@ const META = {
   "BAT.mateOccupantP":{model:true, why:"bonded bats rendezvous on the same cattle; the split is ours (row 19)", cite:["ripperger2021"]},
   "BAT.mateOccupantFedWeight":{model:true, why:"a roost-mate who fed tonight is the likelier shape on a cow (row 19)", cite:["ripperger2021"]},
   /* rows 20-22 join */
-  "BAT.joinBase":    {model:true, why:"simultaneous feedings are rare: 5 in 36.6 h across 65 bats, mostly mother and young (row 20); a refusal is a feeding-place confrontation call, no injury, cow locked (row 21, captive study cited as such)", cite:["wilkinson1985a","sailler1978"]},
+  "BAT.joinBase":    {model:true, why:"P37: sharing is offered only with roost-mates; simultaneous feedings are rare: 5 in 36.6 h across 65 bats, mostly mother and young (row 20); a refusal is a feeding-place confrontation call, no injury, cow locked (row 21, captive study cited as such)", cite:["wilkinson1985a","sailler1978"]},
   "BAT.joinSlope":   {model:true, why:"bond predicts foraging association; slope flattened (row 20)", cite:["ripperger2021"]},
   "BAT.cofeedBond":  {model:true, why:"co-feeding builds the bond; magnitude ours (row 22)", cite:["ripperger2021","carter2020"]},
   /* rows 23-24 displace */
@@ -542,6 +584,7 @@ const META = {
   "BAT.displaceMateBond":{model:true, why:"feeding-site aggression has a social price in a reciprocity economy (row 24)", cite:["wilkinson1984","greenhall1972"]},
   /* row 25 wait */
   "BAT.waitLeaveP":  {model:true, why:"bouts run 9-40 min, so a mid-bout arrival resolves in about one dark hour half the time; sequential feeding observed (row 25)", cite:["greenhall1972","wilkinson1985a"]},
+  "BAT.wingoff":     {model:true, why:"P37 wing-off: a timing tap that moves the shove odds by at most +0.15 / -0.10 around BAT.displaceWin, which stays the centre (no tap rolls it exactly). Feel, not biology: priced by the P37 sim (an ordinary tap averages zero; a good tapper wins about 41% of shoves instead of 33%, about +8 points a season)"},
   "BAT.waitDrain":   {model:true, why:"a drained wound yields less; value ours (row 25)", cite:["greenhall1972"]},
   "BAT.waitFloor":   {model:true, why:"a waited wound still feeds (row 25)"},
   /* row 27 far valley */
@@ -617,6 +660,7 @@ const META = {
   "BAT.season.contagionLo":{model:true, why:"how much sickness moves through contacts varies by season; direction: grooming and sharing are physical contacts (Stockmaier 2018)", cite:["stockmaier2018","ripperger2020"]},
   "BAT.season.contagionHi":{model:true, why:"as contagionLo", cite:["stockmaier2018","ripperger2020"]},
   "BAT.season.contactSick":{model:true, why:"per-contact transmission at full contagion; value ours, and lowered in P32 because no study measures infection per grooming bout", cite:["ripperger2020"]},
+  "BAT.season.youngContactCoughOnly":{model:true, why:"the colony shelters a youngster; on its first nights only an obviously sick bat passes anything on (P37: the first lesson of the game must not be that helping made you sick)"},
   "BAT.season.contagionFrom":{model:true, why:"the night contact risk starts on; 1, because starting later erased the high-contagion regime in the gate sim (P32)"},
   "BAT.season.sickBatMult":{model:true, why:"a visibly sick contact is the risky one", cite:["stockmaier2018"]},
   "BAT.season.coughP":    {model:true, why:"how many residents are visibly sick follows contagion and the roost's disease score", cite:["ripperger2020"]},
@@ -659,7 +703,11 @@ const META = {
   "YEARS.lean":     {model:true, why:"thin herds, more bats per wound (Greenhall 1972 re-attacks); values ours", cite:["greenhall1972"]},
   "BAT.outpostDraw": {model:true, why:"P5 draft key, unused by the P5 engine (row 28)", cite:["wilkinson1985a"]},
   "BAT.newcomerNights":{model:true, why:"P5 draft key, unused by the P5 engine (row 29)", cite:["wilkinson1985b"]},
-  "BAT.scoutMod":    {model:true, why:"foraging-area familiarity: the outpost sees the far herd first; value ours (row 30)", cite:["wilkinson1985a"]},
+  "ROOST_TYPES.barn.trade":    {model:true, why:"P37 roost trade (p37/sim/roost_trades.md): roosting over the cattle shortens the commute, so a near bite is easier (nearFail) and a near miss costs less (missBurn, no flight home); the rafters are contested (aggroFloor). Plausible, not sourced: a model trade-off, values tuned in batsim9"},
+  "ROOST_TYPES.mango.trade":   {model:true, why:"P37 roost trade: a big, warm hollow where bonds grow faster (warmMult) and newcomers are groomed back in full (welcome), never small (sizeFloor), but damp and crowded, so twice the fever (sickMult). Plausible, not sourced: a model trade-off, values tuned in batsim9"},
+  "ROOST_TYPES.culvert.trade": {model:true, why:"P37 roost trade: a cool, dry, quiet pipe where you recover (heal), fever is rarer (sickMult) and barely spreads (contactMult), and nobody fights (aggroMult 0), but only a few bats sleep there (sizeCap). Plausible, not sourced: a model trade-off, values tuned in batsim9"},
+  "ROOST_TYPES.outpost.trade": {model:true, why:"P37 roost trade: whoever dens over the far valley hunts it well the next night (scoutMod replaces BAT.scoutMod, farMissBurn: no long flight out), but the exposed ridge costs a small bat heat and blood by dawn (coldBurn). Plausible, not sourced: a model trade-off, values tuned in batsim9"},
+  "BAT.scoutMod":    {model:true, why:"foraging-area familiarity: the outpost sees the far herd first; value ours (row 30). P37: the default only; the outpost's trade (ROOST_TYPES.outpost.trade.scoutMod) replaces it, and the sim reads it the same way", cite:["wilkinson1985a"]},
   "BAT.contactCallTrust":{model:true, why:"P5 draft key; the engine reads roosts.contactCallTrust (row 31)", cite:["carter2016","carter2012"]},
   /* rows 32-34 rescue */
   "BAT.rescueBase":  {model:true, why:"v2 calibration of the donation curve (row 33); the beg pool is present, fed, living roost-mates rolled in trust order (row 32), while roost-mates' own background rescues stay global so no partner dies to a lottery the player never touched (row 34)", cite:["carter2013","wilkinson1984"]},
@@ -679,6 +727,7 @@ const META = {
   "BAT.shares":      {model:true, why:"regurgitated sharing with escalation from sips to full crops; blood and bond values v2, the hungry-bat points cut in P6a so that handing blood to everyone is not the score line (row 37)", cite:["wilkinson1984","carter2020"]},
   "BAT.shareLift":   {model:true, why:"a fed hungry bat gains half a night (row 37)"},
   "BAT.shareStamina":{model:true, why:"regurgitation is a dawn action like grooming (v2, row 37)"},
+  "BAT.slider.giftBondCap":{model:true, why:"P37 C1: one gift should not max a bond. The bar runs to a full crop of 3 blood, six times the old full-crop gift, and the bond curve was nearly linear past it, so a 30 gift took a bat from 0.29 to 0.80. Now the bond gain stops at the full-crop tier (0.5 blood, +0.25 before multipliers): more blood still saves her and still pays its points. Simmed as GIFTCAP a (p37/sim/candidates.md section 4): broad -3 median, every other policy unchanged", cite:["wilkinson1984","carter2015"]},
   "BAT.slider":      {model:true, why:"P26: the continuous give/groom bars. Every curve is solved at load from groomQuick, groomLong and shares, so the slider reproduces the quick groom, the long groom, the sip, the meal and the full crop exactly and only interpolates between them; the payoff saturates because a starving bat can only use so much blood. Opening positions and the 5% step are Bryson's, balanced in sim/batsim4.py (BATSIM_MODEL=slider, 20,000 seasons a policy)", cite:["wilkinson1984","wilkinson1986","carter2015"]},
   "BAT.partnerCap":  {model:true, why:"roost-mates hold two nights of blood (row 39)"},
   "BAT.partnerEnergy":{model:true, why:"roost-mates start with one to two nights of blood (v2, row 39)"},
@@ -711,8 +760,8 @@ const META = {
   "BAT.pts.fedByFriend":{model:true, why:"points for a close friend feeding you on a hungry night: the payoff for depth rather than breadth (P10 lever 1)", cite:["carter2013"]},
   "BAT.pts.endBest": {model:true, why:"the season end names your single deepest bond, so two real friends score as more than a list of acquaintances (P10 lever 4); value tuned in sim/batsim4_2026-09-04_p10.txt", cite:["carter2013"]},
   "BAT.pts.endRecip":{model:true, why:"per partner who ever fed you: reciprocity is the thing that keeps a bat alive, and it is earned, not counted (P10 lever 4)", cite:["wilkinson1984","carter2013"]},
-  "BAT.pts.farFed":  {model:true, why:"P12: a far-valley meal pays extra points: the reward for the long, riskier flight lands in the ledger, not the crop (blood caps at energyCap, so a fatter meal alone was worth little); tuned in sim/batsim4_2026-09-04_far.txt"},
+  "BAT.pts.farFed":  {model:true, why:"P12: a far-valley meal pays extra points: the reward for the long, riskier flight lands in the ledger, not the crop (blood caps at energyCap, so a fatter meal alone was worth little); tuned in sim/batsim4_2026-09-04_far.txt. P37 L5: 12 -> 20, because the far valley still lost 11 points on average against the near paddock (p37/sim/baseline.md 3c); simmed together with L6 it lost about 7, and an empty crop now favours far (p37/sim/candidates.md section 7)"},
   "BAT.pts.endBlood":{model:true, why:"blood left in the crop at the end is a real asset (a bat's reserve is hours of life, McNab 1973), so a surplus is never free to give away (P10 lever 2a)", cite:["mcnab1973"]},
   "BAT.pts":         {model:true, why:"outcome-based point economy (bible section 5); pts.unfed is the consolation on any unfed night ending with blood > 0; P6a: grooming pays 0 per action and endBond values each real bond as trust ^ the season's rescue exponent (row 41)"},
   "BAT.badges":      {model:true, why:"badge thresholds (bible section 5); the Connector at 2.5 over real bonds (trust >= 0.3) is about five warm partners, the survivors' p80 in batsim4 (P5)"},
-  "RIVALS":          {model:true, why:"the rival cast: names and tells are fiction; classes map to BAT.displaceWin; a stranger's class stays hidden until you join or displace, mirroring how feeder displacements reveal rank, and no female roost rank exists so rank is feeder-scoped only (bible section 4, row 26)", cite:["wilkinson1985a","crisp2021"]} };
+  "RIVALS":          {model:true, why:"the rival cast: names and tells are fiction; classes map to BAT.displaceWin; P37: the class is read from the tell (size and behaviour at the wound) from the first meeting, as a size-based displacement would be judged, and no female roost rank exists so rank is feeder-scoped only (bible section 4, row 26)", cite:["wilkinson1985a","crisp2021"]} };

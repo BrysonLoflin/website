@@ -24,7 +24,7 @@
    Event codes in nl (each event is a small object; n = night):
      pk  a pick: {k,n,s(scene),c(choice),e(energy 2dp),t(ticks),ms(missStreak),sel(cow idx),
          ck(cond key), far, occ: for approach/verbs the occupant {kind, pid|key, tr(trust 2dp),
-         fed} and the cow tier, w(waited count)}
+         fed} and the cow tier, w(waited count); P37: a "displace" pick carries wo (below)}
      ns  night summary at the end of the night: {k,n,ck,far,pas,brd:[[tier,occupied,kind,id,tr]],
          cow(idx),tier,fed,meal,rolled,rv(roll 2dp),pf(pFail used 2dp),ow(open wound),co(cofed),
          disp,wait(waited),why(reason),res(result scene),burn,sav(savior pid),ff(friend-feed pid, P32),e(energy after),
@@ -32,7 +32,9 @@
      da  a dawn action: {k,n,a(groomQ|groomL|share),p(partner id),amt(share key),tr(trust before),
          hun,stv(starving),pe(partner energy),e(your energy),stm(stamina before)}
      sl  sleep snapshot: {k,n,e,stm(stamina left),sc,pt:[[id,alive,trust 2dp,hungry,shared,groomed]]}
-     rs  resume {k,n,s}   ex  exit {k,n,s}   en  end {k,n,sc,alive,cause,badges} */
+     rs  resume {k,n,s}   ex  exit {k,n,s}   en  end {k,n,sc,alive,cause,badges}
+   P37 wing-off: wo = {t: tapped 0/1, s: the shift to the shove odds, rounded to 0.01 (0 for no tap or
+     under reduced motion)}, on the "displace" pk event and, as the night's last shove, on ns */
 var WydLog = (function(){
   var LS_PID = "wyd-pid", LS_Q = "wyd-logq", COLL = "runs", NL_CAP = 24000;
   function lsg(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
@@ -112,6 +114,7 @@ var WydLog = (function(){
                   ck: G.cond ? G.cond.key : null};
         if(G.run){ ev.far = G.run.far ? 1 : 0; if(G.sel != null) ev.sel = G.sel; }
         if(from === "pasture" || from === "encounter"){ var o = occOf(G); if(o) ev.occ = o; }
+        if(c === "displace" && G.run && G.run.enc && G.run.enc.wo) ev.wo = {t: G.run.enc.wo.t ? 1 : 0, s: r2(G.run.enc.wo.s)};   // P37
         push(G, ev);
       }catch(e){}
     },
@@ -135,7 +138,7 @@ var WydLog = (function(){
             ow: R.openWound ? 1 : 0, co: R.cofed ? 1 : 0, disp: R.displaced ? 1 : 0, wait: R.waited ? 1 : 0,
             why: R.fedTonight ? null : (R.reason || null), res: R.result || id, burn: R.burn != null ? r2(R.burn) : null,
             sav: R.savior || null, ff: R.friendFedPid != null ? R.friendFedPid : null, e: r2(G.energy), sc: Math.round(G.score), tk: G.ticks,
-            ev: G.event ? (G.event.type || 1) : null});
+            ev: G.event ? (G.event.type || 1) : null, wo: R.wo ? {t: R.wo.t ? 1 : 0, s: r2(R.wo.s)} : null});   // P37 wo: the night's last wing-off
           api.flush(G, id === "death" ? "dead" : "live");
         }
       }catch(e){}

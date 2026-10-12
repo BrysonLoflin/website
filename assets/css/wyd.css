@@ -10,10 +10,10 @@
   background:var(--g-bg); color:var(--g-ink);
   --g-radius:2px;
 }
-.theme-bat{
-  --g-bg:#0d1114; --g-bg2:#131a1e; --g-card:#171f25; --g-card2:#1c262d;
-  --g-ink:#f2f6f8; --g-muted:#c6d2d9; --g-dim:#9cadb7; --g-line:#243039; --g-line2:#3a4c58;
-  --g-accent:#c6303c; --g-accent-ink:#ef7b85; --g-warm:#e8ad64; --g-good:#67c09b;
+.theme-bat{   /* P36 Paper Moon: night-blue paper, moon ink, the same three signal hues */
+  --g-bg:#0b1221; --g-bg2:#0f1a2e; --g-card:#13203a; --g-card2:#192844;
+  --g-ink:#ece6d6; --g-muted:#c5cfde; --g-dim:#a3b2c8; --g-line:#24375a; --g-line2:#36507a;
+  --g-accent:#c6303c; --g-accent-ink:#ef7b85; --g-warm:#e9b06a; --g-good:#73c7a3;
   --g-glow:rgba(198,48,60,.35);
 }
 .theme-fish{
@@ -36,7 +36,7 @@
   --g-glow:rgba(217,138,74,.3);
 }
 /* the page body behind each themed page goes dark/light with it */
-body:has(.theme-bat){ background:#0d1114; }
+body:has(.theme-bat){ background:#0b1221; }
 body:has(.theme-fish){ background:#04303d; }
 body:has(.theme-bee){ background:#1c1303; }
 body:has(.theme-arcade){ background:#0f130f; }
@@ -447,7 +447,7 @@ table.wyd-board tr.me td{ color:var(--g-warm); font-weight:600; }
   letter-spacing:.04em; color:var(--g-muted); list-style:none; }
 .wyd-model summary::-webkit-details-marker{ display:none; }
 .wyd-model summary::after{ content:"+"; float:right; color:var(--g-dim); }
-.wyd-model[open] summary::after{ content:"–"; }
+.wyd-model[open] summary::after{ content:"−"; }
 .wyd-model-body{ padding:0 1.2rem 1.2rem; }
 .wyd-model-body p{ color:var(--g-muted); font-size:.92rem; max-width:78ch; }
 .wyd-model-body a{ color:var(--g-accent-ink); }
@@ -541,10 +541,10 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
   --e-anticipate:cubic-bezier(.55,-.35,.6,1);/* wind-ups */
   --e-soft:cubic-bezier(.45,.05,.55,.95);    /* flaps, sways */
   --e-drift:cubic-bezier(.37,.1,.63,.9);     /* ambience */
-  --wst-sil:#05080c; --wst-moon:#e9e3d0;
+  --wst-sil:#070b13; --wst-moon:#efe7d0; --wst-rim:#46679a;
   position:relative; width:100%; height:clamp(200px, 32vw, 380px); overflow:hidden;
-  border:1px solid var(--g-line); border-radius:var(--g-radius); background:#1b2a44;
-  box-shadow:0 24px 60px -30px rgba(0,0,0,.75);
+  border:1px solid var(--g-line); border-radius:var(--g-radius); background:#16243c;
+  box-shadow:0 3px 0 rgba(2,5,12,.5), 0 24px 60px -30px rgba(0,0,0,.75);
 }
 /* this breakpoint is ALSO the stage's meet / slice switch (bat-stage.js NARROW_MQ): keep them equal */
 @media (max-width:600px){ .wyd-stage{ height:230px; } }
@@ -595,23 +595,36 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
 @media (max-width:760px){ .wst-cap{ font-size:11px; left:10px; top:8px; bottom:auto; } }
 
 /* ---------- stars ---------- */
-.wst-star{ fill:#c6d2d9; }
+.wst-star{ fill:#e9eef8; }
 .wst-tw1{ animation:wst-twinkle 3.4s var(--e-soft) infinite; }
 .wst-tw2{ animation:wst-twinkle 4.7s var(--e-soft) infinite .9s; }
 .wst-tw3{ animation:wst-twinkle 5.6s var(--e-soft) infinite 2.1s; }
 @keyframes wst-twinkle{ 0%,100%{ opacity:.25 } 50%{ opacity:.95 } }
 
 /* clouds: slow mass, long symmetric drift */
-.wst-cloud{ fill:#3a5271; opacity:.55; }
-.wst-cloud.wst-cloud-storm{ opacity:.8; }
+.wst-cloud{ fill:#3b5680; opacity:.92; }
+.wst-cloud .wst-cloudshadow{ fill:#060a14; opacity:.42; }
+.wst-cloud.wst-cloud-storm{ fill:#2a3a55; opacity:.97; }
+/* P36 paper planes: the cut edge catches the moon */
+.wst-edge{ fill:none; stroke:#5e7fae; stroke-width:1.1; opacity:.35; }
+.wyd-stage[data-storm="1"] .wst-edge{ opacity:.15; }
+.wst-lip{ fill:#0a1426; }
+.wst-moondisc{ fill:var(--wst-moon); }
+.wst-moonshadow{ fill:#04070e; opacity:.45; }
+.wst-crater{ fill:#ddd3b8; }
+.wst-snag, .wst-sil{ fill:var(--wst-sil); stroke:var(--wst-rim); stroke-width:1.2; stroke-linejoin:round; }
+.wst-roost, .wst-roostsil{ filter:drop-shadow(2px 3px 0 rgba(3,6,12,.55)); }
+.wst-hollow{ fill:#020409; }
 .wst-drift1{ animation:wst-drift 46s var(--e-soft) infinite alternate; }
 .wst-drift2{ animation:wst-drift 64s var(--e-soft) infinite alternate -20s; }
 @keyframes wst-drift{ from{ transform:translateX(-40px) } to{ transform:translateX(60px) } }
 
 /* ---------- bat rig ---------- */
 .wst-bat *{ transform-box:fill-box; }
-.wst-body, .wst-ear, .wst-wing path{ fill:var(--wst-sil); }
-.wst-bat.wst-rival .wst-body, .wst-bat.wst-rival .wst-ear, .wst-bat.wst-rival .wst-wing path{ fill:#33090f; }
+.wst-body, .wst-ear, .wst-wing path{ fill:var(--wst-sil); stroke:var(--wst-rim); stroke-width:1.1; stroke-linejoin:round; }
+.wst-eye{ fill:#9fb6d8; }
+.wst-bat.wst-rival .wst-body, .wst-bat.wst-rival .wst-ear, .wst-bat.wst-rival .wst-wing path{ fill:#2c0910; stroke:#8a2a36; }
+.wst-bat.wst-rival .wst-eye{ fill:#ff5a64; }
 .wst-bat.wst-rival{ filter:drop-shadow(0 0 3px rgba(198,48,60,.4)); }
 .wst-bat.wst-rival.wst-flare{ filter:drop-shadow(0 0 8px rgba(198,48,60,.7)); }
 .wst-bat.wst-tuck .wst-bob{ animation:none; }
@@ -623,13 +636,15 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
 @keyframes wst-flapL{ from{ transform:rotate(30deg) } to{ transform:rotate(-22deg) } }
 @keyframes wst-flapR{ from{ transform:rotate(-30deg) } to{ transform:rotate(22deg) } }
 /* perched: wings folded in tight */
-.wst-bat.wst-tuck .wst-wing-l{ transform:rotate(58deg) scale(.72); transition:transform .4s var(--e-act); }
-.wst-bat.wst-tuck .wst-wing-r{ transform:rotate(-58deg) scale(.72); transition:transform .4s var(--e-act); }
+/* P36: the paper wing folds DOWN along the body (its pivot is the shoulder) */
+.wst-bat.wst-tuck .wst-wing-l{ transform:rotate(-76deg) scale(.5, .62); transition:transform .4s var(--e-act); }
+.wst-bat.wst-tuck .wst-wing-r{ transform:rotate(76deg) scale(.5, .62); transition:transform .4s var(--e-act); }
 /* threat display: full flare */
 .wst-bat.wst-flare .wst-wing-l{ animation:wst-flareL .5s var(--e-act) infinite alternate; }
 .wst-bat.wst-flare .wst-wing-r{ animation:wst-flareR .5s var(--e-act) infinite alternate; }
-@keyframes wst-flareL{ from{ transform:rotate(-34deg) scale(1.12) } to{ transform:rotate(-16deg) scale(1.12) } }
-@keyframes wst-flareR{ from{ transform:rotate(34deg) scale(1.12) } to{ transform:rotate(16deg) scale(1.12) } }
+/* P36: a raised threat display, wings up and spread, trembling */
+@keyframes wst-flareL{ from{ transform:rotate(20deg) scale(1.1) } to{ transform:rotate(9deg) scale(1.14) } }
+@keyframes wst-flareR{ from{ transform:rotate(-20deg) scale(1.1) } to{ transform:rotate(-9deg) scale(1.14) } }
 
 .wst-bob{ animation:wst-bob 2.2s var(--e-soft) infinite; }
 @keyframes wst-bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-7px) } }
@@ -643,7 +658,9 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
 .wst-pan{ will-change:transform; }
 
 /* ---------- cows ---------- */
-.wst-cow use{ fill:var(--wst-sil); }
+.wst-cow use.wst-cowsil{ fill:var(--wst-sil); }
+.wst-cow use.wst-cowshadow{ fill:#03060c; opacity:.5; --wst-rim:transparent; }
+.wst-front .wst-rim{ fill:none; stroke:var(--wst-rim); stroke-width:1.8; stroke-linecap:round; }
 .wst-cow .wst-halo-ring{ opacity:0; transition:opacity .3s var(--e-act); }
 .wst-cow .wst-tag{ opacity:0; transition:opacity .3s var(--e-act);
   font-size:12px; letter-spacing:.05em; fill:var(--g-dim); text-anchor:middle; }
@@ -671,7 +688,7 @@ body:has(.gpage.wyd-playing) .nav-footer{ display:none; }
 /* P6b: the roost pick shares the cow board's language (halo ring, tag, selection) */
 .wyd-stage.wst-choice .wst-front .wst-roostpick{ pointer-events:auto; cursor:pointer; }
 .wst-roostpick .wst-halo-ring{ opacity:0; transition:opacity .3s var(--e-act); stroke:var(--g-good); }
-.wst-roostpick .wst-tag{ opacity:.9; font-size:19px; font-weight:700; fill:#f2efe6; paint-order:stroke; stroke:rgba(0,0,0,.55); stroke-width:4px; transition:opacity .3s var(--e-act); }   /* P18: the roost's name reads over it */
+.wst-roostpick .wst-tag{ text-anchor:middle; opacity:.9; font-size:19px; font-weight:700; fill:#f2efe6; paint-order:stroke; stroke:rgba(0,0,0,.55); stroke-width:4px; transition:opacity .3s var(--e-act); }   /* P18: the roost's name reads over it */
 .wst-roostpick.wst-sel .wst-tag{ fill:var(--g-warm); }
 .wst-choice .wst-roostpick .wst-halo-ring{ opacity:.45; }
 .wst-choice .wst-roostpick:hover .wst-halo-ring, .wst-choice .wst-roostpick:focus-visible .wst-halo-ring,
@@ -1896,3 +1913,571 @@ body:has(.nf-dawn) #quarto-content{grid-template-rows:[content-top] minmax(0,1fr
 .nf-tabs button:disabled{background:#17252b;border:1px solid #32434b;color:#94a4ae;cursor:not-allowed;padding:10px 14px;}
 .nf-tabs button:disabled small{color:#afbec6;}
 @media(max-width:600px){.nf-tabs button:disabled{padding:6px 10px;}}
+
+/* ============================================================
+   P36 PAPER MOON (2026-10-10, home PC; Bryson picked look A): the game's skin.
+   The game reads as a lit paper diorama: every panel is a sheet of night-blue paper with a
+   fibre grain, a moonlit top edge and a short cast shadow; type is the site's Newsreader for
+   the words that tell the story and Archivo / Archivo Narrow for everything you read at a
+   glance. Layout sizes are untouched (the fit tests own them): this block only paints.
+   Colour code, unchanged in meaning: crimson = blood, green = grooming and bonds, amber =
+   attention and selection. Green on dark buttons now carries dark ink (white on #67c09b was
+   below AA).
+   ============================================================ */
+.gpage.theme-bat{
+  --p-fibre:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .45' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .78 0 0 0 0 .84 0 0 0 0 .96 0 0 0 .32 -.15'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23f)'/%3E%3C/svg%3E");
+  --p-lift:0 2px 0 rgba(2,5,12,.55), 0 18px 36px -22px rgba(0,0,0,.8);
+  --p-lift-sm:0 2px 0 rgba(2,5,12,.5);
+  --p-edge:inset 0 1px 0 rgba(175,200,240,.08);
+  --f-disp:"Newsreader", Georgia, serif;
+  --f-ui:"Archivo", system-ui, sans-serif;
+  --f-num:"Archivo Narrow", "Archivo", sans-serif;
+  --g-on-good:#0b1a14;
+  font-family:var(--f-ui);
+}
+body:has(.theme-bat){ background:#0b1221; }
+/* a sheet of paper: colour, grain, moonlit edge, cast shadow */
+.theme-bat .wyd-scene, .theme-bat .wyd-ghud, .theme-bat .wyd-modal__card, .theme-bat .wyd-endcard,
+.theme-bat .wyd-intel, .theme-bat .wyd-partner, .theme-bat .wyd-log{
+  background-image:var(--p-fibre); background-size:240px 240px;
+}
+.theme-bat .wyd-scene, .theme-bat .wyd-ghud, .theme-bat .wyd-endcard, .theme-bat .wyd-modal__card{
+  border-color:var(--g-line); box-shadow:var(--p-edge), var(--p-lift); border-radius:4px;
+}
+
+/* ---------- type ---------- */
+.theme-bat .wyd-scene h3, .theme-bat .wyd-modal h3, .theme-bat .wyd-intel h4, .theme-bat .nf-heading h3,
+.theme-bat .nf-partner .nf-person h4{ font-family:var(--f-disp); font-weight:500; letter-spacing:-.005em; color:var(--g-ink); }
+.theme-bat .wyd-round{ font-family:var(--f-num); color:var(--g-warm); letter-spacing:.16em; }
+.theme-bat .wyd-story{ color:var(--g-muted); }
+.theme-bat .g-hero h1{ font-family:var(--f-disp); font-weight:400; letter-spacing:-.025em; line-height:.98; }
+.theme-bat .g-kicker{ color:var(--g-warm); }
+
+/* ---------- buttons: paper tabs ---------- */
+.theme-bat.gpage .btnx{ background:var(--g-card2); border-color:var(--g-line2); color:var(--g-ink); border-radius:3px;
+  box-shadow:var(--p-edge), var(--p-lift-sm); transition:transform .14s cubic-bezier(.2,.9,.3,1), box-shadow .14s cubic-bezier(.2,.9,.3,1), border-color .2s cubic-bezier(.2,.9,.3,1), filter .2s cubic-bezier(.2,.9,.3,1); }
+.theme-bat.gpage .btnx:hover{ transform:translateY(-1px); border-color:var(--g-dim); filter:none; box-shadow:var(--p-edge), 0 3px 0 rgba(2,5,12,.55); }
+.theme-bat.gpage .btnx:active{ transform:translateY(1px); box-shadow:var(--p-edge), 0 1px 0 rgba(2,5,12,.55); }
+.theme-bat.gpage .btnx:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+.theme-bat.gpage .btnx--solid{ background:var(--g-good); border-color:var(--g-good); color:var(--g-on-good); box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 2px 0 #2c6f55; }
+.theme-bat.gpage .btnx--solid:hover{ filter:brightness(1.05); box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 3px 0 #2c6f55; }
+.theme-bat.gpage .btnx--solid[disabled]{ background:transparent; border-color:var(--g-line); color:var(--g-dim); box-shadow:none; }
+.theme-bat.gpage .wyd-clay{ background:transparent; border-color:var(--g-accent); color:var(--g-accent-ink); }
+.theme-bat.gpage .wyd-clay:hover{ background:var(--g-accent); color:#fff; }
+.theme-bat .g-start{ background:var(--g-accent); border-radius:3px; box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 3px 0 #6d141d, 0 18px 36px -16px var(--g-glow); }
+.theme-bat .g-start:hover{ filter:brightness(1.08); }
+.theme-bat .g-start:active{ box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 1px 0 #6d141d; }
+
+/* ---------- HUD ---------- */
+.theme-bat .wyd-ghud{ background-color:var(--g-card); }
+.theme-bat .wyd-ghud .gl{ font-family:var(--f-ui); color:var(--g-dim); }
+.theme-bat .wyd-ghud .gv{ font-family:var(--f-num); }
+.theme-bat .wyd-bloodbar i, .theme-bat .wyd-pips i{ background:#091222; border-color:#22344f; border-radius:1px; }
+.theme-bat .wyd-bloodbar i b{ background:linear-gradient(90deg, #8f1f2b, #d0434f); }
+.theme-bat .wyd-pips i b{ position:absolute; inset:0; display:block; transform-origin:left; background:linear-gradient(90deg, #c98f4c, #e9b06a); }
+.theme-bat .wyd-pips.wyd-stam i.on{ background:#091222; border-color:#22344f; }
+.theme-bat .wyd-bloodbar.wyd-hyg i b{ background:linear-gradient(90deg, #4f9a7d, #73c7a3); }
+.theme-bat .wyd-bloodbar.wyd-hyg.warn i b{ background:linear-gradient(90deg, #c98f4c, #e9b06a); }
+.theme-bat .wyd-bloodbar.wyd-hyg.bad i b{ background:linear-gradient(90deg, #8f1f2b, #d0434f); }
+.theme-bat .wyd-ghud .wyd-scorecell{ border-color:var(--g-warm); border-radius:3px; background:linear-gradient(180deg, rgba(233,176,106,.10), rgba(233,176,106,0)); }
+.theme-bat .wyd-ghud .wyd-scorecell .gv{ color:var(--g-warm); }
+.theme-bat .wyd-ev{ background:var(--g-card2); border-color:var(--g-line2); box-shadow:var(--p-lift-sm); }
+.theme-bat .wyd-hudtip{ color:var(--g-muted); }
+/* the four HUD controls: drawn line icons over the glyphs (the glyph stays in the DOM: the run-p5
+   sound check reads it, and screen readers use the aria-label) */
+.theme-bat .wyd-soundbtn{ position:relative; background:var(--g-card2); border-color:var(--g-line2); color:var(--g-ink); box-shadow:var(--p-lift-sm); }
+.theme-bat .wyd-hudbtns .wyd-soundbtn, .theme-bat .wyd-menubtn{ font-size:0; }
+.theme-bat .wyd-hudbtns .wyd-soundbtn::before, .theme-bat .wyd-menubtn::before{ content:""; position:absolute; inset:0; margin:auto; width:16px; height:16px; background:currentColor;
+  -webkit-mask:var(--ico) center/contain no-repeat; mask:var(--ico) center/contain no-repeat; }
+.theme-bat #wyd-logtoggle{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 3h10M3 6.5h10M3 10h7M3 13.5h5' stroke='%23000' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"); }
+.theme-bat #wyd-sound{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3.5v11L5 10H2z'/%3E%3Cpath d='M11 5.5q2 2.5 0 5M12.8 3.8q3.4 4.2 0 8.4' stroke='%23000' stroke-width='1.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"); }
+.theme-bat #wyd-sound[data-on="0"]{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3.5v11L5 10H2z'/%3E%3Cpath d='M11 6l4 4M15 6l-4 4' stroke='%23000' stroke-width='1.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"); }
+.theme-bat #wyd-help{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5.6 5.6a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2.9-1.2 1.8v.6' stroke='%23000' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='8' cy='13' r='1.1'/%3E%3C/svg%3E"); }
+.theme-bat #wyd-hudexit{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='%23000' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.theme-bat .wyd-menubtn{ --ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='3' cy='8' r='1.5'/%3E%3Ccircle cx='8' cy='8' r='1.5'/%3E%3Ccircle cx='13' cy='8' r='1.5'/%3E%3C/svg%3E"); }
+
+/* ---------- chips, cards, the log ---------- */
+.theme-bat .wyd-ptag{ border-radius:2px; background:rgba(9,18,34,.35); }
+.theme-bat .wyd-chips .wyd-ptag{ font-family:var(--f-ui); }
+.theme-bat .wyd-intel, .theme-bat .wyd-partner{ background-color:var(--g-bg2); border-color:var(--g-line); }
+.theme-bat .wyd-roostcard{ background:var(--g-card2) var(--p-fibre); background-size:240px 240px; border-color:var(--g-line2); box-shadow:var(--p-edge), var(--p-lift-sm); border-radius:3px; }
+.theme-bat .wyd-roostcard .rc-name{ font-family:var(--f-disp); font-weight:500; font-size:1.08rem; }
+.theme-bat .wyd-log{ background-color:var(--g-bg2); }
+.theme-bat .wyd-reallife{ border-left-color:var(--g-good); background:var(--g-bg2); }
+
+/* ---------- the stage frame and its two floating panels ---------- */
+.theme-bat .wyd-stage{ border-color:#22344f; border-radius:4px; }
+.theme-bat .wst-cap{ font-family:var(--f-num); font-weight:700; letter-spacing:.14em; color:var(--g-warm); }
+.theme-bat .wst-infobox{ background:rgba(16,27,47,.92); border:1px solid rgba(233,176,106,.6); border-radius:4px; box-shadow:0 4px 0 rgba(2,5,12,.55); font-family:var(--f-num); }
+.theme-bat .wst-infobox .wyd-meter .gl{ color:#d5dded; }
+.theme-bat .wst-you{ background:rgba(16,27,47,.86); border-color:rgba(175,200,240,.16); box-shadow:0 3px 0 rgba(2,5,12,.5); }
+.theme-bat .wst-cow .wst-tag{ font-family:var(--f-ui); font-weight:600; paint-order:stroke; stroke:rgba(4,8,16,.7); stroke-width:3px; }
+.theme-bat .wst-roostpick .wst-tag{ font-family:var(--f-disp); font-weight:500; font-style:italic; fill:#efe7d0; }
+.theme-bat .wst-roostpick.wst-sel .wst-tag{ fill:var(--g-warm); }
+
+/* ---------- the dawn: the web and its panel (P33 layout, repainted) ---------- */
+.theme-bat .wyd-scene:has(.nf-dawn){ background:linear-gradient(160deg, #15233d, #0f1a2e) , var(--p-fibre); background-blend-mode:normal; }
+.theme-bat .nf-heading{ border-bottom-color:var(--g-line); }
+.theme-bat .nf-heading>div>span{ font-family:var(--f-num); color:var(--g-warm); }
+.theme-bat .nf-about{ border-color:var(--g-line2); color:var(--g-muted); background:var(--g-card2); box-shadow:var(--p-lift-sm); border-radius:3px; }
+.theme-bat .nf-bond{ color:var(--g-good); }
+.theme-bat .nf-risk, .theme-bat .nf-risk .nf-caution{ color:var(--g-warm); }
+.theme-bat .nf-tabs button{ background:var(--g-card2); border-color:var(--g-line2); color:var(--g-muted); border-radius:4px; box-shadow:var(--p-edge), var(--p-lift-sm); font-family:var(--f-disp); font-weight:500; }
+.theme-bat .nf-tabs button small{ color:var(--g-dim); font-family:var(--f-ui); }
+.theme-bat .nf-tabs button[aria-selected=true]{ background:#173a33; border-color:var(--g-good); color:#effff7; }
+.theme-bat .nf-tabs button[data-nf-kind=give][aria-selected=true]{ background:#3e1820; border-color:#d0434f; }
+.theme-bat .nf-tabs button:disabled{ background:#0f1a2c; border-color:#1f2f49; color:#8d9db6; box-shadow:none; }
+.theme-bat .nf-tabs button:disabled small{ color:#9aa9c0; }
+.theme-bat .nf-partner .wyd-bar .bar-lab{ color:var(--g-muted); }
+.theme-bat .nf-partner .wyd-bar .bar-val{ color:var(--g-warm); font-family:var(--f-num); }
+.theme-bat .nf-partner .wyd-bar .bar-cap{ color:var(--g-dim); }
+.theme-bat .nf-partner .wyd-bar .bar-sub{ color:var(--g-muted); }
+.theme-bat .nf-metric{ border-left-color:var(--g-line2); }
+.theme-bat .nf-metric strong{ color:var(--g-ink); font-family:var(--f-num); font-weight:700; }
+.theme-bat .nf-metric>span{ color:var(--g-dim); }
+.theme-bat .nf-partner .wyd-bar[data-kind=give] .btnx--solid{ background:#c6303c; border-color:#c6303c; color:#fff; box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 2px 0 #6d141d; }
+.theme-bat .nf-feedback{ border-left-color:var(--g-good); background:#123129; color:#e3f2ea; }
+.theme-bat .nf-footer{ border-top-color:var(--g-line); }
+.theme-bat .nf-rule{ color:var(--g-dim); }
+.theme-bat .nf-partner .wyd-bar.off .bar-sub{ color:var(--g-muted); }
+.theme-bat .nf-key-open{ background:var(--g-card2); }
+.theme-bat .nf-key-symbol{ border-color:#a9b7cc; }
+.theme-bat .nf-key-symbol.friend{ border-color:#73c7a3; }
+.theme-bat .nf-key-symbol.hungry{ border-color:#ef7b85; box-shadow:none; }
+.theme-bat .nf-key-symbol.starving{ border-color:#d0434f; border-width:3px; background:#2a1220; box-shadow:0 0 0 4px rgba(208,67,79,.18); }
+.theme-bat .nf-key-symbol.cough{ border-color:#e9b06a; }
+.theme-bat .nf-key-symbol.visitor{ background:#dfe7f3; color:#0f1a2e; }
+.theme-bat .nf-key-symbol.links{ background:#8195b4; }
+/* the range thumb: a paper disc in amber */
+.theme-bat .nf-partner .wyd-bar .bar-range{ accent-color:var(--g-warm); }
+
+/* the web: paper discs with a cast shadow, cut ears, green bond lines */
+.theme-bat .wyd-net{ background:transparent; color:#9fb0c8; }
+.theme-bat .wyd-net .edge{ stroke:var(--g-good); stroke-linecap:round; }
+.theme-bat .wyd-net .node .nshadow, .theme-bat .wyd-net .you .nshadow{ fill:#02050b; opacity:.55; stroke:none; animation:none; pointer-events:none; }
+.theme-bat .wyd-net .node circle:not(.nshadow):not(.selring){ fill:#16233d; stroke:#a9b7cc; }
+.theme-bat .wyd-net .node.far circle:not(.nshadow):not(.selring){ stroke:#6e7f9b; }
+/* P37 A2: hungry is crimson again (P36 had painted it amber, the cough colour): a lighter crimson
+   than starving, which keeps its deep fill and its pulse; ring width still shows the bond */
+.theme-bat .wyd-net .node.hungry:not(.starving) circle:not(.nshadow):not(.selring){ stroke:#ef7b85; }
+.theme-bat .wyd-net .node.starving circle:not(.nshadow):not(.selring){ stroke:#d0434f; fill:#2a1220; }
+.theme-bat .wyd-net .node.cough circle:not(.nshadow):not(.selring){ stroke:var(--g-warm); }
+.theme-bat .wyd-net .ears path{ fill:#a9b7cc; opacity:.9; }
+.theme-bat .wyd-net .node.hungry .ears path{ fill:#ef7b85; }
+.theme-bat .wyd-net .node.starving .ears path{ fill:#d0434f; }
+.theme-bat .wyd-net .you circle:not(.nshadow){ fill:var(--g-good); stroke:#ece6d6; }
+.theme-bat .wyd-net .you .ears path{ fill:var(--g-good); }
+.theme-bat .wyd-net .you text{ fill:var(--g-on-good); font-family:var(--f-num); font-weight:700; letter-spacing:.06em; }
+.theme-bat .wyd-net .node text{ font-family:var(--f-ui); font-weight:600; fill:#ece6d6; paint-order:stroke; stroke:#0b1221; stroke-width:3px; }
+/* P37 B6: the selection halo is moon-white, so amber means only coughing */
+.theme-bat .wyd-net .selring, .theme-bat .wyd-net .node circle.selring{ stroke:#ece6d6; }   /* the second selector outranks the base cough / hungry ring rules, which also match this circle */
+.theme-bat .wyd-net .nf-visitor-badge rect{ fill:#dfe7f3; stroke:#0f1a2e; }
+.theme-bat .wyd-net .nf-visitor-badge text{ fill:#0f1a2e; }
+/* the two streams: grooming = small green beads that wobble; shared blood = crimson drops that
+   swell as they travel (shape and motion differ, not only hue) */
+.theme-bat .wyd-fxbead.groom{ fill:var(--g-good); }
+.theme-bat .wyd-fxbead.share{ fill:#d0434f; }
+
+/* ---------- popups ---------- */
+.theme-bat .wyd-modal{ background:rgba(4,8,16,.62); }
+.theme-bat .wyd-modal__card{ background-color:var(--g-card); }
+.theme-bat .wyd-modal__kicker, .theme-bat .wyd-modal__sub{ font-family:var(--f-num); color:var(--g-warm); }
+
+/* ---------- the end card, the board, achievements ---------- */
+.theme-bat .wyd-endcard{ background-color:var(--g-card); }
+.theme-bat .wyd-endkicker{ color:var(--g-warm); }
+.theme-bat #wyd-e-score{ font-family:var(--f-disp); font-weight:400; font-variant-numeric:lining-nums tabular-nums; letter-spacing:-.02em; }
+.theme-bat #wyd-e-verdict{ font-family:var(--f-disp); font-size:1.12rem; line-height:1.6; color:var(--g-muted); }
+.theme-bat table.wyd-board th{ font-family:var(--f-num); color:var(--g-dim); border-bottom-color:var(--g-line2); }
+.theme-bat table.wyd-board td{ border-bottom-color:var(--g-line); }
+.theme-bat table.wyd-board td.num{ font-family:var(--f-num); color:var(--g-ink); }
+.theme-bat table.wyd-board tr:first-child td{ color:var(--g-ink); }
+.theme-bat .wyd-ach{ border-bottom-color:var(--g-line); }
+.theme-bat .wyd-ach .wyd-achmark{ background:var(--g-card2); box-shadow:var(--p-lift-sm); }
+.theme-bat .wyd-ach.got .wyd-achmark{ background:#173a33; }
+
+/* ---------- the intro: a live paper diorama behind the words ---------- */
+.theme-bat .g-hero{ background:#0b1221; isolation:isolate; min-height:clamp(520px, 76vh, 780px); display:flex; flex-direction:column; justify-content:center; }
+.theme-bat .g-hero .g-inner{ width:100%; position:relative; z-index:2; }
+.theme-bat .g-diorama{ position:absolute; inset:0; z-index:0; }
+.theme-bat .g-diorama .wyd-stage{ height:100%; border:0; border-radius:0; box-shadow:none; background:#101a2e; }
+.theme-bat .g-hero::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(90deg, rgba(11,18,33,.94) 0%, rgba(11,18,33,.82) 32%, rgba(11,18,33,.2) 60%, rgba(11,18,33,0) 74%),
+             linear-gradient(180deg, rgba(11,18,33,0) 72%, #0b1221 100%); }
+.theme-bat .g-hero .g-lede{ color:#d3dbe8; }
+.theme-bat .g-hero .g-foot{ color:#a3b2c8; }
+@media (max-width:600px){
+  .theme-bat .g-hero{ min-height:0; padding-top:0; justify-content:flex-start; }
+  .theme-bat .g-diorama{ position:relative; inset:auto; order:0; height:200px; margin-bottom:1.6rem; }
+  .theme-bat .g-hero::after{ background:linear-gradient(180deg, rgba(11,18,33,0) 80%, #0b1221 100%); }
+}
+.theme-bat .nf-action .wyd-partner{ background:none; border:0; }   /* P33 made this panel transparent inside the dawn card; keep it so */
+/* phones: the picked animal's card owns the top of the stage, so the beat caption drops to the
+   bottom-left, over the dark grass strip (it was hidden under the card: "THE PASTU…") */
+@media (max-width:760px){ .theme-bat .wyd-stage:has(.wst-mobinfo) .wst-cap{ top:auto; bottom:8px; } }
+.theme-bat .wst-mobinfo{ background:rgba(16,27,47,.94); border:1px solid rgba(233,176,106,.55); border-radius:4px; box-shadow:0 3px 0 rgba(2,5,12,.55); }
+.theme-bat .wst-mobinfo .wst-mobname{ font-family:var(--f-disp); font-weight:500; }
+
+/* ============================================================
+   P37 TUTOR (2026-10-11): the coach line on nights 1 and 2, the tips switch under Begin, the
+   night-2 year briefing. A coach line is a pencilled note on the paper: moon ink, a moonlit rule,
+   no new colour meaning (green = grooming, crimson = blood, amber = warning stay as they are).
+   ============================================================ */
+.wyd-coach{ margin:.35rem 0 .5rem; padding:.32rem .55rem .32rem .65rem; border-left:3px solid #cfd8ea;
+  background:rgba(207,216,234,.07); color:var(--g-ink); font-size:.95rem; line-height:1.35; border-radius:0 3px 3px 0; }
+.theme-bat .wyd-coach{ font-family:var(--f-disp); }
+.wyd-coach__t{ margin-right:.2rem; }
+.wyd-coach-x{ display:inline; padding:0 .1rem; margin:0; background:none; border:0; color:var(--g-dim);
+  font:inherit; font-family:var(--f-ui, inherit); font-size:.72rem; text-decoration:underline; text-underline-offset:2px; cursor:pointer; white-space:nowrap; }
+.wyd-coach-x:hover{ color:var(--g-ink); }
+.wyd-coach-x:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+.nf-action .wyd-coach{ margin:0 0 .4rem; }
+.g-tips{ display:flex; align-items:center; gap:.5rem; margin:.8rem 0 0; font-size:.9rem; color:var(--g-muted); cursor:pointer; width:max-content; max-width:100%; }
+.g-tips input{ width:1.05rem; height:1.05rem; margin:0; accent-color:var(--g-good); cursor:pointer; }
+.theme-bat .g-hero .g-tips{ color:#d3dbe8; }
+/* the year briefing on the night-2 dusk: one row a year, the numbers behind a tap */
+.wyd-yrbrief{ margin:.4rem 0 .6rem; }
+.wyd-yrbrief__k{ margin:0 0 .15rem; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--g-warm); }
+.theme-bat .wyd-yrbrief__k{ font-family:var(--f-num); }
+.wyd-yrbrief__lead{ margin:0 0 .35rem; font-size:.9rem; }
+.wyd-yrrow{ display:flex; align-items:center; gap:.6rem; width:100%; margin:0 0 .3rem; padding:.4rem .6rem; text-align:left;
+  background:var(--g-card2); border:1px solid var(--g-line2); border-radius:3px; color:var(--g-ink); font:inherit; font-size:.92rem; line-height:1.3; cursor:pointer; }
+.wyd-yrrow:hover{ border-color:var(--g-dim); }
+.wyd-yrrow:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+.wyd-yrrow__icon{ font-size:1.25rem; flex:none; }
+.wyd-yrrow__t{ flex:1; min-width:0; }
+.wyd-yrrow__more{ flex:none; font-size:1.3rem; line-height:1; color:var(--g-dim); }
+.wyd-stormhome{ margin:.4rem 0 .2rem; font-size:.92rem; }
+@media (max-width:600px){
+  .wyd-coach{ font-size:.84rem; line-height:1.28; padding:.2rem .4rem .2rem .5rem; margin:.2rem 0 .3rem; }
+  .wyd-coach-x{ font-size:.66rem; }
+  .wyd-yrrow{ font-size:.85rem; padding:.32rem .5rem; }
+  .wyd-yrbrief__lead{ font-size:.84rem; }
+  .wyd-condtext--brief{ display:none; }   /* the night-2 briefing needs the room; the h3 and the HUD still name the sky */
+  .wyd-round + .wyd-coach{ margin-top:.1rem; }
+}
+/* ---------- P37 choices: the sound settings panel (three switches in the popup) ---------- */
+.wyd-modal[data-kind="sound"] .wyd-modal__card{ width:min(400px,100%); }
+.wyd-sndpanel{ display:flex; flex-direction:column; gap:.45rem; margin-top:.1rem; }
+.wyd-sw{ display:flex; align-items:center; gap:.7rem; width:100%; padding:.55rem .7rem; text-align:left; cursor:pointer;
+  background:var(--g-card2); color:var(--g-ink); border:1px solid var(--g-line2); border-radius:var(--g-radius); font:inherit; }
+.wyd-sw:hover{ border-color:var(--g-muted); }
+.wyd-sw:focus-visible{ outline:2px solid var(--g-ink); outline-offset:2px; }
+.wyd-sw .sw-lab{ flex:1 1 auto; min-width:0; font-weight:700; font-size:.95rem; line-height:1.2; }
+.wyd-sw .sw-lab small{ display:block; font-weight:400; font-size:.74rem; color:var(--g-muted); margin-top:.1rem; }
+.wyd-sw .sw-track{ flex:none; position:relative; width:38px; height:22px; border-radius:11px; background:var(--g-bg2); border:1px solid var(--g-line2); transition:background .15s; }
+.wyd-sw .sw-knob{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--g-dim); transition:transform .15s, background .15s; }
+.wyd-sw[aria-checked="true"] .sw-track{ background:var(--g-ink); border-color:var(--g-ink); }
+.wyd-sw[aria-checked="true"] .sw-knob{ transform:translateX(16px); background:var(--g-bg); }
+.wyd-sw .sw-state{ flex:none; width:2.2em; font-size:.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g-muted); }
+.wyd-sw[aria-checked="true"] .sw-state{ color:var(--g-ink); }
+.wyd-modal__body .wyd-sndnote{ margin:.6rem 0 0; }
+@media (prefers-reduced-motion:reduce){ .wyd-sw .sw-track, .wyd-sw .sw-knob{ transition:none; } }
+
+/* ---------- P37 choices C1: the give bar marks the full crop, where the bond stops growing ---------- */
+.wyd-bar[data-kind="give"] .bar-range[style*="--markf"]::-webkit-slider-runnable-track{
+  background:
+    linear-gradient(to right, transparent calc(11px + var(--markf) * (100% - 22px) - 1px), var(--g-muted) calc(11px + var(--markf) * (100% - 22px) - 1px) calc(11px + var(--markf) * (100% - 22px) + 1px), transparent calc(11px + var(--markf) * (100% - 22px) + 1px)),
+    linear-gradient(to right, var(--g-bg2) 0 var(--cap, 100%), transparent var(--cap, 100%) 100%); }
+.wyd-bar[data-kind="give"] .bar-range[style*="--markf"]::-moz-range-track{
+  background:
+    linear-gradient(to right, transparent calc(10px + var(--markf) * (100% - 20px) - 1px), var(--g-muted) calc(10px + var(--markf) * (100% - 20px) - 1px) calc(10px + var(--markf) * (100% - 20px) + 1px), transparent calc(10px + var(--markf) * (100% - 20px) + 1px)),
+    linear-gradient(to right, var(--g-bg2) 0 var(--cap, 100%), transparent var(--cap, 100%) 100%); }
+.nf-spill.nf-bondcap{ color:var(--g-muted); }
+
+/* ---------- P37 choices C3/B4: the roost card's trade line ---------- */
+/* the long line on laptops, the short one on the phone's compact cards */
+.wyd-roostcard .rc-trade{ display:block; font-size:.76rem; line-height:1.3; color:var(--g-ink); margin-top:.15rem; }
+.wyd-roostcard .rc-trade-s{ display:none; }
+@media (max-width:600px){
+  .wyd-roostcards--all .wyd-roostcard .rc-trade{ display:none; }
+  .wyd-roostcards--all .wyd-roostcard .rc-trade-s{ display:block; font-size:.62rem; line-height:1.25; color:var(--g-ink); }
+}
+/* the trade line carries the roost's character now, so an unvisited roost's scenery line steps aside on
+   the pick (it stays on the locked single card and in the roost's details) */
+.wyd-roostcards--all .wyd-roostcard.unknown:has(.rc-trade) .rc-sub{ display:none; }
+/* P37 A3: the part of a meal your crop cannot take: a pale tail on the meal bar, and one small line
+   under "meal +N" in the panel */
+.wyd-bloodbar i b.spill, .theme-bat .wyd-bloodbar i b.spill{ background:repeating-linear-gradient(135deg, rgba(208,67,79,.38) 0 3px, rgba(208,67,79,.12) 3px 6px); }
+.wyd-intel .wyd-mealfits{ font-size:.72rem; color:var(--g-warm); margin:.05rem 0 0; }
+@media (max-width:600px){ .wyd-intel.wyd-partner[data-cow] .wyd-mealfits{ display:none; } }   /* phones read it on the floating card's meal bar */
+.wyd-saved{ border-left:3px solid var(--g-good); padding-left:.7rem; }   /* P37 A10: a roost-mate saved while you slept */
+.wyd-ghud .gstat.wyd-c-stam.wyd-stam-idle .wyd-pips{ opacity:.4; }   /* P37 A11: stamina is a dawn quantity; during the night it rests */
+/* ═══ P37 THE FIGHT (2026-10-11; Bryson: "Rebuild the fight. I like the tap one.") ═══════════════
+   The standoff's verbs (two to four, every one usable from the first frame, each with its chance of
+   SUCCESS as a green bar on a desktop and as a number on a phone) and the wing-off panel that takes
+   their place when you shove: a bar with a green zone in the middle and a sweeping marker. The panel
+   is no taller than the verbs it replaces, so the scene never grows when the fight starts. */
+.wyd-gone{ display:none !important; }
+.wyd-verbs--n2{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+.wyd-verbs--n3{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+.gpage .wyd-verb .lbl{ display:block; }
+.wyd-verb .wyd-meter-win{ display:flex; flex-direction:column; align-items:flex-start; }
+.wyd-verb .wyd-meter-win .gl{ color:var(--g-good); }
+.wyd-winbar b{ background:var(--g-good); }
+.wyd-meter-getin .gl{ color:var(--g-good); }
+.wyd-wingoff{ margin-top:.7rem; }
+.wyd-wingoff[hidden]{ display:none; }
+.wyd-wohead{ margin:0 0 .35rem; font:700 .78rem/1.2 var(--f-num, "Archivo Narrow"), sans-serif; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--g-warm); }
+.wyd-wobar{ position:relative; height:46px; border-radius:4px; background:var(--g-card2); border:1px solid var(--g-line2);
+  overflow:hidden; cursor:pointer; touch-action:manipulation; user-select:none; -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent; box-shadow:inset 0 2px 6px rgba(2,5,12,.45); }
+.wyd-wobar:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+.wyd-wozone{ position:absolute; top:0; bottom:0; background:rgba(115,199,163,.30); border-left:2px solid var(--g-good); border-right:2px solid var(--g-good); }
+.wyd-womark{ position:absolute; top:4px; bottom:4px; width:6px; margin-left:-3px; border-radius:3px; background:var(--g-ink);
+  box-shadow:0 0 0 2px var(--g-bg); }
+.wyd-woout{ margin:.35rem 0 0; font-size:.84rem; line-height:1.35; color:var(--g-muted); min-height:1.35em; }
+.wyd-wingoff.wo-good .wyd-woout{ color:var(--g-good); font-weight:700; }
+.wyd-wingoff.wo-bad .wyd-woout{ color:var(--g-warm); font-weight:700; }
+.wyd-wingoff.wo-even .wyd-woout{ color:var(--g-ink); font-weight:700; }
+.wyd-wingoff.wo-good .wyd-womark{ background:var(--g-good); }
+.wyd-wingoff.wo-bad .wyd-womark{ background:var(--g-warm); }
+@media (min-width:601px) and (max-height:820px){
+  .wyd-wingoff{ margin-top:.55rem; }
+  .wyd-wobar{ height:40px; }
+}
+/* phones: a compact 2x2 grid of short labels with the chance as a number; the panel carries no prose */
+@media (max-width:600px){
+  .wyd-verbs, .wyd-verbs--n2, .wyd-verbs--n3{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:.4rem; margin-top:.55rem; }
+  .wyd-verbs .btnx{ padding:.45rem .6rem; min-height:44px; }
+  .gpage .wyd-verb .lbl{ font-size:.82rem; }
+  .wyd-wingoff{ margin-top:.5rem; }
+  .wyd-wohead{ margin-bottom:.25rem; font-size:.72rem; }
+  .wyd-wobar{ height:44px; }
+  .wyd-woout{ font-size:.76rem; margin-top:.25rem; }
+  .wyd-scene .wyd-encout .wyd-story{ display:none; }   /* the roll line says it; the stage shows it */
+  .wyd-scene .wyd-encout{ margin-top:.3rem; padding-top:.3rem; }
+  .wyd-scene .wyd-encout .wyd-roll{ font-size:.72rem; line-height:1.3; }
+  /* one line per verb: the short label left, the chance right */
+  .gpage .wyd-verbs .wyd-verb{ flex-direction:row; align-items:center; justify-content:space-between; gap:.4rem; min-height:42px; }
+  .gpage .wyd-verbs .wyd-verb .sub{ margin:0; text-align:right; white-space:nowrap; }
+  .gpage .wyd-verbs .wyd-verb .lbl{ white-space:nowrap; letter-spacing:.05em; }
+  .gpage .wyd-verbs .wyd-verb .sub{ font-size:.6rem; letter-spacing:0; }
+  /* the name and the bond chip share one line */
+  .wyd-enchead{ display:flex; flex-wrap:wrap; align-items:center; gap:.2rem .6rem; }
+  .wyd-enchead h3{ margin:0; }
+  .wyd-enchead .wyd-ptags{ margin:0; }
+}
+/* short phones (Safari's visible 629 to 740 px): the standoff's stage gives up sky, never the herd,
+   so the verbs and the wing-off fit under it (fitStage still grows it into any room left over) */
+@media (max-width:600px) and (max-height:760px){
+  .gpage:has(#wyd-verbs) .wyd-stage, .gpage:has(#wyd-scene .wyd-encout) .wyd-stage{ height:136px; }
+}
+@media (prefers-reduced-motion: reduce){ .wyd-womark{ transition:none; } }
+
+/* ============================================================
+   P37 PHONE (2026-10-11): every scene fits a phone with no scrolling, at Safari's real visible
+   heights (375x629, 393x660) as well as 812/852, and on Android Chrome (360x740).
+   Bryson: "make every scene fit on a phone. And make sure it works for Safari, Google Chrome, etc."
+   Layout rules key on html.wyd-live / html[data-wyd-scene] (set by bat-game.js), not on :has(),
+   so they hold on Safari before 15.4 and Firefox before 121. KEEP THIS BLOCK LAST.
+   ============================================================ */
+
+/* 1. While a run is live on a phone the site's navbar steps aside (62px of a 660px screen). Exit
+   stays in the menu (the corner button); the bar comes back on the end card. */
+@media (max-width:600px){
+  html.wyd-live:not(.wyd-live-end) #quarto-header{ display:none !important; }
+  html.wyd-live:not(.wyd-live-end) body{ padding-top:0 !important; }
+  html.wyd-live:not(.wyd-live-end) #quarto-content{ margin-top:0 !important; }
+  html.wyd-live .gpage.wyd-playing .g-main{ padding-top:max(.4rem, env(safe-area-inset-top)); padding-bottom:max(.35rem, env(safe-area-inset-bottom)); }
+  html.wyd-live .gpage.wyd-playing .g-main .g-inner{ padding-left:max(.5rem, env(safe-area-inset-left)); padding-right:max(.5rem, env(safe-area-inset-right)); }
+  html.wyd-live #quarto-content{ padding-bottom:0 !important; }
+  html.wyd-live main.content{ margin-bottom:0; margin-top:0; }
+}
+
+/* 2. The phone status bar is ONE row: night, blood, stamina, score, menu. The mite risk, the sick
+   and wounded chips and the year / event icons are behind a tap on the night (nightSheetPopup),
+   which wears a small flag when something there needs a look. */
+.wyd-hflags{ display:none; }
+@media (max-width:600px){
+  html.wyd-live .gpage .wyd-ghud{ display:grid; grid-template-columns:minmax(0,auto) minmax(0,1fr) minmax(0,1fr) auto 36px;
+    grid-template-rows:auto; align-items:center; gap:0 .55rem; padding:.38rem .45rem .42rem .6rem; }
+  html.wyd-live .gpage .wyd-ghud .gstat{ grid-row:1; min-width:0; gap:.14rem; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-night{ grid-column:1; max-width:5.4rem; cursor:pointer; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-night .gl{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-night .gv{ display:flex; align-items:baseline; gap:.15rem; white-space:nowrap; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-blood{ grid-column:2; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-stam{ grid-column:3; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-blood .gl, html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-stam .gl{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-scorecell{ grid-column:4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; padding:.15rem .45rem .2rem; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-scorecell .gv{ font-size:1.05rem; line-height:1.05; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-ctrlcell{ grid-column:5; position:static; margin:0; justify-self:end; }
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-c-mite, html.wyd-live .gpage .wyd-ghud .gstat.wyd-hudstate,
+  html.wyd-live .gpage .wyd-ghud .gstat.wyd-evcell{ display:none; }
+  html.wyd-live .gpage .wyd-ghud .wyd-menubtn{ width:36px; height:36px; }
+  html.wyd-live .gpage .wyd-hflags{ display:inline-flex; gap:1px; margin-left:.2rem; align-self:center; }
+  html.wyd-live .gpage .wyd-hflag{ font-style:normal; font-size:.72rem; line-height:1; width:1.05rem; height:1.05rem; display:inline-flex;
+    align-items:center; justify-content:center; border-radius:50%; background:rgba(233,176,106,.16); box-shadow:inset 0 0 0 1px var(--g-warm); }
+  html.wyd-live .gpage .wyd-hflag.bad, html.wyd-live .gpage .wyd-hflag.hot{ background:rgba(208,67,79,.2); box-shadow:inset 0 0 0 1px #d0434f; }
+  /* the strip under the bar: on a phone a tap opens a popup instead, so only night 1's resting hint shows */
+  html.wyd-live .gpage .wyd-hudtip.on:not(.wyd-hudtip--rest){ display:none; }
+  html.wyd-live .gpage .wyd-hud{ margin-bottom:.35rem; }
+}
+/* the night sheet (phones): the cells the bar hides, each with its sentence */
+.wyd-sheet{ display:grid; gap:.45rem; margin-top:.6rem; }
+.wyd-sheet .wyd-sheethead{ margin:.3rem 0 0; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--g-warm); }
+.wyd-sheet .gstat{ display:flex; flex-direction:column; gap:.25rem; }
+.wyd-sheet .gstat .gl{ font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--g-muted); }
+.wyd-sheet .wyd-bloodbar.wyd-hyg i{ width:100%; max-width:none; height:10px; }
+.wyd-sheet .wyd-substat{ display:block; }
+.wyd-sheet .wyd-sheettip{ font-size:.82rem; line-height:1.4; margin:.2rem 0 0; }
+.wyd-sheet .wyd-sheetchip{ display:grid; gap:.15rem; margin-top:.3rem; }
+.wyd-sheet .wyd-sheetchip .wyd-ptag{ justify-self:start; }
+.wyd-sheet .wyd-evcell > .gl{ display:none; }
+.wyd-sheet .wyd-events{ display:grid; gap:.4rem; }
+.wyd-sheet .wyd-evsep{ display:none; }
+.wyd-sheet .wyd-ev{ width:100%; height:auto; min-height:44px; display:grid; grid-template-columns:28px minmax(0,1fr); gap:.6rem; align-items:center;
+  justify-items:start; padding:.35rem .6rem; text-align:left; font-size:1rem; border-radius:4px; box-sizing:border-box; }
+.wyd-sheet .wyd-ev::after{ content:attr(data-tip); position:static; inset:auto; height:auto; margin:0; background:none;
+  font-size:.8rem; line-height:1.35; color:var(--g-muted); font-family:var(--f-ui, inherit); }
+.wyd-sheet .wyd-ev.year::after{ background:none; }
+
+/* 3. The roost pick on a phone: the picture is the picker. The cards become one row of names (still
+   buttons: keyboard, screen readers, the guard's dashed grey) and the picked roost is described
+   once, in full, in the box under them (bat-game.js fills #wyd-roostdetail from the card). */
+.wyd-roostdetail{ display:none; }
+@media (max-width:600px){
+  html[data-wyd-scene="roostPick"] .wyd-scene h3{ font-size:1.05rem; margin:.1rem 0 .4rem; }
+  .wyd-roostcards--all{ gap:.35rem; }
+  .wyd-roostcards--all .wyd-roostcard{ min-height:44px; padding:.35rem .25rem; justify-content:center; gap:0; }
+  .wyd-roostcards--all .wyd-roostcard .rc-name{ font-size:.82rem; line-height:1.12; }
+  .wyd-roostcards--all .wyd-roostcard > :not(.rc-name){ position:absolute !important; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0; padding:0; border:0; }
+  .wyd-roostcards--all .wyd-roostcard{ position:relative; }
+  .wyd-roostdetail{ display:block; min-height:4.6rem; margin-top:.4rem; }
+  .wyd-roostdetail .rc-trade{ display:block; flex-basis:100%; font-size:.78rem; line-height:1.35; color:var(--g-ink); margin:0; }
+  .wyd-roostdetail .wyd-detcard{ display:flex; flex-wrap:wrap; align-items:baseline; gap:.2rem .45rem; padding:.45rem .6rem;
+    border:1px solid var(--g-warm); border-radius:3px; background:var(--g-card2); }
+  .wyd-roostdetail .rc-name{ font-family:var(--f-disp, inherit); font-size:1rem; font-weight:500; color:var(--g-ink); }
+  .wyd-roostdetail .rc-tags{ display:inline-flex; flex-wrap:wrap; gap:.2rem; }
+  .wyd-roostdetail .rc-tags .wyd-ptag{ font-size:.5rem; padding:.08rem .3rem; letter-spacing:.06em; }
+  .wyd-roostdetail .rc-short{ display:none; }
+  .wyd-roostdetail .rc-sub, .wyd-roostdetail .rc-rumor, .wyd-roostdetail .rc-haz{ display:block; flex-basis:100%; font-size:.78rem; line-height:1.35; color:var(--g-muted); white-space:normal; }
+  .wyd-roostdetail .rc-haz{ color:var(--g-warm); }
+  .wyd-roostdetail .wyd-dethint{ margin:.1rem 0 0; font-size:.82rem; }
+  .wyd-roostdetail .wyd-detguard{ display:block; margin:.3rem 0 0; font-size:.76rem; line-height:1.3; color:var(--g-accent-ink); }
+  html[data-wyd-scene="roostPick"] .wyd-sleep + .wyd-roostdetail + .wyd-choices{ margin-top:.45rem; }
+}
+
+/* 4. "In real life" folds on a phone (a <details>; open on desktop) */
+.wyd-rlfold > summary{ list-style:none; cursor:pointer; }
+.wyd-rlfold > summary::-webkit-details-marker{ display:none; }
+.wyd-rlfold > summary .rl-tap{ display:none; }
+.wyd-rlfold[open] > summary{ cursor:default; }
+@media (max-width:600px){
+  .wyd-rlfold{ margin-top:.5rem; padding:.45rem .8rem; }
+  /* block, not flex: Safari before 16 cannot make a <summary> a flex container */
+  .wyd-rlfold:not([open]) > summary{ display:block; line-height:32px; min-height:32px; margin:0; }
+  .wyd-rlfold:not([open]) > summary .rl-tap{ display:inline; margin-left:.6rem; text-transform:none; letter-spacing:.02em; color:var(--g-dim); font-weight:500; }
+  .wyd-rlfold:not([open]) > summary::after{ content:"+"; float:right; font-size:1rem; color:var(--g-good); }
+  .wyd-rlfold > summary:focus-visible{ outline:2px solid var(--g-warm); outline-offset:2px; }
+}
+
+/* 5. The end card: the score, the verdict and Play again on the first screen at every size; the
+   badges, achievements, the ledger and the links follow (Bryson agreed: reading, not playing).
+   Play again leads its row; the name field and Post sit beside it. */
+.theme-bat .wyd-endcard{ display:flex; flex-direction:column; }
+.theme-bat .wyd-endcard > *{ order:20; }
+.theme-bat .wyd-endcard > .wyd-endkicker{ order:1; }
+.theme-bat .wyd-endcard > .wyd-bigscore{ order:2; }
+.theme-bat .wyd-endcard > .wyd-verdict{ order:3; margin-bottom:1rem; }
+.theme-bat .wyd-endcard > .wyd-postrow{ order:4; }
+.theme-bat .wyd-endcard > .wyd-notice{ order:5; margin-top:.5rem; }
+.theme-bat .wyd-endcard > .wyd-badges{ order:6; margin-top:0; }
+.theme-bat .wyd-endcard > .wyd-achrow{ order:7; }
+.theme-bat .wyd-endcard > .wyd-ledger{ order:8; align-self:center; width:100%; }
+.theme-bat .wyd-endcard > .wyd-endlinks{ order:9; margin-top:.8rem; }
+.theme-bat .wyd-postrow #wyd-e-again{ order:-1; }
+@media (min-width:601px) and (max-height:820px){
+  .theme-bat .wyd-endcard{ padding:1.1rem 1.6rem; }
+  .theme-bat .wyd-bigscore{ margin:.2rem 0 .5rem; }
+  .theme-bat .wyd-endcard > .wyd-verdict{ line-height:1.5; margin-bottom:.8rem; }
+}
+@media (max-width:600px){
+  .theme-bat .wyd-endcard{ padding:1rem .9rem 1.2rem; }
+  .theme-bat .wyd-bigscore{ font-size:2.6rem; margin:.15rem 0 .45rem; }
+  .theme-bat #wyd-e-verdict{ font-size:.98rem; line-height:1.48; }
+  .theme-bat .wyd-endcard > .wyd-verdict{ margin-bottom:.75rem; }
+  .theme-bat .wyd-postrow{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.45rem; }
+  .theme-bat .wyd-postrow #wyd-e-again{ grid-column:1 / -1; min-height:44px; }
+  .theme-bat .wyd-postrow input{ width:100%; box-sizing:border-box; padding:.6rem .75rem; min-height:44px; }
+  .theme-bat .wyd-postrow #wyd-e-post{ min-height:44px; }
+}
+
+/* 6. The intro on a phone: Begin above the fold at Safari's 629 / 660 (it sat at 712 on a 393 phone).
+   A shorter diorama banner, a tighter kicker and title; the words are unchanged. */
+@media (max-width:600px){
+  .theme-bat .g-hero{ padding-bottom:1.6rem; }
+  .theme-bat .g-diorama{ height:clamp(104px, 19vh, 200px); margin-bottom:.8rem; }
+  .theme-bat .g-hero .g-kicker{ font-size:.64rem; letter-spacing:.14em; line-height:1.45; margin-bottom:.35rem; }
+  .theme-bat .g-hero h1{ font-size:2.25rem; }
+  .theme-bat .g-hero .g-lede{ margin-top:.7rem; font-size:.95rem; line-height:1.5; }
+  .theme-bat .g-hero .g-cta{ margin-top:1rem; gap:.6rem 1rem; }
+}
+
+/* 7. The phone dawn: fitNet() (bat-game.js) sets the web's height once per dawn; the old 106px cap
+   would clip it. The begging scene's web (no panel under it) simply takes its full width. */
+@media (max-width:600px){
+  html.wyd-live .nf-colony .wyd-net{ max-height:none; }
+  html[data-wyd-scene="begWait"] .wyd-scene .wyd-net{ max-height:none; height:auto; }
+}
+
+/* 8. A maximised browser on a 1366x768 laptop is 657px tall: the stage's floor gives a little more there
+   (fitStage still grows it into any room the scene leaves) */
+@media (min-width:601px) and (max-height:700px){
+  .wyd-stage{ height:clamp(104px, 16vh, 200px); }
+  .wyd-scene .wyd-intel{ max-height:calc(100vh - 480px); }
+  .gpage.wyd-playing .g-main{ padding-top:.45rem; padding-bottom:.45rem; }
+  .wyd-scene{ padding-top:.6rem; padding-bottom:.6rem; }
+  .wyd-approachbtn{ padding:.6rem 1rem; }
+  .wyd-cowpick{ gap:.3rem; }
+}
+@media (max-width:600px){
+  .theme-bat .wyd-postrow #wyd-e-post{ font-size:.66rem; padding:.45rem .6rem; letter-spacing:.06em; }
+}
+@media (max-width:600px){
+  /* what came of a groom or a gift takes the place of the risk line (which "Her story" repeats), so
+     the panel, and the room the web keeps for it, is no taller after an action than before */
+  html.wyd-live .nf-partner{ display:flex; flex-direction:column; }
+  html.wyd-live .nf-partner > *{ order:3; }
+  html.wyd-live .nf-partner > .nf-person{ order:1; }
+  html.wyd-live .nf-partner > .nf-risk, html.wyd-live .nf-partner > .nf-feedback{ order:2; }
+  html.wyd-live .nf-partner.nf-acted > .nf-risk{ display:none; }
+  html.wyd-live .nf-partner > .nf-feedback{ margin:2px 0 6px; padding:4px 8px; font-size:11.5px; line-height:1.3;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+}
+@media (max-width:600px){
+  /* the friend's meal chip sits in the web's empty top-left corner rather than under it */
+  html.wyd-live .nf-colony > .wyd-chips{ position:absolute; left:2px; top:0; z-index:2; margin:0; pointer-events:none; }
+  html.wyd-live .nf-colony > .wyd-chips .wyd-ptag{ font-size:.66rem; padding:.15rem .4rem; background:rgba(11,18,33,.85); }
+}
+@media (max-width:600px){
+  html.wyd-live .nf-partner > .wyd-coach{ order:2; }
+}
+@media (max-width:600px) and (max-height:700px){
+  /* the roost pick on a short phone: the picture's floor gives, so the picked roost's full card fits
+     (fitStage still grows the picture into any room the card leaves) */
+  html[data-wyd-scene="roostPick"] .wyd-stage{ height:150px; }
+}
+
+/* P37 polish. 1: a coughing bat keeps her amber even when hungry: amber ears and a thin amber ring outside
+   her ring (the hungry or starving ring stays crimson; solid, as P33 keeps every ring). The key shows the same. */
+.theme-bat .wyd-net .node .coughring{ fill:none !important; stroke:var(--g-warm) !important; stroke-width:2 !important; stroke-dasharray:none !important; pointer-events:none; animation:none !important; }
+.theme-bat .wyd-net .node.cough .ears path, .theme-bat .wyd-net .node.cough.hungry .ears path, .theme-bat .wyd-net .node.cough.starving .ears path{ fill:var(--g-warm); }
+.theme-bat .nf-key-symbol.cough{ outline:2px solid var(--g-warm); outline-offset:2px; }
+/* 2: the who-needs-you strip in the dawn's empty panel */
+.wyd-needs--panel{ margin:.5rem 0 0; gap:.35rem; }
+.wyd-needs--panel .wyd-needchip{ text-transform:none; letter-spacing:.02em; font-size:.74rem; font-weight:700; padding:.25rem .55rem; min-height:32px; }
+.wyd-needs--panel .wyd-needchip.beg{ border-color:#ef7b85; color:#f3a3aa; }
+.wyd-needs--panel .wyd-needchip.cough{ border-color:var(--g-warm); color:var(--g-warm); }
+.wyd-needs--panel .wyd-needmore{ font-size:.72rem; color:var(--g-dim); }
+/* 3: desktop roost cards: the resident line wraps instead of ending in an ellipsis (it carries the friends' names) */
+@media (min-width:601px){
+  .wyd-roostcards--all .wyd-roostcard .rc-sub{ white-space:normal; overflow:visible; text-overflow:clip; }
+}
+
+/* P37 polish: a 1280x720 laptop (and anything up to 760px tall) gives the stage a lower floor too */
+@media (min-width:601px) and (max-height:760px) and (min-height:701px){
+  .wyd-stage{ height:clamp(120px, 17vh, 200px); }
+}

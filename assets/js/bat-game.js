@@ -48,7 +48,7 @@
    sickness (2 dawns: stamina -1, groom-backs halved) and injury (blood -0.5 at once, 2 dawns of
    stamina -1), both independent of mites. First dawn at a new roost: groom-backs halved and no
    one feeds a beggar they barely know. Boards are random deals of 1-5 animals (BAT.dealCount),
-   slots spaced by the engine. G.v = 5; v4 saves get the new-season card.
+   slots spaced by the engine. G.v = 5; v4 saves get the new-season card. P37: G.v = 6 (new save fields and rules); v5 saves get the new-season card.
    P10 (2026-09-04): five strategy levers (a close friend feeds you on a merely hungry night; blood
    carries over into the score and an empty crop costs you at the cattle; one donation a dawn; the
    ledger values the depth of a bond, not the length of the list; harsher season pins), the season
@@ -64,6 +64,24 @@
    what has been shown so a re-render never repeats one. Surprises and dawn events play the
    "event" sound (bat-sound.js). ── */
 let G = null;
+/* P37 A13: a seedable dice for TESTS ONLY. With ?seed=<int> in the page URL the global roll()
+   (wyd-core.js, untouched) is replaced by mulberry32 seeded with that integer, and wydStart
+   re-seeds it so every new season on that page starts from the same stream. Without the parameter
+   nothing changes. Visual randomness never goes through roll() (it uses Math.random), so a seeded
+   page plays the same game while the pictures still vary. window.wydSeed(n) re-seeds by hand. */
+const SEED_PARAM = (()=>{ const m = /[?&]seed=(-?\d+)(?:&|$)/.exec(location.search); return m ? (+m[1] | 0) : null; })();
+function wydSeed(n){
+  let a = (n | 0) >>> 0;
+  roll = function(){
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.WYD_SEED = n | 0;
+}
+window.wydSeed = wydSeed;
+if(SEED_PARAM !== null) wydSeed(SEED_PARAM);
 /* P8 sound: a thin wrapper so a missing bat-sound.js is harmless */
 const sfx = (k, a)=>{ try{ if(window.WydSound) WydSound.play(k, a); }catch(e){} };
 /* P26: one place that asks whether we are on a phone. Read at render time, never cached, so a
@@ -87,8 +105,17 @@ const wordN = n=> NUM_WORDS[n] || String(n);
 const roostName = r=> ROOST_TYPES[G.roosts[r].type].name;
 const presentBats = G=> G.partners.filter(p=> p.alive && p.present);
 const roostResidents = (G, r)=> G.partners.filter(p=> p.alive && p.homeRoost === r);
+/* P37 A4: who sleeps at roost r TONIGHT (home, plus the bats the switch roll sent there, minus the ones
+   it sent away). The roost cards read this, as the P32 guard does, so the words match the guard. */
+const roostTonight = (G, r)=> G.partners.filter(p=> p.alive && p.tonightRoost === r);
 /* how fast this roost warms to you: groom and share gains x (warmBase + warmSlope x bondQ) */
-const warmMult = G=>{ const K = BAT.roosts, r = G.roosts[G.myRoost]; return K.warmBase + K.warmSlope * r.bondQ + mods(G).warmAdd; };   // P9: + the year's warm-up bonus
+/* P37 roost trades (build_nightflight/p37/sim/roost_trades.md): each away roost type carries one
+   trade in ROOST_TYPES[type].trade; an absent key is the old rule. tradeVal reads one key for one
+   roost; wokeAt is the roost you slept at before tonight's hunt (the hunt's trades are read there). */
+const tradeOf = (G, id)=>{ const r = G.roosts && G.roosts[id]; return (r && ROOST_TYPES[r.type] && ROOST_TYPES[r.type].trade) || {}; };
+const tradeVal = (G, id, key, d)=>{ const v = tradeOf(G, id)[key]; return v === undefined ? d : v; };
+const wokeAt = G=> (G.run && typeof G.run.woke === "number") ? G.run.woke : G.myRoost;
+const warmMult = G=>{ const K = BAT.roosts, r = G.roosts[G.myRoost]; return (K.warmBase + K.warmSlope * r.bondQ + mods(G).warmAdd) * tradeVal(G, G.myRoost, "warmMult", 1); };   // P9: + the year's warm-up bonus; P37: x the mango hollow's warmth
 /* P6a: the season's rescue curve, P(a fed bat feeds you when you beg) = min(cap, base + slope x trust^K) */
 const rescueP = (G, trust)=>{ const yb = mods(G).rescueBase, base = (yb === null || yb === undefined) ? BAT.rescueBase : yb;   // P9: a year may pin the base
   return Math.min(BAT.rescueCap, base + BAT.rescueSlope * Math.pow(Math.max(0, trust), G.season ? G.season.rescueK : 1)); };
@@ -200,7 +227,8 @@ function yearVars(k){
   return {occ: fmtN(Y.occMult || 1), mult: fmtN(Y.yieldMult || 1), groom: fmtN(Y.groomMult || 1),
           size: fmtN(Y.sizeMult || 1), free: Y.freeBondsAdd || 0, cough: fmtN(Y.coughMult || 1),
           max: Y.maxCows || 0, switch: Math.round((Y.switchP != null ? Y.switchP : S.switchLo) * 100),
-          rescue: fmtN(Y.rescueK != null ? Y.rescueK : 1)};
+          rescue: fmtN(Y.rescueK != null ? Y.rescueK : 1),
+          bite: Math.round((BAT.roosts.aggroBase + BAT.roosts.aggroRisk * (Y.aggroFloor || 0)) * 100)};   // P37 A8: the rough year's dawn bite, at least
 }
 function yearCard(k){
   const Y = YEARS[k], K = cap(k), v = yearVars(k);
@@ -247,10 +275,19 @@ function activeMods(G){
   return m;
 }
 const mods = G=> G.mods || (G.mods = activeMods(G));
+/* P37 A8: numbers some event texts quote, computed from bat-data so the card says what the engine does:
+   {bite} the dawn bite chance a dominant bat brings (aggroBase + aggroRisk x her aggression), {save} how
+   much less stamina a cold-snap groom costs (it scales every groom by longCost / groomLong.cost) */
+function eventExtraVars(k){
+  const E = EVENTS[k], K = BAT.roosts;
+  if(k === "dominant") return {bite: Math.round((K.aggroBase + K.aggroRisk * E.aggro) * 100)};
+  if(k === "coldsnap") return {save: Math.round((1 - E.longCost / BAT.groomLong.cost) * 100)};
+  return {};
+}
 /* the HUD's line under each badge: the drawn amount in words */
 function eventHud(ev){
   const E = EVENTS[ev.key], P = ev.p, k = ev.key, K = k.charAt(0).toUpperCase() + k.slice(1);
-  const v = {n: P.nights, nights: P.nights, pct: P.frac ? Math.round(P.frac*100) : "", mult: E.yieldMult, max: E.maxCows, cost: E.longCost};
+  const v = Object.assign({n: P.nights, nights: P.nights, pct: P.frac ? Math.round(P.frac*100) : "", mult: E.yieldMult, max: E.maxCows, cost: E.longCost}, eventExtraVars(k));
   if(k === "drive") v.n = E.extra;
   if(k === "newcomers") v.n = P.per;
   if(k === "mites") v.mult = E.decayMult;
@@ -307,7 +344,7 @@ function fireEvents(G){
     } else {
       ev.left = P.nights;
       if(k === "plague"){ G.partners.forEach(p=>{ if(p.alive) p.cough = P.nights; }); G.sick = Math.max(G.sick, P.nights); }
-      const v = {n: P.nights, nights: P.nights, mult: E.yieldMult, max: E.maxCows, cost: E.longCost};
+      const v = Object.assign({n: P.nights, nights: P.nights, mult: E.yieldMult, max: E.maxCows, cost: E.longCost}, eventExtraVars(k));
       if(k === "drive") v.n = E.extra;
       text = fill(COPY["ev" + K + "Text"], v);
       log(`Night ${G.night}: ${COPY["ev" + K + "Title"]}`);
@@ -400,6 +437,7 @@ const live = b=> b === BEAT && STAGE && !STAGE.dead;
 /* the encounter's tap-to-skip listeners live here so that leaving the scene early (Exit, a
    Skip, any go()) detaches them: a stale skip() must never cancel a newer scene's chain */
 let ENC_SKIP = null;
+let WO = null;   // P37: the live wing-off (startWingoff); declared here because cancelTimers reads it
 function detachEncSkip(){
   if(!ENC_SKIP) return;
   if(ENC_SKIP.host) ENC_SKIP.host.removeEventListener("click", ENC_SKIP.fn);
@@ -408,6 +446,7 @@ function detachEncSkip(){
 }
 function cancelTimers(){
   detachEncSkip();
+  stopWingoff();   // P37: a scene change or Exit ends a live wing-off (its raw timers and listeners)
   TIMERS.t.forEach(e=> clearTimeout(e.h)); TIMERS.i.forEach(clearInterval); TIMERS.r.forEach(cancelAnimationFrame);
   TIMERS.t.clear(); TIMERS.i.clear(); TIMERS.r.clear();
   BEAT++;
@@ -416,7 +455,7 @@ function cancelTimers(){
    P4: ONE instance lives across flightOut → pasture → encounter → bite → flightHome (scenes
    flagged stage:true); STAGE_KEY names the night + pasture it was dealt for, STAGE_AT where
    the player bat is (null after a mount, "hover" over the herd, or a cow id beside it). ── */
-let STAGE = null, STAGE_KEY = "", STAGE_AT = null;
+let STAGE = null, STAGE_KEY = "", STAGE_AT = null, STAGE_DECOR = false;
 function stageHost(){
   let h = $("#wyd-stagehost");
   if(!h){
@@ -428,6 +467,7 @@ function stageHost(){
 }
 function stageOn(opts){
   stageOff();
+  STAGE_DECOR = false;
   const h = stageHost();
   if(!h || !window.WydStage) return null;
   h.hidden = false;
@@ -437,11 +477,25 @@ function stageOn(opts){
 }
 function stageOff(){
   if(STAGE){ STAGE.destroy(); STAGE = null; }
-  STAGE_KEY = ""; STAGE_AT = null;
+  STAGE_KEY = ""; STAGE_AT = null; STAGE_DECOR = false;
   const h = $("#wyd-stagehost");
-  if(h){ h.hidden = true; delete h.dataset.beat; delete h.dataset.outcome; }
+  if(h){ h.hidden = true; delete h.dataset.beat; delete h.dataset.outcome; delete h.dataset.decor; }
 }
 stageHost();
+/* P37 (cross-browser): the play state mirrored onto <html> as classes, so layout rules that matter
+   (the phone hides the site bar while a run is live) do not depend on :has(), which Safari only
+   has from 15.4 and Firefox from 121. wyd-core.js toggles .wyd-playing / .wyd-ended on .gpage. */
+(function(){
+  const gp = document.querySelector(".gpage"); if(!gp) return;
+  const sync = ()=>{
+    const de = document.documentElement, live = gp.classList.contains("wyd-playing");
+    de.classList.toggle("wyd-live", live);
+    de.classList.toggle("wyd-live-end", live && gp.classList.contains("wyd-ended"));
+    if(!live) delete de.dataset.wydScene;
+  };
+  sync();
+  try{ new MutationObserver(sync).observe(gp, {attributes:true, attributeFilter:["class"]}); }catch(e){}
+})();
 /* the night's stage: reuse the live instance when it was dealt for this night and pasture,
    else mount a fresh one from G.run.board (a resume, or the first stage scene of the night).
    opts.look / opts.phase apply to a fresh mount only. */
@@ -456,6 +510,42 @@ function ensureStage(G, opts){
     cows: R.board.map(c=>({id:c.id, tier:c.tier, occupied:c.occupied, occupant: c.occupant ? c.occupant.kind : null})),
     slots: R.slots && R.slots.length === R.board.length ? R.slots : dealSlots(R.board.length)});
   STAGE_KEY = st ? key : ""; STAGE_AT = null;
+  return st;
+}
+/* P37 D2 (desktop): the dusk, the night summary, the rescue and the death were a short card at the
+   top of an empty page. The diorama stays on screen above them instead: the bat at home under the
+   tree at dusk, home again after the night, at the roost for the beg's outcome. Decorative only (no
+   choice mode, no beats), never on a phone (where those cards already fill the screen), and it hides
+   itself rather than make a short laptop screen scroll (fitStage). The night summary reuses the
+   flight home's live stage, so the bat that just landed is the one you see. */
+const DECOR_SCENES = ["dusk", "night", "rescue", "death"];
+const decorOn = id=> DECOR_SCENES.includes(id) && !onPhone();
+function decorStage(G, id){
+  if(!decorOn(id) || !G.cond || !G.roosts || !G.roosts[G.myRoost]) return null;
+  let st = null;
+  if(id === "night") st = ensureStage(G, {look:"roost", phase:"dawn"});
+  if(!st){
+    const key = "decor:" + id + ":" + G.night;
+    if(STAGE && !STAGE.dead && STAGE_KEY === key) st = STAGE;
+    else {
+      st = stageOn({moon:G.cond.moon, storm:G.cond.stormy, far:false, roost: ROOST_TYPES[G.roosts[G.myRoost].type].sil,
+        phase: id === "dusk" ? "dusk" : id === "death" ? "night" : "dawn", look:"roost", cows:[], slots:[]});
+      STAGE_KEY = st ? key : ""; STAGE_AT = null;
+    }
+  }
+  if(!st) return null;
+  STAGE_DECOR = true;
+  const host = $("#wyd-stagehost"); if(host) host.dataset.decor = "1";   // tests tell a decorative stage from a play one
+  try{
+    st.choice(false); st.select(null); st.look("roost", 0);
+    /* the night summary: the bat is home. Under reduced motion (or a skipped flight) the flight home
+       never played, so the live stage still has her at the herd: put her home now, without a flight */
+    if(id === "night"){
+      st.setPhase("dawn");
+      st.caption(COPY.capHome, G.run && G.run.fedTonight ? "Fed and heavy, your bat is home at the roost" : "Your bat is home at the roost");
+      if(STAGE_AT !== null){ st.home(3, !!(G.run && G.run.fedTonight)).then(()=>{ try{ st.settle(); }catch(e){} }); STAGE_AT = null; }   // 3ms: a jump, not a flight
+    }
+  }catch(e){}
   return st;
 }
 /* P35 (Bryson, 2026-09-09: "the cattle in the feeding period look way too small, well everything in
@@ -473,13 +563,21 @@ function fitStage(){
   const h = $("#wyd-stagehost"); if(!h || h.hidden) return;
   const el = h.querySelector(".wyd-stage"); if(!el) return;
   FIT_BUSY = true;
+  /* P36: the standoff's verbs arrive after the confrontation beat. Measure as if they were already
+     showing (un-hidden for this synchronous measurement only), so the stage leaves their room from
+     the start: no jump when they appear, and the fit no longer depends on when that beat lands. */
+  const hv = document.querySelector("#wyd-scene #wyd-verbs[hidden]");
+  if(hv) hv.hidden = false;
   try{
     if(FIT_KEY !== STAGE_KEY){ FIT_KEY = STAGE_KEY; FIT_H = 0; }
     const was = el.style.height;
     el.style.height = "";                                            // measure from the CSS floor
     const base = el.getBoundingClientRect().height, w = el.clientWidth;
     const narrow = matchMedia("(max-width:600px)").matches;          // = bat-stage NARROW_MQ
-    const cap = narrow ? 360 : Math.min(600, Math.round(w / STAGE_AR));
+    /* P36: phones cap at 300px (was 360). The slice crop shows the herd's width, not the sky, so a
+       shorter stage shows more of the herd: ~460 stage units across on a 393px phone instead of ~380,
+       while the cows still draw at 0.75 px a unit (p35 asks for 0.65) */
+    const cap = narrow ? 300 : Math.min(600, Math.round(w / STAGE_AR));
     /* the room under the game card. NOT innerHeight - scrollHeight: Quarto pins #quarto-content to a
        min-height of the viewport, so the document is always exactly one screen tall during play and
        that difference reads 0 even with 235px of empty page under the card. */
@@ -495,11 +593,20 @@ function fitStage(){
        the bite; the stage gives room once and keeps that height, rather than bouncing between scenes */
     if(FIT_H && target > FIT_H){ target = FIT_H; el.style.height = target > base + 1 ? target + "px" : ""; }
     FIT_H = target;
+    /* P37 D2: a decorative stage (dusk, the night summary, rescue, death on a desktop) is never worth a
+       scroll: if the page overflows even at the stage's floor, it steps aside for this scene */
+    if(STAGE_DECOR && document.documentElement.scrollHeight > window.innerHeight + 1){ el.style.height = ""; h.hidden = true; FIT_H = 0; return; }
     if(el.style.height !== was) window.dispatchEvent(new Event("resize"));      // bat-stage re-lays out on resize
-  } finally { FIT_BUSY = false; }
+  } finally { if(hv) hv.hidden = true; FIT_BUSY = false; }
 }
 let FIT_RAF = 0;
-window.addEventListener("resize", ()=>{ if(FIT_RAF) return; FIT_RAF = requestAnimationFrame(()=>{ FIT_RAF = 0; fitStage(); }); });
+window.addEventListener("resize", ()=>{ if(FIT_RAF) return; FIT_RAF = requestAnimationFrame(()=>{ FIT_RAF = 0; fitStage();
+  /* P37: a phone turned sideways (or a window dragged across 600px) changes the web's box; redraw so the
+     same angles are drawn into the new box (every bat keeps her place relative to the others) */
+  if(G && G.scene === "dawn" && document.querySelector("#wyd-scene .nf-colony .wyd-net")){
+    const flat = !!document.querySelector("#wyd-scene .wyd-net-flat");
+    if(flat !== netPhone()) redrawDawn(); else fitNet();
+  } }); });
 /* P29: a promise-shaped wait that goes through the timer registry, so a scene change cancels it
    and the beat token sees the change. bat-game had no sleep of its own; the stage's is private. */
 const waitMs = ms=> new Promise(r=> at(ms, r));
@@ -513,7 +620,7 @@ const E = ()=> WydStage.EASE;
 
 function go(id){
   cancelTimers();
-  if(!SCENES[id].stage) stageOff();
+  if(!SCENES[id].stage && !(id === "night" && decorOn(id))) stageOff();   // P37 D2: the night summary keeps the flight home's stage
   G.scene = id;
   if(window.WydLog) WydLog.scene(id, G);          // night summary at dawn / death, then flush
   // P8 sound cues for the scenes that resolve a night
@@ -522,25 +629,36 @@ function go(id){
   else if(id === "death") sfx("hurt");
   else if(id === "dawn" && G.run && G.run.hazard && (G.run.hazard.hurt || G.run.hazard.sick)) sfx(G.run.hazard.hurt ? "hurt" : "bad");
   const auto = SCENES[id].auto && SCENES[id].auto(G);
-  if(auto){ pick(auto); return; }      // pass-through scene (never rendered, never saved)
+  if(auto){ pick(auto, true); return; }      // pass-through scene (never rendered, never saved); P37 A9: a nested pick is allowed
   if(SCENES[id].next.length) wydSaveRun(G);   // terminal scenes (end) are never worth resuming
   renderScene(id);
 }
-function pick(choice){
-  sfx("click");
-  const from = G.scene;
-  if(window.WydLog) WydLog.pick(from, choice, G);   // play-style log (bat-log.js), never throws
-  if(choice.apply) choice.apply(G);
-  const to = typeof choice.goto === "function" ? choice.goto(G) : choice.goto;
-  if(DEBUG_SCENES && SCENES[from] && !SCENES[from].next.includes(to))
-    console.warn(`[scenes] ${from} → ${to} is not a declared edge (choice ${choice.id || "?"})`);
-  go(to);
+/* P37 A9: a re-entrancy guard. A transition runs to completion before another may start: a second
+   pick that arrives while one is still applying (a handler firing twice in one turn) is dropped. Only
+   go()'s pass-through of an auto scene may nest, and it says so. */
+let PICK_DEPTH = 0;
+function pick(choice, nested){
+  if(PICK_DEPTH > 0 && !nested) return;
+  PICK_DEPTH++;
+  try{
+    sfx("click");
+    const from = G.scene;
+    if(window.WydLog) WydLog.pick(from, choice, G);   // play-style log (bat-log.js), never throws
+    if(choice.apply) choice.apply(G);
+    const to = typeof choice.goto === "function" ? choice.goto(G) : choice.goto;
+    if(DEBUG_SCENES && SCENES[from] && !SCENES[from].next.includes(to))
+      console.warn(`[scenes] ${from} → ${to} is not a declared edge (choice ${choice.id || "?"})`);
+    go(to);
+  } finally { PICK_DEPTH--; }
 }
 /* render one scene: pure render(G) → core scene(html, mode) → wire choices + hooks → wipe.
    Same-scene re-renders (the dawn panel, the intel panel) pass {wipe:false}. */
 let LAST_MOMENT = "";
 function renderScene(id, opts){
   const sc = SCENES[id];
+  document.documentElement.dataset.wydScene = id;   // P37: scene-keyed CSS that does not need :has()
+  /* P36: the sound beds follow the scene (reads G, writes nothing; the mood map lives in bat-sound.js) */
+  try{ if(window.WydSound && WydSound.scene) WydSound.scene(id, {stormy: !!(G.cond && G.cond.stormy), hungry: G.energy <= BAT.desperateAt}); }catch(e){}
   const html = sc.render(G);
   if(html === null) return;               // terminal scene handed off to wydEnd
   const moment = id + ":" + G.night;      // P9: a new scene (or night) closes stale popups; a re-render keeps them
@@ -549,8 +667,13 @@ function renderScene(id, opts){
   const el = $("#wyd-scene");
   (sc.choices ? sc.choices(G) : []).forEach(c=>{
     const b = el.querySelector(c.sel || ("#"+c.id));
-    if(b) b.onclick = ()=>pick(c);
+    /* P37 A9: the second click of a double-click (event.detail 2) lands on whatever the first click
+       drew in the same spot: WAIT re-renders the standoff with a fresh WAIT button under the pointer,
+       and a double-click spent two hours. A double-click now counts once. Keyboard clicks are detail 0. */
+    if(b) b.onclick = e=>{ if(e && e.detail > 1) return; pick(c); };
   });
+  if(!sc.stage && decorOn(id)) decorStage(G, id);   // P37 D2
+  else if(!sc.stage && STAGE_DECOR) stageOff();
   if(sc.wire) sc.wire(G);
   fitStage();                             // P35: the stage takes whatever room the page has spare
   wireSkillSrc(G);                        // P29: the animal's bite bar opens the breakdown
@@ -603,15 +726,9 @@ function clearPopups(){ POPQ = []; closePopup(); }
 const stripTags = s=> String(s).replace(/<[^>]+>/g, "");
 const evCard = (icon, title, text, compact)=> `<div class="wyd-evcard${compact ? " wyd-evcard--row" : ""}"><span class="wyd-evcard__icon" aria-hidden="true">${icon}</span><div>${title ? `<h4>${title}</h4>` : ""}<p>${text}</p></div></div>`;
 const cuesList = G=> G.season && G.season.cues && G.season.cues.length ? `<ul class="wyd-cues">${G.season.cues.map(c=> `<li>${esc(c)}</li>`).join("")}</ul>` : "";
-/* the first dusk: the two years and the season's cues in one briefing */
-function briefingPopup(G){
-  // P10b: one compact row per year (icon, title, one sentence), then the four season bars with a sentence each
-  const cards = (G.years || []).map(k=>{ const c = yearCard(k); return evCard(c.icon, c.title, c.text, true); }).join("");
-  // P10c (Bryson): the season (sickness, how tight blood is, attention, roost shuffling) is drawn per game but
-  // NEVER shown: no bars, no cues. Players read it from what happens. seasonHud / seasonPopup stay for ?debug use.
-  popup({kind:"brief", kicker: COPY.yrKicker, title: COPY.yrHead, sound:"event",
-    body: `<p class="wyd-story">${COPY.yrLead}</p>` + cards});
-}
+/* P37 (B1): the first-dusk briefing popup is retired; the years are briefed on the night-2 dusk (yearBrief).
+   P10c (Bryson) still holds: the season (sickness, how tight blood is, attention, roost shuffling) is drawn
+   per game but NEVER shown. seasonHud / seasonPopup stay for ?debug use. */
 function yearPopup(k){ const c = yearCard(k);
   popup({kind:"year", kicker: COPY.yrHudHead, title: c.title,
          body: `${evCard(c.icon, "", c.text, true)}<p class="wyd-story wyd-modal__note">${COPY.yrAgain}</p>`}); }
@@ -625,17 +742,26 @@ function eventPopup(G, ev, again){
 }
 function hiddenEventPopup(){ popup({kind:"event", kicker: COPY.evHiddenHead, title: COPY.evHiddenTitle, body: `<p class="wyd-story">${COPY.evHiddenSub}</p>`}); }
 /* the dawn hazards (the sound already played on entering the dawn) */
+/* P37 A8: what a fever does, in the numbers the engine uses (sickStamina of staminaPerNight, the
+   groom-back factor, the bite term, no sharing), for the fever popup */
+function feverVars(){
+  const K = BAT.roosts;
+  return {n: wordN(K.sickNights), stam: Math.round(K.sickStamina * 100 / BAT.staminaPerNight),
+          back: Math.round(K.sickGroomBack * 100), bite: Math.round(K.sickMod * 100)};
+}
 function hazardLines(G, hz){
   const K = BAT.roosts, s = n=> n === 1 ? "" : "s", lines = [];
-  if(hz.sick && hz.from) lines.push(fill(COPY.caughtFrom, {name: hz.from, n: wordN(K.sickNights)}));
-  else if(hz.sick) lines.push(fill(COPY.sickDawn, {n: wordN(K.sickNights)}));
+  const fv = feverVars();   // P37 A8: the popup names every effect of a fever, from bat-data
+  if(hz.sick && hz.from) lines.push(fill(COPY.caughtFrom, Object.assign({name: hz.from}, fv)));
+  else if(hz.sick) lines.push(fill(COPY.sickDawn, fv));
   if(hz.hurt) lines.push(fill(COPY.hurtDawn, {blood: "-" + bp(K.injuryBlood), n: wordN(K.injuryNights)}));
+  if(hz.healed) lines.push(COPY.hzHealed);   // P37: the culvert
   return lines;
 }
 function hazardPopup(G, hz){
   const lines = hazardLines(G, hz);
   if(!lines.length) return;
-  popup({kind:"hazard", kicker: COPY.hzKicker, title: hz.sick && hz.hurt ? COPY.hzHeadBoth : hz.sick ? COPY.hzHeadSick : COPY.hzHeadHurt,
+  popup({kind:"hazard", kicker: COPY.hzKicker, title: hz.sick && hz.hurt ? COPY.hzHeadBoth : hz.sick ? COPY.hzHeadSick : hz.hurt ? COPY.hzHeadHurt : COPY.hzHeadHealed,
          body: `<p class="wyd-story wyd-hazard">${lines.map(esc).join(" ")}</p>`});
 }
 const DE_ICON = {squabble:"💢", pup:"🐣", stranger:"🦇", coldsnap:"❄"};
@@ -645,18 +771,51 @@ function dawnEventPopup(G, again){
 }
 /* P14 (Bryson): on phones the corner collapses to one ⋯ button that opens this menu */
 function menuPopup(){
-  const on = window.WydSound && WydSound.isOn();
   popup({kind:"menu", kicker: COPY.menuKicker, title: "", body: `<div class="wyd-choices wyd-menu">
     <button type="button" class="btnx" id="wyd-m-log">📜 ${LOG_OPEN ? COPY.menuLogHide : COPY.menuLogShow}</button>
-    <button type="button" class="btnx" id="wyd-m-sound">${on ? "🔊" : "🔇"} ${on ? COPY.menuSoundOff : COPY.menuSoundOn}</button>
+    <button type="button" class="btnx" id="wyd-m-sound" aria-haspopup="dialog">${soundGlyph()} ${COPY.menuSound}</button>
+    <button type="button" class="btnx" id="wyd-m-sheet">✨ ${COPY.menuSheet}</button>
     <button type="button" class="btnx" id="wyd-m-help">❔ ${COPY.menuHelp}</button>
     <button type="button" class="btnx" id="wyd-m-exit">✕ ${COPY.menuExit}</button></div>`});
   const m = document.getElementById("wyd-modal"); if(!m) return;
   const q = id=> m.querySelector(id);
   if(q("#wyd-m-log")) q("#wyd-m-log").onclick = ()=>{ LOG_OPEN = !LOG_OPEN; applyLogOpen(); const b = document.getElementById("wyd-logtoggle"); if(b) b.setAttribute("aria-pressed", LOG_OPEN ? "true" : "false"); closePopup(); };
-  if(q("#wyd-m-sound")) q("#wyd-m-sound").onclick = ()=>{ if(window.WydSound){ WydSound.toggle(); const b = document.getElementById("wyd-sound"); if(b){ b.textContent = WydSound.isOn() ? "🔊" : "🔇"; b.setAttribute("aria-pressed", WydSound.isOn() ? "true" : "false"); } } closePopup(); };
+  if(q("#wyd-m-sound")) q("#wyd-m-sound").onclick = ()=>{ closePopup(); if(window.WydSound) soundPanel(); };
+  if(q("#wyd-m-sheet")) q("#wyd-m-sheet").onclick = ()=>{ closePopup(); if(G) nightSheetPopup(G); };
   if(q("#wyd-m-help")) q("#wyd-m-help").onclick = ()=>{ closePopup(); helpPopup(G && G.scene === "dawn" ? "dawn" : "night"); };
   if(q("#wyd-m-exit")) q("#wyd-m-exit").onclick = ()=>{ closePopup(); const ex = document.getElementById("wyd-exit"); if(ex) ex.click(); };
+}
+/* P37 D3 (Bryson approved): the sound settings. Three switches (effects, music, ambience), each
+   remembered on this device by bat-sound.js. It is a popup like the menu, so it centres on a phone
+   with no scroll and closes on Escape, the backdrop, the X or OK. The HUD glyph is 🔇 only when all
+   three are off (run-p5 reads it). */
+const SOUND_PARTS = [["fx", "sndFx"], ["music", "sndMusic"], ["amb", "sndAmb"]];
+const soundAny = ()=> !!(window.WydSound && (WydSound.anyOn ? WydSound.anyOn() : WydSound.isOn()));
+const soundGlyph = ()=> soundAny() ? "🔊" : "🔇";
+function soundSync(){
+  const b = document.getElementById("wyd-sound");
+  if(b){ b.textContent = soundGlyph(); b.dataset.on = soundAny() ? "1" : "0"; }
+}
+function soundPanel(){
+  if(!window.WydSound || !WydSound.get) return;
+  sfx("click");
+  const row = ([part, key])=>{ const on = WydSound.get(part);
+    return `<button type="button" role="switch" class="wyd-sw" id="wyd-snd-${part}" data-part="${part}" aria-checked="${on ? "true" : "false"}">
+      <span class="sw-lab">${COPY[key]}<small>${COPY[key + "Sub"]}</small></span>
+      <span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-state">${on ? COPY.sndOn : COPY.sndOff}</span></button>`; };
+  popup({kind:"sound", kicker: COPY.sndKicker, title: "", body: `<div class="wyd-sndpanel" role="group" aria-label="${esc(COPY.sndKicker)}">${SOUND_PARTS.map(row).join("")}</div><p class="wyd-modal__note wyd-sndnote">${COPY.sndNote}</p>`});
+  const m = document.getElementById("wyd-modal"); if(!m || m.dataset.kind !== "sound") return;
+  m.querySelectorAll(".wyd-sw").forEach(b=>{
+    b.onclick = e=>{
+      e.stopPropagation();
+      const now = WydSound.set(b.dataset.part, b.getAttribute("aria-checked") !== "true");
+      b.setAttribute("aria-checked", now ? "true" : "false");
+      const st = b.querySelector(".sw-state"); if(st) st.textContent = now ? COPY.sndOn : COPY.sndOff;
+      soundSync();
+    };
+  });
+  const first = m.querySelector(".wyd-sw");
+  try{ first.focus({preventScroll:true}); }catch(e){}
 }
 /* help: the old panel explanation (dawn) and a night primer; shown once per browser at the first dawn, always from the ❔ */
 const HELP_LS = "wyd-help-";
@@ -666,6 +825,82 @@ function helpPopup(kind){
   if(kind === "dawn") popup({kind:"help", kicker: COPY.helpKicker, title: COPY.helpDawnHead, body: `<p class="wyd-story">${fill(COPY.panelPickText, {decay: BAT.decay.toFixed(2)})}</p><p class="wyd-story wyd-modal__note">${COPY.netLegend}</p>`});   // P14: the legend lives here on phones
   else popup({kind:"help", kicker: COPY.helpKicker, title: COPY.helpNightHead, body: `<p class="wyd-story">${COPY.helpNightText}</p>`});
 }
+/* ── P37 the tutor (Bryson: "teach them in the first two nights. It should almost be like a tutorial. But it
+   should also be quick if someone does know how to play the game"). A COACH LINE is one short line above a
+   scene's main buttons on nights 1 and 2: never a popup, never a click. The choice lives in localStorage
+   wyd-tips ("on" / "off", the switch under Begin); with no choice made, tips are on until a run gets past the
+   teaching nights. G.tips is fixed when a run starts and travels in the save. With tips on the coach lines
+   replace the one-time dawn and roost help popups (the ❔ still opens them); turning tips off marks them seen. */
+const TIPS_LS = "wyd-tips";
+function tipsPref(){
+  try{ const v = localStorage.getItem(TIPS_LS); if(v === "off") return false; if(v === "on") return true; }catch(e){}
+  return true;
+}
+function syncTipsToggle(){ const t = document.getElementById("wyd-tips"); if(t) t.checked = tipsPref(); }
+function setTipsPref(on){
+  try{ localStorage.setItem(TIPS_LS, on ? "on" : "off"); }catch(e){}
+  if(!on){ markHelp("dawn"); markHelp("roost"); }
+  syncTipsToggle();
+}
+/* a run that got past the teaching nights turns the default off (an explicit "on" stays on) */
+function tipsGraduate(){
+  try{ if(localStorage.getItem(TIPS_LS) === null) localStorage.setItem(TIPS_LS, "off"); }catch(e){}
+  syncTipsToggle();
+}
+const coachOn = G=> !!(G && G.tips) && G.night <= BAT.rampNights;
+const coachLine = (G, key, text)=> coachOn(G)
+  ? `<p class="wyd-coach" data-coach="${key}" role="note"><span class="wyd-coach__t">${text}</span> <button type="button" class="wyd-coach-x" aria-label="${esc(COPY.coachHideAria)}">${COPY.coachHide}</button></p>` : "";
+function hideTips(){
+  if(G) G.tips = false;
+  setTipsPref(false);
+  $$(".wyd-coach").forEach(e=> e.remove());
+  fitStage();
+}
+document.addEventListener("click", e=>{
+  const b = e.target && e.target.closest && e.target.closest(".wyd-coach-x");
+  if(b){ e.preventDefault(); e.stopPropagation(); sfx("click"); hideTips(); }
+});
+(function(){
+  const t = document.getElementById("wyd-tips");
+  if(!t) return;
+  t.checked = tipsPref();
+  const l = document.getElementById("wyd-tips-label"); if(l && COPY.tipsToggle) l.textContent = COPY.tipsToggle;
+  t.addEventListener("change", ()=> setTipsPref(t.checked));
+})();
+/* dawn 1, tips on: the bat who came home empty is picked for you with the Give tab open, once (B3) */
+function coachPreselect(G){
+  const R = G.run;
+  if(!coachOn(G) || G.night !== 1 || R.coachPre) return null;
+  R.coachPre = true;
+  if(!canGiveTonight(G) || !canDonate(G) || giveCapPct(G) < SL().giveFloor || G.stamina <= 0) return null;
+  // never a coughing one: the first lesson must not be that helping made you sick (B2)
+  const beg = presentBats(G).filter(p=> p.hungry && !p.shared && !p.cough).sort((a, b)=> (b.starving - a.starving) || (b.trust - a.trust));
+  if(!beg.length) return null;
+  const p = beg[0];
+  G.selected = p.id; G.lastAct = "";
+  DAWN_VIEW.pid = p.id; DAWN_VIEW.kind = "give";
+  R.coachPid = p.id;
+  return p;
+}
+/* the dawn's coach line: feed the beggar (dawn 1), or groom, then sleep; dawn 2 says why it matters */
+function dawnCoach(G){
+  if(!coachOn(G)) return "";
+  if(G.night >= 2) return coachLine(G, "dawn2", fill(COPY.coachDawn2, {a: BAT.stormStart, b: BAT.nights}));
+  const acted = presentBats(G).some(p=> p.groomed || p.shared);
+  if(acted) return coachLine(G, "sleep", COPY.coachDawnSleep);
+  const p = G.run.coachPid != null ? G.partners[G.run.coachPid] : null;
+  if(p && p.hungry && !p.shared) return coachLine(G, "give", fill(COPY.coachDawnGive, {name: esc(p.name)}));
+  return coachLine(G, "groom", COPY.coachDawnGroom);
+}
+/* B1: the year briefing on the night-2 dusk, one sentence a year, the numbers one tap away (yearPopup) */
+const BRIEF_NIGHT = 2;
+function yearBrief(G){
+  const rows = (G.years || []).map(k=>{
+    const Y = YEARS[k], K = cap(k), t = COPY["yr" + K + "Title"], s = COPY["yr" + K + "Short"];
+    return `<button type="button" class="wyd-yrrow" data-year="${k}" aria-label="${esc(t + ". " + s + " " + COPY.yrTapMore)}"><span class="wyd-yrrow__icon" aria-hidden="true">${Y.icon}</span><span class="wyd-yrrow__t"><strong>${t}.</strong> ${s}</span><span class="wyd-yrrow__more" aria-hidden="true">›</span></button>`;
+  }).join("");
+  return rows ? `<div class="wyd-yrbrief"><p class="wyd-yrbrief__k">${COPY.yrKicker}</p><p class="wyd-story wyd-yrbrief__lead">${COPY.yrLead}</p>${rows}</div>` : "";
+}
 const exitBtn = $("#wyd-exit");
 if(exitBtn) exitBtn.addEventListener("click", ()=>{ cancelTimers(); stageOff(); if(window.WydLog && G) WydLog.exit(G); });
 
@@ -674,9 +909,10 @@ function genRoosts(years){
   const K = BAT.roosts, sm = yearSizeMult(years);   // P9: a quiet / crowded year scales every roost
   const count = roll() < K.countP4 ? 4 : 3;
   const types = ["hollow"].concat(shuffle(ROOST_DRAW.slice()).slice(0, count - 1));
+  const tr = t=> (ROOST_TYPES[t] && ROOST_TYPES[t].trade) || {};   // P37: the mango hollow is never small, the culvert never big
   return types.map((type, id)=> ({
     id, type,
-    size: Math.round(clamp(normal(K.sizeMean * sm, K.sizeSd), K.sizeMin, K.sizeMax * sm)),
+    size: Math.max(tr(type).sizeFloor || 0, Math.min(tr(type).sizeCap || Infinity, Math.round(clamp(normal(K.sizeMean * sm, K.sizeSd), K.sizeMin, K.sizeMax * sm)))),
     bondQ: roll(), disease: roll(), aggro: roll(),
     known: id === 0, visits: 0, sick:false, hurt:false, cues:null }));
 }
@@ -715,6 +951,7 @@ function genColony(roosts, pool){
 }
 function wydStart(){
   try{ if(window.WydSound) WydSound.warm(); }catch(e){}
+  if(SEED_PARAM !== null) wydSeed(SEED_PARAM);   // P37 A13: a seeded page replays the same season every time
   cancelTimers(); stageOff();
   $("#wyd-play").style.display = "block";
   $("#wyd-log").innerHTML = "";
@@ -722,7 +959,7 @@ function wydStart(){
   const years = genYears();   // P9: the two permanent changes, drawn before the colony they shape
   const roosts = genRoosts(years);
   const partners = genColony(roosts, pool);
-  G = {v:5, scene:"dusk", night:0, score:0, energy:BAT.energyStart, stamina:BAT.staminaPerNight, alive:true,
+  G = {v:6, scene:"dusk", night:0, score:0, energy:BAT.energyStart, stamina:BAT.staminaPerNight, alive:true,
        run:null, ticks:BAT.ticks, missStreak:0, sel:null,
        cause:"", selected:null, lastAct:"", fx:null, cond:null,
        moonOff: roll()*BAT.nights, pFail: drawSkill(BAT.playerFail, 1.5, BAT.playerLo, BAT.playerHi),
@@ -732,6 +969,7 @@ function wydStart(){
        roosts, myRoost:0, roostSel:0, sick:0, hurt:0, sickOver:false, hurtOver:false,
        season: genSeason(years), pendingSick:null, contacts:[], achNew:[], stormFedN:0,
        events: genEvents(), years, pops:{}, mods:null, evBanner:"", deafNote:"",
+       tips: tipsPref(),                 // P37: the coach lines on nights 1-2 (the switch under Begin)
        rivals: Object.keys(RIVALS).reduce((a,k)=>{ a[k] = {met:false, lastOutcome:null, night:0}; return a; }, {}),
        partners};
   const n = G.partners.length, K = BAT.roosts;
@@ -754,7 +992,7 @@ function wydStart(){
 /* ── resume: v5 P10 saves return to their scene; anything else gets the new-season card ── */
 function wydResumeRun(g){
   cancelTimers(); stageOff();
-  const bad = !g || g.v !== 5 || !g.scene || !SCENES[g.scene] || !g.run || !("board" in g.run)
+  const bad = !g || g.v !== 6 || !g.scene || !SCENES[g.scene] || !g.run || !("board" in g.run)
     || g.night > BAT.nights || !Array.isArray(g.strangerPool) || !Array.isArray(g.roosts) || !g.roosts.length
     || typeof g.myRoost !== "number" || !g.season || typeof g.season.rescueK !== "number" || !Array.isArray(g.events) || !Array.isArray(g.years);
   if(bad){
@@ -770,6 +1008,8 @@ function wydResumeRun(g){
     return;
   }
   G = g; G.selected = null; G.lastAct = ""; G.fx = null;
+  G.tips = !!G.tips && tipsPref();   // P37: "hide tips" mid-scene is not in the save; the stored choice wins
+  if(G.run) G.run.coachPre = false;  // P37: a resumed dawn 1 picks the beggar again (the selection is not restored)
   if(window.WydLog) WydLog.resume(G);
   $("#wyd-play").style.display = "block";
   $("#wyd-log").innerHTML = "";
@@ -784,6 +1024,7 @@ function wydResumeRun(g){
 let LOG_OPEN = false;
 function applyLogOpen(){ const l = document.getElementById("wyd-log"); if(l) l.classList.toggle("wyd-logopen", LOG_OPEN); }
 const HUNT_SCENES = ["flightOut", "pasture", "encounter", "bite", "flightHome"];   // P13: the HUD shows dark hours only here
+let HUD_TIGHT = {w: 0, flags: 99, on: false};
 function wydHud(){
   const h = $("#wyd-hud"); if(!h || !G) return;
   /* P27 (Bryson: "make the blood and stamina in the hud just a full bar, no longer 3 segments
@@ -806,12 +1047,24 @@ function wydHud(){
       lowCost: Math.round(100 / BAT.staminaPerNight),
       sickCost: Math.round(BAT.roosts.sickStamina * 100 / BAT.staminaPerNight),
       hurtCost: Math.round(BAT.roosts.injuryStamina * 100 / BAT.staminaPerNight)}),
-    groomed: fill(COPY.tipGroomed, {thr: Math.round(BAT.infestBelow*100), drain: bp(BAT.parasiteDrain)}), mites:COPY.tipMites, roost:COPY.tipRoost, score:COPY.tipScore, state:COPY.tipState, sound:COPY.tipSound};
+    groomed: fill(COPY.tipGroomed, {thr: Math.round(BAT.infestBelow*100), drain: bp(BAT.parasiteDrain)}), mites:fill(COPY.tipMites, {drain: bp(BAT.parasiteDrain)}), roost:COPY.tipRoost, score:COPY.tipScore, state:COPY.tipState, sound:COPY.tipSound};
   const tip = (k, extra)=> `data-tip="${esc(T[k] + (extra || ""))}" title="${esc(T[k] + (extra || ""))}" tabindex="0"`;
-  h.innerHTML = `<div class="wyd-ghud">
-    <div class="gstat wyd-c-night" ${tip("night")}><span class="gl">${fill(onPhone() ? COPY.hudNightShort : COPY.hudNight, {cond: (G.cond ? G.cond.icon + " " + condTag(G) : "")})}</span><span class="gv">${G.night}<span class="wyd-of">/${BAT.nights}</span></span></div>
-    <div class="gstat wyd-c-blood" data-pts="${bp(G.energy)}" ${tip("blood")}><span class="gl">${fill(COPY.hudBlood, {n: bp(G.energy)})}${onPhone() ? "" : `<span class="wyd-of">/${BLOOD_MAX}</span>`}</span><div class="wyd-bloodbar wyd-bar1">${cells}</div></div>
-    <div class="gstat wyd-c-stam" data-pct="${pctI(staminaFrac(G))}" ${tip("stamina")}><span class="gl">${fill(COPY.hudStamina, {n: pctI(staminaFrac(G))})}${onPhone() ? "" : `<span class="wyd-of">/${BLOOD_MAX}</span>`}</span><div class="wyd-pips wyd-stam wyd-bar1">${pips}</div></div>
+  /* P37 phones: what the one-row bar hides, flagged on the night cell (the sheet behind it says more) */
+  const evNow = (G.events || []).some(ev=> ev.night === G.night && ev.fired && !ev.hidden) || !!(G.event && G.scene === "dawn");
+  const flagList = [];
+  if(G.parasites || (G.hygiene || 0) < BAT.infestBelow) flagList.push([`mite${G.parasites ? " bad" : ""}`, "🕷", G.parasites ? COPY.hudMites : COPY.flagMites]);
+  if(G.sick) flagList.push(["hot", "🤒", COPY.hudSick]);
+  if(G.hurt) flagList.push(["hot", "🩹", COPY.hudHurt]);
+  if(evNow) flagList.push(["ev", "✨", COPY.flagEvent]);
+  /* on a narrow phone, or with flags on the night cell, the two bars drop their words when the words would
+     be clipped (the drop and the bolt stay, and a tap still explains each): a clipped number is worse than a
+     short label. Decided by measuring, below; HUD_TIGHT remembers it for this width so it does not flicker. */
+  const tightHud = onPhone() && HUD_TIGHT.w === window.innerWidth && HUD_TIGHT.flags <= flagList.length && HUD_TIGHT.on;
+  const flags = flagList.length ? `<span class="wyd-hflags" role="img" aria-label="${esc(flagList.map(f=> stripTags(f[2])).join(", "))}">${flagList.map(f=> `<i class="wyd-hflag ${f[0]}" aria-hidden="true">${f[1]}</i>`).join("")}</span>` : "";
+  h.innerHTML = `<div class="wyd-ghud${flagList.length ? " wyd-ghud--flags" : ""}">
+    <div class="gstat wyd-c-night" ${tip("night")}><span class="gl">${fill(onPhone() ? COPY.hudNightShort : COPY.hudNight, {cond: (G.cond ? G.cond.icon + " " + condTag(G) : "")})}</span><span class="gv">${G.night}<span class="wyd-of">/${BAT.nights}</span>${flags}</span></div>
+    <div class="gstat wyd-c-blood" data-pts="${bp(G.energy)}" ${tip("blood")}><span class="gl">${fill(tightHud ? COPY.hudBloodTight : COPY.hudBlood, {n: bp(G.energy)})}${onPhone() ? "" : `<span class="wyd-of">/${BLOOD_MAX}</span>`}</span><div class="wyd-bloodbar wyd-bar1">${cells}</div></div>
+    <div class="gstat wyd-c-stam${G.scene === "dawn" ? "" : " wyd-stam-idle"}" data-pct="${pctI(staminaFrac(G))}" ${tip("stamina", G.scene === "dawn" ? "" : " " + COPY.tipStaminaNight)}><span class="gl">${fill(tightHud ? COPY.hudStaminaTight : COPY.hudStamina, {n: pctI(staminaFrac(G))})}${onPhone() ? "" : `<span class="wyd-of">/${BLOOD_MAX}</span>`}</span><div class="wyd-pips wyd-stam wyd-bar1">${pips}</div></div>
     <div class="gstat wyd-c-mite" ${tip(G.parasites ? "mites" : "groomed")}><span class="gl">${G.parasites ? COPY.hudMites : fill(COPY.hudMiteRisk, {n: 100 - hygPct})}</span><div class="wyd-bloodbar wyd-hyg${G.parasites ? " bad" : (G.hygiene < BAT.infestBelow ? " warn" : "")}"><i><b style="transform:scaleX(${G.parasites ? 1 : (1 - (G.hygiene||0)).toFixed(2)})"></b></i></div></div>
     ${skillHud(G)}
     ${state ? `<div class="gstat wyd-hudstate" ${tip("state")}>${state}</div>` : ""}
@@ -819,11 +1072,15 @@ function wydHud(){
     <div class="gstat wyd-scorecell" ${tip("score")}><span class="gl">${COPY.hudScore}</span><span class="gv">${Math.round(G.score)}</span></div>
     <div class="gstat wyd-ctrlcell"><span class="gl">${COPY.hudControls}</span><button type="button" class="wyd-soundbtn wyd-menubtn" id="wyd-menu" aria-label="${esc(COPY.tipMenu)}" title="${esc(COPY.tipMenu)}">⋯</button><div class="wyd-hudbtns">
       <button type="button" class="wyd-soundbtn wyd-logbtn" id="wyd-logtoggle" aria-pressed="${LOG_OPEN ? "true" : "false"}" aria-label="${esc(COPY.tipLog)}" data-tip="${esc(COPY.tipLog)}" title="${esc(COPY.tipLog)}">📜</button>
-      <button type="button" class="wyd-soundbtn" id="wyd-sound" aria-pressed="${window.WydSound && WydSound.isOn() ? "true" : "false"}" aria-label="${esc(COPY.tipSound)}" data-tip="${esc(COPY.tipSound)}" title="${esc(COPY.tipSound)}">${window.WydSound && WydSound.isOn() ? "🔊" : "🔇"}</button>
+      <button type="button" class="wyd-soundbtn" id="wyd-sound" aria-haspopup="dialog" data-on="${soundAny() ? "1" : "0"}" aria-label="${esc(COPY.tipSound)}" data-tip="${esc(COPY.tipSound)}" title="${esc(COPY.tipSound)}">${soundGlyph()}</button>
       <button type="button" class="wyd-soundbtn wyd-helpbtn" id="wyd-help" aria-label="${esc(COPY.tipHelp)}" data-tip="${esc(COPY.tipHelp)}" title="${esc(COPY.tipHelp)}">❔</button>
       <button type="button" class="wyd-soundbtn wyd-exitbtn" id="wyd-hudexit" aria-label="${esc(COPY.tipExit)}" data-tip="${esc(COPY.tipExit)}" title="${esc(COPY.tipExit)}">✕</button>
     </div></div>
   </div><div class="wyd-hudtip${restOn(G) ? " on wyd-hudtip--rest" : ""}" id="wyd-hudtip" aria-live="polite">${restOn(G) ? COPY.hudTipPrompt : ""}</div>`;
+  if(onPhone() && !tightHud){
+    const clipped = Array.from(h.querySelectorAll(".wyd-c-blood > .gl, .wyd-c-stam > .gl")).some(el=> el.scrollWidth > el.clientWidth + 1);
+    if(clipped){ HUD_TIGHT = {w: window.innerWidth, flags: flagList.length, on: true}; return wydHud(); }
+  }
   wireHudTips(h);
   h.querySelectorAll("[title]").forEach(el=> el.removeAttribute("title"));   // P15 (Bryson): the strip under the HUD is the one explanation; no second native tooltip
   const lg = h.querySelector("#wyd-logtoggle");
@@ -832,7 +1089,7 @@ function wydHud(){
   if(xb) xb.onclick = e=>{ e.stopPropagation(); sfx("click"); const ex = document.getElementById("wyd-exit"); if(ex) ex.click(); };
   applyLogOpen();
   const sb = h.querySelector("#wyd-sound");
-  if(sb) sb.onclick = e=>{ e.stopPropagation(); if(!window.WydSound) return; const now = WydSound.toggle(); sb.textContent = now ? "🔊" : "🔇"; sb.setAttribute("aria-pressed", now ? "true" : "false"); };
+  if(sb) sb.onclick = e=>{ e.stopPropagation(); if(!window.WydSound) return; soundPanel(); };   // P37 D3: the three switches
   const hb = h.querySelector("#wyd-help");
   if(hb) hb.onclick = e=>{ e.stopPropagation(); sfx("click"); helpPopup(G.scene === "dawn" ? "dawn" : "night"); };
   const mb = h.querySelector("#wyd-menu");
@@ -844,8 +1101,14 @@ function wydHud(){
     el.addEventListener("keydown", e=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); } });
   });
   // P9: every icon in the year / events cell reopens its popup on tap or Enter
-  h.querySelectorAll(".wyd-ev[role=button]").forEach(el=>{
+  wireEvIcons(h);
+}
+/* the year / event icons open their popups; P37: the same icons inside the phone's night sheet
+   close the sheet first (pre), so the popup they open is not queued behind it */
+function wireEvIcons(root, pre){
+  root.querySelectorAll(".wyd-ev[role=button]").forEach(el=>{
     const open = ()=>{
+      if(pre) pre();
       sfx("click");
       if(el.dataset.year) yearPopup(el.dataset.year);
       else if(el.dataset.season) seasonPopup(G);
@@ -856,6 +1119,28 @@ function wydHud(){
     el.addEventListener("click", e=>{ e.stopPropagation(); open(); });
     el.addEventListener("keydown", e=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); } });
   });
+}
+/* P37 phones: the status bar is one row (night, blood, stamina, score, the menu). What it no longer
+   shows (the mite risk, the sick and wounded chips, the year and event icons) is one tap away: the
+   night cell opens this sheet, built from the same cells the desktop bar draws, so the two cannot
+   disagree. A small flag on the night cell says when something in it needs a look. */
+function nightSheetPopup(G){
+  const h = $("#wyd-hud"); if(!h) return;
+  const grab = sel=>{ const el = h.querySelector(sel); return el ? el.outerHTML : ""; };
+  const tipOf = sel=>{ const el = h.querySelector(sel); return el && el.dataset.tip ? `<p class="wyd-story wyd-sheettip">${esc(el.dataset.tip)}</p>` : ""; };
+  const night = h.querySelector(".wyd-c-night");
+  const ev = grab(".wyd-evcell");
+  popup({kind:"sheet", kicker: COPY.sheetKicker, title: esc(fill(COPY.hudNight, {cond: (G.cond ? G.cond.icon + " " + condTag(G) : "")})),
+    body: `${night && night.dataset.tip ? `<p class="wyd-story">${esc(night.dataset.tip)}</p>` : ""}
+      <div class="wyd-sheet">
+        <p class="gl wyd-sheethead">${COPY.sheetYou}</p>
+        <div class="wyd-sheetrow">${grab(".wyd-c-mite")}${tipOf(".wyd-c-mite")}</div>
+        ${h.querySelector(".wyd-hudstate") ? `<div class="wyd-sheetrow">${Array.from(h.querySelectorAll(".wyd-hudstate .wyd-hudchip")).map(c=> `<div class="wyd-sheetchip">${c.outerHTML}<p class="wyd-story wyd-sheettip">${esc(c.dataset.tip || "")}</p></div>`).join("")}</div>` : ""}
+        ${ev ? `<p class="gl wyd-sheethead">${COPY.sheetEvents}</p><div class="wyd-sheetrow wyd-sheetev">${ev}</div>` : ""}
+      </div>`});
+  const m = document.getElementById("wyd-modal"); if(!m) return;
+  m.querySelectorAll("[tabindex]:not(.wyd-ev)").forEach(el=> el.removeAttribute("tabindex"));
+  wireEvIcons(m, closePopup);
 }
 /* the explanation strip under the HUD: hovering or focusing a stat writes its data-tip there (one
    strip, never clipped at the edge of a phone); wired once per HUD element */
@@ -882,6 +1167,7 @@ function wireHudTips(h){
     const g = e.target.closest && e.target.closest("[data-tip]");
     if(!g || ownPopup(g) || !g.dataset.tip) return false;
     e.preventDefault(); e.stopPropagation();
+    if(g.classList.contains("wyd-c-night")){ sfx("click"); nightSheetPopup(G); return true; }   // P37: the night opens the sheet
     const lab = g.querySelector(".gl");
     const title = ((lab ? lab.textContent : g.textContent) || "").replace(/\s+/g, " ").trim();
     sfx("click");
@@ -995,7 +1281,8 @@ const COND_ICON = {storm:"⛈", squall:"🌧", rich:"✨", bright:"🌕", dim:"�
 const condTag = G=> (G.cond && COPY["condTag" + cap(G.cond.key)]) || "";
 /* the resting "tap any bar" nudge: night 1 only, and never on the dawn, whose phone layout is
    built to a few pixels of spare height (P23/P24). */
-const restOn = G=> !!G && G.night <= 1 && G.scene !== "dawn";
+const restOn = G=> !!G && G.night <= 1 && G.scene !== "dawn" && !coachOn(G);   // P37: with tips on the coach lines do the teaching, and the strip's line is room they need
+const droughtOn = G=> (G.events || []).some(ev=> ev.key === "drought" && ev.fired && ev.left > 0);
 function rollConditions(night){
   const m = moonMod(night);
   const vars = {burnHard: bp(BAT.unfedBurnHard), burn: bp(BAT.unfedBurn), stormTicks: BAT.stormTicks, ticks: BAT.ticks};
@@ -1006,7 +1293,9 @@ function rollConditions(night){
     return mk("storm", m.mod + BAT.stormMod, true, false, night === BAT.nights ? COPY.condStormLast : COPY.condStormMore);
   if(night > BAT.rampNights && night < BAT.stormStart && roll() < BAT.squallP)
     return mk("squall", m.mod + BAT.squallMod, true, false);
-  if(m.mod === 0 && roll() < BAT.richP)
+  /* P37 A8: no "the herd moved into the near valley" while a drought thins the herds. The roll is still
+     made and its result ignored, so a drought changes nothing else in the night's dice. */
+  if(m.mod === 0 && roll() < BAT.richP && !droughtOn(G))
     return mk("rich", BAT.richMod, false, true);
   return mk(m.moon, m.mod, false, false);
 }
@@ -1117,7 +1406,7 @@ function commitDusk(G, key){
   const R = G.run;
   const storm = G.cond.key === "storm";
   const woke = G.myRoost;
-  R.roost = woke;
+  R.roost = woke; R.woke = woke;   // P37: the hunt's roost trades are read at the roost you woke at
   R.pasture = key; R.far = !!PASTURES[key].far;
   R.scouted = R.far && ROOST_TYPES[G.roosts[woke].type].pasture === "far";
   R.board = dealBoard(G, key);
@@ -1129,10 +1418,14 @@ function commitDusk(G, key){
 }
 /* P10 addendum B: the flight home. You pick tonight's roost, then you arrive: a close friend may
    bring up part of her meal if you came home hungry, or, if the crop is empty, you beg. */
+/* P37 A7: where a locked night (night 1, a storm) sends you: the hollow, or, if a big storm took the
+   hollow, the roost you already sleep at (bigstorm moves G.myRoost off a wiped roost). The locked card,
+   its copy and commitRoost all read this, so the card shows the roost you actually wake at. */
+const lockedRoost = G=> (G.roosts[0] && !G.roosts[0].gone) ? 0 : G.myRoost;
 function commitRoost(G, sel){
   const R = G.run;
   const storm = G.cond.key === "storm";
-  if(storm || G.night === 1) sel = 0;
+  if(storm || G.night === 1) sel = lockedRoost(G);
   if(typeof sel !== "number" || !G.roosts[sel] || G.roosts[sel].gone) sel = G.myRoost;
   if(sel !== G.myRoost) G.ledger.nightsAway++;
   G.myRoost = sel; G.roostSel = sel;
@@ -1164,7 +1457,9 @@ function friendFeed(G){
 /* the arrival at the roost you picked: the beg (no blood left) or a friend's meal, then the dawn */
 function resolveArrival(G){
   const R = G.run;
-  if(R.fedTonight || G.energy > 0){
+  /* P37 A11: arriving with no blood means the beg, fed or not. A meal smaller than the mite drain used
+     to end a fed night at 0 with no beg (a free night at zero). Every other path rolls exactly as before. */
+  if(G.energy > 0){
     if(!R.fedTonight) friendFeed(G);
     R.arrival = "dawn";
     flyHome(G);
@@ -1213,28 +1508,60 @@ function begAtRoost(G){
   R.begOutcome = "death";
   R.arrival = "begWait";
 }
-const unfedBurnFor = G=> (G.cond.key === "squall" || G.cond.key === "storm" || G.run.far) ? BAT.unfedBurnHard : BAT.unfedBurn;
+/* P37 trades: a far miss flown from the outpost burns its farMissBurn; a calm near miss from the barn
+   burns its missBurn (no flight home). Storms and squalls keep the hard burn. As batsim9 miss_burn. */
+const unfedBurnFor = G=>{
+  const hard = G.cond.key === "squall" || G.cond.key === "storm" || G.run.far, w = wokeAt(G);
+  if(hard && G.run.far){ const fm = tradeVal(G, w, "farMissBurn", null); if(fm !== null) return fm; }
+  if(hard) return BAT.unfedBurnHard;
+  return tradeVal(G, w, "missBurn", BAT.unfedBurn);
+};
 const damperOn = G=> G.missStreak >= BAT.damperAfter;
 const desperate = G=> G.energy <= BAT.desperateAt;
 
+/* P37 C3/B5: the far valley's trade, in the numbers the engine uses (the dusk button and the test
+   both read this): points on top of a meal, the meal factor, the room left in your crop, the share
+   of occupants that stay away, the bite penalty (less if you scouted from the outpost), and the
+   blood an unfed night out there burns. All on the 0 to 100 scale the HUD shows. */
+function farTrade(G, scouts){
+  return {pts: BAT.pts.farFed, yield: PASTURES.far.yieldMult || 1,
+    room: bp(Math.max(0, BAT.energyCap - G.energy)),
+    free: Math.round((1 - (PASTURES.far.occMult || 1)) * 100),
+    fail: Math.round((BAT.farFail + (scouts ? tradeVal(G, G.myRoost, "scoutMod", BAT.scoutMod) : 0)) * 100),
+    burn: bp(tradeVal(G, G.myRoost, "farMissBurn", BAT.unfedBurnHard))};
+}
 /* ── scene: dusk (conditions + pasture choice) ── */
 const roundLabel = (G, tail)=> `${G.cond.icon} Night ${G.night} of ${BAT.nights} · ${tail}`;
+/* P37 (D1): night 1's dusk had one button and nothing to decide, so it is passed through: the hunt is
+   committed at once and the night opens on the flight out (or the pasture under reduced motion). The id is
+   the button's, so the play log reads the same. A surprise landing tonight keeps the card (never on night 1). */
+const DUSK_PASS = {id:"wyd-hunt-near", apply: G=> commitDusk(G, "near"), goto:"flightOut"};
 const SCENE_DUSK = {
   label: G=> roundLabel(G, "dusk"),
   mode: "night",
   next: ["flightOut"],
+  auto: G=> (G.night === 1 && !G.cond.stormy && !(G.events || []).some(ev=> ev.fired && ev.night === G.night)) ? DUSK_PASS : null,
   render(G){
     const grief = G.deaths.length && G.deathsFresh
       ? `<p class="wyd-story wyd-grief">${fill(COPY.grief, {names: esc(G.deathsFresh)})}</p>` : "";
+    /* P37 A10: a starving roost-mate you did not feed, saved while you slept by another bat. The first
+       screen after the sleep, where a death beside you is reported too. */
+    const saves = (G.savesFresh || []).length
+      ? `<p class="wyd-story wyd-saved">${G.savesFresh.map(x=> fill(COPY.savedInNight, {by: esc(x.by), name: esc(x.name)})).join(" ")}</p>` : "";
     const stormNear = G.night === BAT.stormStart-2 ? `<p class="wyd-story"><strong>${COPY.stormWarn}</strong></p>` : "";
     const damper = damperOn(G) ? `<p class="wyd-story wyd-damper"><strong>${COPY.damper}</strong> ${fill(COPY.damperNote, {n: G.missStreak, mod: fmtTerm(BAT.damperMod)})}</p>` : "";
     const canFar = G.night >= BAT.farFrom && G.night <= BAT.farTo && !G.cond.stormy && !mods(G).farClosed;
     const storm = G.cond.key === "storm";
     const desp = desperate(G);
     const scouts = ROOST_TYPES[G.roosts[G.myRoost].type].pasture === "far";   // P10: you fly out of the roost you woke at
-    const farSub = scouts
-      ? fill(COPY.huntFarStatsScouted, {n:"one to five", scout: fmtTerm(BAT.farFail + BAT.scoutMod), scoutPct: Math.round((BAT.farFail + BAT.scoutMod)*100), farFail: Math.round(BAT.farFail*100), burnHard: bp(BAT.unfedBurnHard), farYield: fmtN(PASTURES.far.yieldMult || 1), farFree: Math.round((1 - (PASTURES.far.occMult || 1))*100)})
-      : fill(COPY.huntFarStats, {farFail: Math.round(BAT.farFail*100), burnHard: bp(BAT.unfedBurnHard), farYield: fmtN(PASTURES.far.yieldMult || 1), farFree: Math.round((1 - (PASTURES.far.occMult || 1))*100)});
+    /* P37 C3/B5: the button states the whole trade with tonight's numbers: the points a far meal
+       pays, how much bigger the meals are AND how much of one your crop can take tonight (on a full
+       crop the bigger meal is worth nothing), fewer bats, the bite penalty and the long flight's burn */
+    const FT = farTrade(G, scouts);
+    const farSub = fill(scouts ? COPY.huntFarStatsScouted : COPY.huntFarStats, {pts: FT.pts, farYield: fmtN(FT.yield), room: FT.room,
+      farFree: FT.free, farFail: Math.round(BAT.farFail*100), burnHard: FT.burn,
+      odds: fill(FT.fail > 0 ? COPY.farHarder : COPY.farEasier, {n: Math.abs(FT.fail)})});
+    const farData = `data-pts="${FT.pts}" data-yield="${FT.yield}" data-room="${FT.room}" data-free="${FT.free}" data-fail="${FT.fail}" data-burn="${FT.burn}"`;
     let choices;
     if(G.night <= BAT.rampNights)
       choices = `<button class="btnx btnx--solid" id="wyd-hunt-near">${COPY.huntNight1Label}</button>`;
@@ -1242,24 +1569,29 @@ const SCENE_DUSK = {
       choices = `<button class="btnx btnx--solid" id="wyd-hunt-near">${COPY.huntNearLabel} <span class="sub">${fill(COPY.huntStormSub, {ticks: BAT.stormTicks})}</span></button>`;
     else if(canFar)
       choices = `<button class="btnx wyd-huntopt" id="wyd-hunt-near">${COPY.huntNearLabel}</button>
-         <button class="btnx wyd-huntopt${desp ? " wyd-desperate" : ""}" id="wyd-hunt-far">${COPY.huntFarLabel} <span class="sub">${farSub}${desp ? ` · <span class="wyd-deslabel">${COPY.desperate}</span>` : ""}</span></button>`;
+         <button class="btnx wyd-huntopt${desp ? " wyd-desperate" : ""}" id="wyd-hunt-far" ${farData}>${COPY.huntFarLabel} <span class="sub">${farSub}${desp ? ` · <span class="wyd-deslabel">${COPY.desperate}</span>` : ""}</span></button>`;
     else
       choices = `<button class="btnx btnx--solid" id="wyd-hunt-near">${COPY.huntNearLabel}${G.cond.stormy ? ` <span class="sub">${COPY.huntRainSub}</span>` : ""}</button>`;
     // P9: the season cues and tonight's event live in popups + HUD icons now (pops below), not in the scene
     return `<div class="wyd-round">${roundLabel(G, "dusk")}</div>
       <h3>${G.cond.head}</h3>
-      <p class="wyd-story">${G.cond.text}</p>
-      ${grief}${stormNear}${damper}
+      <p class="wyd-story${G.night === BRIEF_NIGHT ? " wyd-condtext--brief" : ""}">${G.cond.text}</p>
+      ${grief}${saves}${stormNear}${damper}
+      ${G.night === BRIEF_NIGHT ? yearBrief(G) : ""}
       <div class="wyd-choices">${choices}</div>`;
   },
   choices: ()=> [
     {id:"wyd-hunt-near", apply: G=> commitDusk(G, G.cond.key === "storm" ? "storm" : "near"), goto:"flightOut"},
     {id:"wyd-hunt-far",  apply: G=> commitDusk(G, "far"), goto:"flightOut"},
   ],
-  /* P9: the first dusk's briefing (years + season cues), then any surprise that landed tonight */
+  /* P37 (B1): the year rows on the night-2 dusk open the year's popup, numbers and all */
+  wire(G){
+    $$("#wyd-scene .wyd-yrrow[data-year]").forEach(b=>{ b.onclick = ()=>{ sfx("click"); yearPopup(b.dataset.year); }; });
+  },
+  /* P9: any surprise that landed tonight. P37 (B1): the night-1 briefing popup is gone; the years are read
+     on the night-2 dusk (yearBrief) and from their HUD icons from night 1 */
   pops(G){
     G.pops = G.pops || {};
-    if(G.night === 1 && !G.pops.brief){ G.pops.brief = true; briefingPopup(G); }
     (G.events || []).forEach(ev=>{
       const k = "ev:" + ev.key + ":" + ev.night;
       if(ev.fired && ev.night === G.night && ev.text && !G.pops[k]){ G.pops[k] = true; eventPopup(G, ev, false); }
@@ -1271,14 +1603,13 @@ const SCENE_DUSK = {
    these belong to the roostPick scene on the flight home, not to the dusk. ── */
 function roostCards(G){
   const K = BAT.roosts, storm = G.cond.key === "storm", locked = storm || G.night === 1;
-  const selR = typeof G.roostSel === "number" ? G.roostSel : G.myRoost;
-  const intro = G.night === 1 ? COPY.sleepNight1 : storm ? COPY.stormDusk : COPY.sleepIntro;
+  const selR = locked ? lockedRoost(G) : (typeof G.roostSel === "number" ? G.roostSel : G.myRoost);   // P37 A7
   // P6b: on a pick night the stage above carries the roosts; the panel below describes the
   // selected one (cards only on locked nights, where the hollow alone is shown, disabled)
   // P18 (Bryson): on a pick night EVERY standing roost gets a compact card (tap = pick); nothing is
   // selected until the player picks. Locked nights keep the single hollow card.
   const picked = !locked && G.run && G.run.roostPicked;
-  const list = (locked ? [G.roosts[G.myRoost] || G.roosts[0]] : G.roosts).filter(r=> r && !r.gone);
+  const list = (locked ? [G.roosts[lockedRoost(G)]] : G.roosts).filter(r=> r && !r.gone);   // P37 A7: the roost the storm actually sends you to
   const guarded = roostGuarded(G);   // P32: at 0 blood, a roost where nobody can be begged is a death sentence and says so
   const cards = list.map(r=>{
     const T = ROOST_TYPES[r.type];
@@ -1286,36 +1617,70 @@ function roostCards(G){
     if(r.id === 0) tags.push(COPY.roostHome);
     if(r.id === G.myRoost && G.night > 1) tags.push(COPY.roostYou);
     if(!r.known) tags.push(COPY.roostUnknown);
-    // P25 finding 14: the outpost advertised a far-valley bonus on night 2, one night before the
-    // far valley is ever offered. Before it opens, the tag says when it opens instead.
-    if(T.pasture === "far") tags.push(G.night + 1 >= BAT.farFrom
-      ? fill(COPY.roostScouts, {mod: fmtTerm(BAT.scoutMod)})
-      : fill(COPY.roostScoutsSoon, {n: BAT.farFrom}));
+    // P37 C3/B4: the outpost's scouting moved from a tag to the card's trade line (roostTrade)
     let body;
     if(r.known){
-      const res = roostResidents(G, r.id);
+      const res = roostTonight(G, r.id);   // P37 A4: tonight's sleepers, not last night's membership
       const friends = res.filter(p=> p.trust >= K.knownTrust).sort((a,b)=> b.trust - a.trust);
       const lines = [fill(COPY.roostKnownSub, {n: res.length})];
       if(friends.length) lines.push(fill(COPY.roostFriends, {names: friends.slice(0,3).map(p=> esc(p.name)).join(", ") + (friends.length > 3 ? ` and ${friends.length-3} more` : "")}));
       body = `<span class="rc-sub">${lines.join(" · ")}</span>`
         + (r.sick || r.hurt ? `<span class="rc-haz">${[r.sick ? COPY.roostSickHere : "", r.hurt ? COPY.roostHurtHere : ""].filter(Boolean).join(" · ")}</span>` : "");
     } else {
-      const voice = G.partners.find(p=> p.alive && p.homeRoost === r.id && p.trust >= K.contactCallTrust);
+      /* P37 A4: a familiar voice is a bat you know (knownTrust, the stranger-beg floor too) who sleeps there TONIGHT */
+      const voice = roostTonight(G, r.id).filter(p=> p.trust >= K.knownTrust).sort((a, b)=> b.trust - a.trust)[0];
       body = `<span class="rc-sub">${esc(T.fiction)}</span><span class="rc-rumor">${voice ? fill(COPY.roostRumor, {roost: esc(T.name), name: esc(voice.name)}) : COPY.roostNoRumor}</span>`;
     }
     const sel = locked ? r.id === selR : (picked && r.id === selR);
     const guard = !locked && guarded.has(r.id);
-    const short = r.known ? fill(COPY.roostShortKnown, {n: roostResidents(G, r.id).length, f: roostResidents(G, r.id).filter(p=> p.trust >= K.knownTrust).length}) : COPY.roostShortNew;   // P19: the phone card's stat
-    return `<div class="wyd-roostcard wyd-intel${sel ? " sel" : ""}${r.known ? " known" : " unknown"}${locked ? "" : " pickable"}${guard ? " guarded" : ""}" id="wyd-roost-${r.id}" data-roost="${r.id}"${guard ? ' data-guard="1" aria-disabled="true"' : ""}${locked ? "" : ' role="button" tabindex="0"'}>
+    const short = r.known ? fill(COPY.roostShortKnown, {n: roostTonight(G, r.id).length, f: roostTonight(G, r.id).filter(p=> p.trust >= K.knownTrust).length}) : COPY.roostShortNew;   // P19: the phone card's stat; P37 A4: tonight
+    const trade = roostTrade(G, r);   // P37 C3/B4: what sleeping here changes, in the engine's numbers
+    return `<div class="wyd-roostcard wyd-intel${sel ? " sel" : ""}${r.known ? " known" : " unknown"}${locked ? "" : " pickable"}${guard ? " guarded" : ""}" id="wyd-roost-${r.id}" data-roost="${r.id}"${trade ? ` data-trade="${trade.key}"` : ""}${guard ? ' data-guard="1" aria-disabled="true"' : ""}${locked ? "" : ' role="button" tabindex="0"'}>
       <span class="rc-name">${esc(cap(T.name))}</span>
       ${tags.length ? `<span class="rc-tags">${tags.map(t=> `<span class="wyd-ptag${t === COPY.roostUnknown ? "" : " good"}">${t}</span>`).join("")}</span>` : ""}
       <span class="rc-short">${esc(short)}</span>
+      ${trade ? `<span class="rc-trade">${trade.text}</span><span class="rc-trade-s">${trade.short}</span>` : ""}
       ${body}${guard ? `<span class="rc-guard">${COPY.roostGuard}</span>` : ""}
     </div>`;
   }).join("");
   return `<div class="wyd-sleep">
     <div class="wyd-roostcards${locked ? "" : " wyd-roostcards--all"}" style="--n:${list.length}" aria-live="polite">${cards}</div>
   </div>`;
+}
+/* P37 C3/B4: the one line on a roost card that says what sleeping there changes, built from the
+   numbers the engine uses (null for home). The roost types carry their trade in bat-data.js
+   (ROOST_TYPES[type].trade); today only the outpost changes a rule (it scouts the far valley), so
+   the other away roosts say plainly that nothing there helps you hunt. */
+function roostTrade(G, r){
+  if(!r || r.id === 0) return null;
+  const T = ROOST_TYPES[r.type], t = (T && T.trade) || {}, K = BAT.roosts, first = !r.known;
+  const none = {key: "none", text: COPY.tradeNone, short: COPY.tradeNoneShort};
+  const v = {usual: bp(BAT.unfedBurn), usualFar: bp(BAT.unfedBurnHard)};
+  if(r.type === "barn" && t.missBurn !== undefined){
+    /* the wound chance at the trade's floor (the roost's own hidden score may be higher), so "at least" */
+    const ally = G.partners.some(p=> p.alive && p.tonightRoost === r.id && p.homeRoost === r.id && p.trust >= K.allyTrust);
+    Object.assign(v, {near: Math.round(-(t.nearFail || 0) * 100), burn: bp(t.missBurn), p: Math.round(roostHurtP(G, r, first, 0) * 100)});
+    if(ally) v.p = 0;
+    return {key: r.type, text: fill(COPY.tradeBarn, v) + " " + (ally ? COPY.tradeBarnSafe : fill(COPY.tradeBarnRisk, v)), short: fill(COPY.tradeBarnShort, v)};
+  }
+  if(r.type === "mango" && t.warmMult !== undefined){
+    /* the roost's disease score is hidden: the chance at its mean (0.5), so "about" */
+    Object.assign(v, {n: t.sizeFloor, warm: fmtN(t.warmMult), p: Math.round(roostSickP(G, r, first, 0.5) * 100)});
+    return {key: r.type, text: fill(COPY.tradeMango, v), short: fill(COPY.tradeMangoShort, v)};
+  }
+  if(r.type === "culvert" && t.heal){
+    Object.assign(v, {cap: t.sizeCap, contact: Math.round((1 - t.contactMult) * 100)});
+    return {key: r.type, text: fill(COPY.tradeCulvert, v), short: fill(COPY.tradeCulvertShort, v)};
+  }
+  if(r.type === "outpost"){
+    const tomorrow = G.night + 1, open = tomorrow >= BAT.farFrom && tomorrow <= BAT.farTo;
+    const mm = moonMod(tomorrow).moon;
+    Object.assign(v, {s: Math.round(-tradeVal(G, r.id, "scoutMod", BAT.scoutMod) * 100), burn: bp(tradeVal(G, r.id, "farMissBurn", BAT.unfedBurnHard)),
+      cold: bp(t.coldBurn || 0), n: BAT.farFrom, moon: COPY["moonWord" + cap(mm)] || mm});
+    const head = tomorrow < BAT.farFrom ? fill(COPY.tradeOutpostSoon, v) + " " : "";
+    return {key: r.type, text: head + fill(COPY.tradeOutpost, v) + (open ? " " + fill(COPY.tradeMoon, v) : ""), short: fill(COPY.tradeOutpostShort, v)};
+  }
+  return none;
 }
 /* P32: the roosts where the beg would find nobody tonight, when you are arriving with no blood. The rule is
    begAtRoost's: present, fed, and trusting you at least rescueMinTrust, or strangerShareTrust on a first night
@@ -1337,7 +1702,8 @@ function roostGuarded(G){
 /* P11: the intro sentence lives in the left column of the two-column roostPick panel */
 function roostIntro(G){
   const storm = G.cond.key === "storm", locked = storm || G.night === 1;
-  const intro = G.night === 1 ? COPY.sleepNight1 : storm ? COPY.stormDusk : COPY.sleepIntro;
+  const stormLine = lockedRoost(G) === 0 ? COPY.stormDusk : fill(COPY.stormDuskAway, {roost: esc(roostName(lockedRoost(G)))});   // P37 A7: not "the hollow" once a storm took it
+  const intro = G.night === 1 ? COPY.sleepNight1 : storm ? stormLine : COPY.sleepIntro;
   return `<p class="wyd-story wyd-sleepintro">${intro}${locked ? "" : " " + COPY.roostTapHint}</p>`;
 }
 
@@ -1352,18 +1718,24 @@ const SCENE_FLIGHTOUT = {
   next: ["pasture"],
   auto: ()=> reduceMotion() ? FLIGHT_LAND : null,
   render(G){
+    /* P37 (D1): night 1 opens here (its dusk is passed through), so the flight carries Bryson's welcome and
+       the night's sky, or with tips on the first coach line */
+    const first = G.night === 1;
+    const story = !first || coachOn(G) ? "" : G.cond.text;
     return `<div class="wyd-round">${roundLabel(G, "flight out")}</div>
-      <p class="wyd-story" id="wyd-flightstory"></p>
-
+      ${first ? `<h3>${COPY.yrHead}</h3>` : ""}
+      <p class="wyd-story" id="wyd-flightstory">${story}</p>
+      ${first ? coachLine(G, "flight", COPY.coachFlight) : ""}
       <div class="wyd-choices"><button class="btnx" id="wyd-skip">${COPY.skip}</button></div>`;
   },
   wire(G){
     let done = false;
     const land = ()=>{ if(done) return; done = true; pick(FLIGHT_LAND); };
     $("#wyd-skip").onclick = land;
+    if(G.night === 1) G.run.flightSeen = true;   // P37: the pasture's coach line skips the welcome it already read
     stageOff();
     const st = ensureStage(G, {look:"roost", phase:"dusk"});
-    const k = G.night === 1 ? 1.4 : 1;
+    const k = G.night === 1 ? (coachOn(G) ? 1.9 : 1.4) : 1;   // P37: a little longer to read the first coach line
     (async ()=>{
       if(!st) return;
       const b = beatToken();
@@ -1402,7 +1774,9 @@ function biteTerms(G, cow, openWound){
   if(c.key === "squall") add("squall", COPY.termSquall, BAT.squallMod, "BAT.squallMod");
   if(c.rich) add("rich", COPY.termRich, BAT.richMod, "BAT.richMod");
   if(G.run.far) add("far", COPY.termFar, BAT.farFail, "BAT.farFail");
-  if(G.run.scouted) add("scout", COPY.termScout, BAT.scoutMod, "BAT.scoutMod");
+  if(G.run.scouted) add("scout", COPY.termScout, tradeVal(G, wokeAt(G), "scoutMod", BAT.scoutMod), "ROOST_TYPES.outpost.trade");   // P37: the outpost's scouting
+  const nf = G.run.far ? 0 : tradeVal(G, wokeAt(G), "nearFail", 0);   // P37: the barn, the herd right below you
+  if(nf) add("herd", COPY.termHerd, nf, "ROOST_TYPES." + G.roosts[wokeAt(G)].type + ".trade");
   if(COW_TABLE[cow.tier].mod) add("tier", cow.tier === "calf" ? COPY.termCalf : COW_TABLE[cow.tier].label.toLowerCase(), COW_TABLE[cow.tier].mod, "COW_TABLE." + cow.tier);
   if(openWound) add("wound", COPY.termWound, BAT.openWoundMod, "BAT.openWoundMod");
   if(damperOn(G)) add("damper", COPY.termDamper, BAT.damperMod, "BAT.damperMod");
@@ -1418,7 +1792,13 @@ function citeLine(terms){
 }
 /* P12: the pasture's own meal factor (the far valley's fat cattle) */
 const pastureYield = G=> (G.run && G.run.pasture && PASTURES[G.run.pasture] && PASTURES[G.run.pasture].yieldMult) || 1;
-const mealOf = (G, cow)=> (COW_TABLE[cow.tier].yield + (G.cond.rich ? BAT.richBonus : 0)) * mods(G).yieldMult * pastureYield(G);   // P7 cattle disease halves every meal
+/* the meal an animal gives: its yield (less the drain on a wound you waited out, never under the floor),
+   the fat-herd bonus, then the year's and the pasture's factors. P37 A3: ONE formula, used by the bite
+   roll (rollBite) and by every number that shows a meal, so the two cannot drift. */
+const mealOf = (G, cow, waited)=> (Math.max(BAT.waitFloor, COW_TABLE[cow.tier].yield - BAT.waitDrain * (waited ? 1 : 0)) + (G.cond.rich ? BAT.richBonus : 0)) * mods(G).yieldMult * pastureYield(G);   // P7 cattle disease halves every meal
+/* P37 A3: how much of a meal your crop can actually take right now (a meal never lifts you past the cap) */
+const mealFits = (G, meal)=> Math.max(0, Math.min(meal, BAT.energyCap - G.energy));
+const mealSpills = (G, meal)=> bp(meal) - bp(mealFits(G, meal)) >= 1;
 function rankChips(p){
   const m = p.metAtCow; if(!m) return "";
   const lastN = kind=>{ const hits = m.nights.filter(x=> x.kind === kind); return hits.length ? hits[hits.length-1].night : 0; };
@@ -1455,7 +1835,7 @@ function intelPanel(G){
     <h4>${T.label} · ${esc(cow.name)}</h4>
     <div class="gl">${T.cue}${desp ? ` · <span class="wyd-deslabel">${COPY.desperate}</span>` : ""}</div>
     <p class="wyd-story intel">${T.intel}</p>
-    <div class="meal wyd-meternum">${fill(COPY.intelMeal, {yield: bp(mealOf(G, cow))})}</div>
+    <div class="meal wyd-meternum">${fill(COPY.intelMeal, {yield: bp(mealOf(G, cow))})}</div>${mealSpills(G, mealOf(G, cow)) ? `<div class="wyd-mealfits">${fill(COPY.intelMealFits, {fits: bp(mealFits(G, mealOf(G, cow)))})}</div>` : ""}
     ${occStar(cow)}
     <div class="wyd-meters--phone">${meters(G, cow, p)}</div>
     ${cue}${locked}
@@ -1483,10 +1863,14 @@ function mountMobInfo(G){
    in crop units (a full crop = BAT.energyCap), drawn as pips of one blood each; the risk bar is
    the fail chance. Verb cards get the same risk bar for their odds (riskBar). */
 function meters(G, cow, p){
-  const meal = mealOf(G, cow);
-  /* P27: the meal reads on the same 0 to 100 scale as the crop it goes into, in one bar */
-  const pips = `<i><b style="transform:scaleX(${clamp(meal / BAT.energyCap, 0, 1).toFixed(3)})"></b></i>`;
-  const mealLbl = fill(COPY.meterMeal, {n: bp(meal), cap: BLOOD_MAX});
+  const meal = mealOf(G, cow), fits = mealFits(G, meal), spill = mealSpills(G, meal);
+  /* P27: the meal reads on the same 0 to 100 scale as the crop it goes into, in one bar.
+     P37 A3: the part your crop can take is solid; the part that would spill is a pale tail */
+  const fitW = clamp(fits / BAT.energyCap, 0, 1), allW = clamp(meal / BAT.energyCap, 0, 1);
+  const pips = spill
+    ? `<i><b style="transform:scaleX(${fitW.toFixed(3)})"></b><b class="spill" style="transform:translateX(${(fitW*100).toFixed(1)}%) scaleX(${(allW - fitW).toFixed(3)})"></b></i>`
+    : `<i><b style="transform:scaleX(${allW.toFixed(3)})"></b></i>`;
+  const mealLbl = spill ? fill(COPY.meterMealFits, {n: bp(meal), fits: bp(fits)}) : fill(COPY.meterMeal, {n: bp(meal), cap: BLOOD_MAX});
   // P25 finding 1: the bar over an animal and the status bar's Skill cell were the same number in
   // opposite directions, so they always summed to 100. Both now say how often the bite LANDS.
   const land = 1 - p;
@@ -1497,10 +1881,15 @@ function meters(G, cow, p){
      that opens the breakdown. Exactly the "same number twice" P25 flagged, resolved the way P25
      suggested considering. */
   const terms = esc(JSON.stringify(hudBiteTerms(G).map(t=> ({key:t.key, v:+t.v.toFixed(4)}))));   // hudBiteTerms returns the array itself
+  /* P37: an occupied animal's open wound makes its bite read BETTER than a free animal's, though you
+     still have to get to it. So it also shows your best single try at getting in, green, under the bite */
+  const getIn = cow && cow.occupied && !cow.locked && cow.occupant ? getInChance(G, cow) : null;
+  const getInLbl = getIn === null ? "" : fill(COPY.meterGetIn, {p: Math.round(getIn*100)});
   return `<div class="wyd-meters">
     <div class="wyd-meter wyd-meter-meal" role="img" aria-label="${esc(mealLbl)}"><span class="gl">${mealLbl}</span><div class="wyd-bloodbar wyd-bar1">${pips}</div></div>
     <div class="wyd-meter wyd-meter-risk wyd-skillsrc" role="button" tabindex="0" aria-label="${esc(landLbl)}"
       data-p="${p.toFixed(4)}" data-skill="${land.toFixed(4)}" data-terms="${terms}"><span class="gl">${landLbl}</span><div class="wyd-riskbar${land < 0.5 ? " bad" : land < 0.75 ? " mid" : ""}"><b style="width:${(land*100).toFixed(0)}%"></b></div></div>
+    ${getIn === null ? "" : `<div class="wyd-meter wyd-meter-getin" role="img" aria-label="${esc(getInLbl)}"><span class="gl">${getInLbl}</span><div class="wyd-riskbar wyd-winbar"><b style="width:${(getIn*100).toFixed(0)}%"></b></div></div>`}
   </div>`;
 }
 /* P28 (Bryson: "dont bother with the note that says you can only hold 100 ... Just add a small star
@@ -1510,13 +1899,35 @@ function meters(G, cow, p){
    spillLine() and COPY.mealSpill are kept unused rather than deleted, in case the note is wanted
    back; nothing calls them. */
 function occStar(cow){
-  return cow && cow.occupied && !cow.locked ? `<p class="wyd-occstar">${COPY.occStar}</p><p class="wyd-occdeal">${onPhone() ? COPY.occDealShort : COPY.occDeal}</p>` : "";   // P32: the cost, which P28 had dropped
+  if(!(cow && cow.occupied && !cow.locked)) return "";
+  /* P32: the cost, which P28 had dropped. P37: said truly. The fed-alone bonus exists only on a prime
+     animal and only sharing the wound gives it up (a won shove or a wait still pays it). */
+  const prime = cow.tier === "prime";
+  const deal = onPhone() ? (prime ? COPY.occDealShort : "") : (prime ? COPY.occDeal : COPY.occDealPlain);
+  return `<p class="wyd-occstar">${COPY.occStar}</p>${deal ? `<p class="wyd-occdeal">${deal}</p>` : ""}`;
 }
 function spillLine(G, cow){
   const over = (G.energy + mealOf(G, cow)) - BAT.energyCap;
   return over > 0.05 ? `<p class="wyd-spill">${fill(COPY.mealSpill, {cap: BLOOD_MAX, spill: bp(over)})}</p>` : "";
 }
-const riskBar = (p, label)=> `<div class="wyd-meter wyd-meter-risk" role="img" aria-label="${label} ${Math.round(p*100)} percent"><span class="gl">${label}</span><div class="wyd-riskbar${p >= 0.5 ? " bad" : p >= 0.25 ? " mid" : ""}"><b style="width:${(p*100).toFixed(0)}%"></b></div></div>`;
+/* P37: the chance of SUCCESS, always green (the standoff's verbs and the get-in bar over an animal) */
+const winBar = (p, label)=> `<div class="wyd-meter wyd-meter-win" role="img" aria-label="${label} ${Math.round(p*100)} percent"><span class="gl">${label} ${Math.round(p*100)}%</span><div class="wyd-riskbar wyd-winbar"><b style="width:${(clamp(p, 0, 1)*100).toFixed(0)}%"></b></div></div>`;
+/* P37: a rival's type, read from her tell from the first meeting (RIVALS[k].cls) */
+const rivalType = cls=> cls === "young" ? COPY.clsYoung : cls === "dominant" ? COPY.clsDominant : COPY.clsAdult;
+/* P37: the real chance of each standoff verb against whoever is on this animal: the number on the
+   button IS the number rolled (the wing-off only moves the shove's around this centre) */
+function encOdds(G, cow){
+  const who = whoAt(G, cow), mate = who.kind === "mate";
+  return {join: mate ? clamp(BAT.joinBase + BAT.joinSlope * who.trust, 0, 1) : null,
+          displace: BAT.displaceWin[mate ? "mate" : who.cls],
+          wait: BAT.waitLeaveP};
+}
+/* P37: your best single try at getting to an occupied animal's wound, from the pasture (the
+   approach spends an hour, so waiting her out needs a second one) */
+function getInChance(G, cow){
+  const o = encOdds(G, cow);
+  return Math.max(o.join || 0, o.displace, G.ticks - 1 > 0 ? o.wait : 0);
+}
 /* the encounter's last outcome, rendered by the scene that follows it (pure) */
 function encOutcome(G){
   const R = G.run, e = R.enc && R.enc.last; if(!e) return "";
@@ -1530,7 +1941,7 @@ function encOutcome(G){
   };
   const result = e.verb === "join" ? (e.ok ? COPY.rollTolerated : COPY.rollRefused) : e.verb === "displace" ? fill(e.ok ? COPY.rollYields : COPY.rollHolds, v) : (e.ok ? fill(COPY.rollLeaves, v) : COPY.rollStill);
   const rollTxt = e.verb === "leave" ? "" :
-    `<div class="wyd-roll">${fill(COPY.rollLine, {r: "<strong>" + e.r.toFixed(2) + "</strong>", p: "<strong>" + fmtP(e.p) + "</strong>", result})}</div>`;
+    `<div class="wyd-roll">${e.verb === "displace" && e.wo ? woLine(e.wo) + " " : ""}${fill(COPY.rollLine, {r: "<strong>" + e.r.toFixed(2) + "</strong>", p: "<strong>" + fmtP(e.p) + "</strong>", result})}</div>`;   // P37: the wing-off's line leads
   return `<div class="wyd-outcome wyd-encout">${rollTxt}<p class="wyd-story">${fill(map[e.verb], v)}</p></div>`;
 }
 /* who is on the cow: a roost-mate (she) or a rival (their own pronouns) */
@@ -1576,11 +1987,17 @@ const SCENE_PASTURE = {
     const cow = G.sel !== null ? R.board.find(c=> c.id === G.sel) : null;
     const ok = canApproach(G);
     const burn = unfedBurnFor(G);
-    const last = R.enc && R.enc.last && ["join","displace","leave"].includes(R.enc.last.verb) ? encOutcome(G) : "";
+    /* P37: on a phone the outcome gives way to the next animal's card once you pick one (no room for both) */
+    const last = R.enc && R.enc.last && ["join","displace","leave"].includes(R.enc.last.verb) && (G.sel === null || !onPhone()) ? encOutcome(G) : "";
+    /* P37: on night 1 with tips on, the coach line takes the story's place (no extra height): size up an
+       animal, then the one-bite rule once one is picked. Under reduced motion the flight never showed, so
+       the welcome rides on the first line. */
+    const coach = G.night === 1 ? coachLine(G, cow ? "approach" : "pasture",
+      cow ? COPY.coachApproach : (R.flightSeen ? "" : COPY.yrHead + " ") + COPY.coachPasture) : "";
     return `<div class="wyd-round">${roundLabel(G, "the pasture")} <span class="wyd-ticksleft">${fill(COPY.ticksTag, {n:G.ticks})}</span></div>
       <div class="wyd-cols">
         <div>
-          <p class="wyd-story">${story}${damperOn(G) ? ` <strong>${COPY.damper}</strong>` : ""}</p>
+          ${coach || `<p class="wyd-story">${story}${damperOn(G) ? ` <strong>${COPY.damper}</strong>` : ""}</p>`}
           ${last}
         </div>
         <div>
@@ -1606,8 +2023,9 @@ const SCENE_PASTURE = {
       const p = pFailOf(G, c, c.occupied);
       /* P28 (Bryson): an animal that is done with you walks off rather than sitting there greyed out */
       if(c.locked && st.leave) st.leave(c.id);
-      const aria = `${T.label}, ${c.name}: meal plus ${bp(mealOf(G, c))}, bite fails about ${Math.round(p*100)} percent${c.occupied ? ", one bat already at the wound" : ""}${c.locked ? ", done with you tonight" : ""}`;
-      st.label(c.id, aria, `${T.label.toLowerCase()} · +${bp(mealOf(G, c))}${c.locked ? " · locked" : ""}`);
+      const meal = mealOf(G, c), spill = mealSpills(G, meal), fits = bp(mealFits(G, meal));   // P37 A3: what your crop can take
+      const aria = `${T.label}, ${c.name}: meal plus ${bp(meal)}${spill ? `, only ${fits} fits in your crop` : ""}, bite fails about ${Math.round(p*100)} percent${c.occupied ? ", one bat already at the wound" : ""}${c.locked ? ", done with you tonight" : ""}`;
+      st.label(c.id, aria, `${T.label.toLowerCase()} · ${spill ? fill(COPY.stageMealFits, {fits}) : "+" + bp(meal)}${c.locked ? " · locked" : ""}`);
     });
     st.select(G.sel);
     // P6d: the picked cow's bars float above it on the stage; your own bars sit in the corner
@@ -1615,7 +2033,9 @@ const SCENE_PASTURE = {
     R.board.forEach(c=> st.info(c.id, c.id === G.sel ? meters(G, c, pFailOf(G, c, c.occupied)) : ""));
     mountMobInfo(G);   // P16: on phones the picked animal's card floats on the stage instead
     st.onCow(id=>{
-      if(id === G.sel && canApproach(G)){ pick(APPROACH); return; }
+      /* P37 A9: a second tap on the animal you already picked no longer spends the night's only bite;
+         only the Approach button does. It points you at the button instead. */
+      if(id === G.sel){ const ab = $("#wyd-approach"); if(ab && !ab.disabled){ try{ ab.focus({preventScroll:true}); }catch(e){} } return; }
       sfx("pick");
       G.sel = id;
       renderScene("pasture", {wipe:false});
@@ -1633,6 +2053,9 @@ const SCENE_PASTURE = {
       const rebuff = last && !last.ok && (last.verb === "join" || last.verb === "displace") && !last.rebuffShown
         && STAGE_AT === R.board[R.enc.cowIdx].id ? R.board[R.enc.cowIdx].id : null;
       st.setPhase("night");
+      /* P36: frame the herd. A skipped flight left a phone's camera on the roost (the flight's pan to
+         the herd only ran while the flight played), so the herd sat cut off at the frame's edge. */
+      st.look("herd", fresh ? 0 : 900);
       (async ()=>{
         if(rebuff){
           last.rebuffShown = true; STAGE_AT = "grass";
@@ -1654,13 +2077,19 @@ const SCENE_PASTURE = {
   },
 };
 
-/* ── the encounter (rulings 20-25): verbs, odds, memory ── */
+/* ── the encounter (rulings 20-25): verbs, odds, memory ──
+   P37 (Bryson: "Rebuild the fight. I like the tap one."). The standoff names the rival's type from
+   her tell and always shows the real odds, as a green chance-of-SUCCESS bar. Sharing the wound is
+   offered only with roost-mates (a stranger never shares, and that free 5% roll is what kept
+   leaving dead). A LOST shove costs the dark hour, so it is no longer free. "Pick another animal"
+   replaces LEAVE. Shove opens the wing-off, a two-second timing tap that moves the shove odds
+   around BAT.displaceWin; the roll itself is still the one roll() in verbDisplace. */
 function rememberRival(G, key, outcome){ const r = G.rivals[key]; r.met = true; r.lastOutcome = outcome; r.night = G.night; }
 function rememberMate(p, kind, night){ p.metAtCow[kind]++; p.metAtCow.nights.push({night, kind}); }
 const afterMiss = G=> G.ticks > 0 ? "pasture" : "flightHome";
 function verbJoin(G){
   const R = G.run, cow = R.board[R.enc.cowIdx], who = whoAt(G, cow);
-  const p = BAT.joinBase + BAT.joinSlope * who.trust;
+  const p = encOdds(G, cow).join || 0;   // P37: only ever offered with a roost-mate
   const r = roll(), ok = r < p;
   R.enc.last = {verb:"join", p, r, ok};
   if(who.kind === "mate"){
@@ -1674,15 +2103,19 @@ function verbJoin(G){
     rollBite(G, {openWound:true, waited:false, cofed:true});
   } else {
     cow.locked = true;
+    if(G.sel === cow.id) G.sel = null;   // P37: the animal walks off the stage, so the card lets go of it too
     log(`Night ${G.night}: rebuffed by ${who.name}; ${cow.name} is claimed.`, "bad");
   }
 }
 function verbDisplace(G){
   const R = G.run, cow = R.board[R.enc.cowIdx], who = whoAt(G, cow);
-  const cls = who.kind === "mate" ? "mate" : who.cls;
-  const p = BAT.displaceWin[cls];
+  const base = encOdds(G, cow).displace;
+  /* P37: the wing-off's shift (set by the scene just before this pick; none = the shown odds) */
+  const wo = R.enc.wo || null; delete R.enc.wo;
+  const p = wo ? clamp(base + wo.s, 0.02, 0.95) : base;
   const r = roll(), ok = r < p;
-  R.enc.last = {verb:"displace", p, r, ok};
+  R.enc.last = {verb:"displace", p, base, r, ok, wo};
+  if(wo) R.wo = {t: wo.t, s: wo.s};
   G.ledger.dispTries++;
   if(who.kind === "mate"){
     const m = G.partners[who.pid];
@@ -1695,7 +2128,9 @@ function verbDisplace(G){
     rollBite(G, {openWound:true, waited:false, cofed:false});
   } else {
     cow.locked = true;
-    log(`Night ${G.night}: ${who.name} held the wound; ${cow.name} is claimed.`, "bad");
+    if(G.sel === cow.id) G.sel = null;
+    G.ticks = Math.max(0, G.ticks - 1);   // P37: a fight takes time; at 0 the flight home is the normal unfed path
+    log(`Night ${G.night}: ${who.name} held the wound; ${cow.name} is claimed and the hour is gone.`, "bad");
   }
 }
 function verbWait(G){
@@ -1708,6 +2143,7 @@ function verbWait(G){
     rollBite(G, {openWound:true, waited:true, cofed:false});
   } else log(`Night ${G.night}: waited an hour at ${cow.name}; still claimed.`);
 }
+/* "Pick another animal" (the old LEAVE): back to the herd, no extra hour; at 0 hours, home */
 function verbLeave(G){
   const R = G.run;
   R.enc.last = {verb:"leave"};
@@ -1719,10 +2155,98 @@ const VERBS = [
   {id:"wait",     sel:".wyd-verb.wait",     apply: verbWait,     goto: G=> G.run.enc.last.ok ? "bite" : "encounter"},
   {id:"leave",    sel:".wyd-verb.leave",    apply: verbLeave,    goto: G=> afterMiss(G)},
 ];
+const VERB_DISPLACE = VERBS[1];
+/* the verbs on offer: share only with a roost-mate, wait only with an hour left */
+function encVerbs(G){
+  const R = G.run, who = whoAt(G, R.board[R.enc.cowIdx]);
+  return VERBS.filter(v=> (v.id !== "join" || who.kind === "mate") && (v.id !== "wait" || G.ticks > 0));
+}
+
+/* ── P37 the wing-off ──
+   wingoffShift() is the whole rule, pure: the zone is centred on the bar, its half-width
+   (zoneBase + zoneSlope x base)/2; a tap inside adds bonusMax x (1 - d/h), a tap outside takes
+   penaltyMax x min(1, (d - h)/falloff); no tap (null) moves nothing. WO is the live face-off
+   (tests may set WO.hold to park the marker). The sweep's start phase is Math.random: it is
+   visual, and the one roll() of the shove stays in verbDisplace. */
+function wingoffHalf(base){ const W = BAT.wingoff; return (W.zoneBase + W.zoneSlope * base) / 2; }
+function wingoffShift(base, tapAt){
+  if(tapAt === null || tapAt === undefined) return 0;
+  const W = BAT.wingoff, h = wingoffHalf(base), d = Math.abs(tapAt - 0.5);
+  return d <= h ? W.bonusMax * (1 - d / h) : -W.penaltyMax * Math.min(1, (d - h) / W.falloff);
+}
+/* the line that says what the tap did: "In the green: +12." / "Outside the green: -7." */
+function woLine(wo){
+  if(!wo) return "";
+  if(wo.rm) return COPY.woStill;
+  if(!wo.t) return COPY.woNone;
+  const n = Math.round(wo.s * 100);
+  return wo.in ? fill(COPY.woIn, {n}) : fill(COPY.woOut, {n});
+}
+function stopWingoff(){
+  const wo = WO; if(!wo) return;
+  wo.done = true;
+  if(wo.timer){ clearTimeout(wo.timer); wo.timer = 0; }
+  if(wo.hold2){ clearTimeout(wo.hold2); wo.hold2 = 0; }
+  (wo.off || []).forEach(f=>{ try{ f(); }catch(e){} });
+  wo.off = [];
+}
+function startWingoff(G, st, id){
+  if(WO && !WO.done) return;
+  const R = G.run, cow = R.board[R.enc.cowIdx];
+  const base = encOdds(G, cow).displace, W = BAT.wingoff, rm = reduceMotion();
+  const panel = $("#wyd-wingoff"), bar = $("#wyd-wobar"), mk = $("#wyd-womark"), out = $("#wyd-woout"), verbs = $("#wyd-verbs");
+  if(!panel || !bar || !mk){ pick(VERB_DISPLACE); return; }   // no bar on screen: roll the shown odds
+  const wo = WO = {base, rm, pos:0.5, hold:null, done:false, t0:performance.now(), phase:Math.random() * 2 * Math.PI,
+                   armed: Date.now() + 120, timer:0, hold2:0, off:[]};
+  if(verbs) verbs.classList.add("wyd-gone");
+  panel.hidden = false;
+  beat("wingoff");
+  sfx("pick");
+  if(st){ st.caption(COPY.capWingoff, "Your bat and the resident face each other, wings flared"); st.faceoff(id); }
+  try{ bar.focus({preventScroll:true}); }catch(e){}
+  fitStage();
+  const loop = ()=>{
+    if(wo.done || WO !== wo) return;
+    const t = performance.now() - wo.t0;
+    wo.pos = wo.hold !== null ? wo.hold : 0.5 + 0.5 * Math.sin(2 * Math.PI * t / W.sweepMs + wo.phase);
+    mk.style.left = (wo.pos * 100).toFixed(2) + "%";
+    raf(loop);
+  };
+  if(rm) mk.style.left = "50%"; else raf(loop);
+  const resolve = tapped=>{
+    if(wo.done || WO !== wo) return;
+    if(tapped && Date.now() < wo.armed) return;          // the press that opened the wing-off is not a tap
+    const tapAt = tapped ? (wo.hold !== null ? wo.hold : wo.pos) : null;
+    stopWingoff();
+    const s = tapped && !rm ? Math.round(wingoffShift(base, tapAt) * 100) / 100 : 0;
+    const inZone = tapped && !rm && Math.abs(tapAt - 0.5) <= wingoffHalf(base);
+    const res = {t: tapped ? 1 : 0, s, in: inZone ? 1 : 0, rm: rm ? 1 : 0};
+    const p = clamp(base + s, 0.02, 0.95);
+    if(tapped && !rm) mk.style.left = (tapAt * 100).toFixed(2) + "%";
+    panel.classList.add(s > 0 ? "wo-good" : s < 0 ? "wo-bad" : "wo-even");
+    if(out) out.textContent = woLine(res) + " " + fill(COPY.woOdds, {p: Math.round(p * 100)});
+    if(tapped) sfx(s > 0 ? "good" : s < 0 ? "bad" : "click");
+    if(st && tapped && !rm){ st.pulse(id); st.lunge(id); }
+    /* a short hold so the player reads what the tap did, then the one roll. Raw timer: cancelTimers()
+       (a scene change, Exit) runs stopWingoff, which clears it, so nothing rolls behind the player's back */
+    wo.hold2 = setTimeout(()=>{
+      wo.hold2 = 0;
+      if(WO !== wo || G.scene !== "encounter" || !panel.isConnected) return;
+      R.enc.wo = res;
+      WO = null;
+      pick(VERB_DISPLACE);
+    }, reduceMotion() ? 350 : 650);
+  };
+  const tap = e=>{ if(e && e.button > 0) return; if(e && e.cancelable) e.preventDefault(); resolve(true); };
+  const key = e=>{ if(e.key === " " || e.key === "Enter" || e.key === "Spacebar"){ e.preventDefault(); e.stopPropagation(); resolve(true); } };
+  const on = (el, t, f, o)=>{ if(!el) return; el.addEventListener(t, f, o); wo.off.push(()=> el.removeEventListener(t, f, o)); };
+  on(bar, "pointerdown", tap);
+  on($("#wyd-stagehost"), "pointerdown", tap);
+  on(document, "keydown", key, true);
+  wo.timer = setTimeout(()=> resolve(false), W.windowMs);
+}
+
 let ENC_SEEN = "";   // night:cow whose rear beat already played (the self-edge skips it)
-/* P25: how long the encounter waits before forcing its buttons visible. Comfortably past the
-   approach + confront animation (~2s), so it only ever fires when something has gone wrong. */
-const ENC_FAILSAFE_MS = 5000;
 const SCENE_ENCOUNTER = {
   label: G=> roundLabel(G, "the encounter"),
   mode: "night",
@@ -1730,122 +2254,105 @@ const SCENE_ENCOUNTER = {
   next: ["bite", "pasture", "encounter", "flightHome"],
   render(G){
     const R = G.run, cow = R.board[R.enc.cowIdx], who = whoAt(G, cow);
-    const mate = who.kind === "mate";
-    const head = mate ? fill(COPY.encHeadMate, {name: esc(who.name)}) : who.met ? fill(COPY.encHeadMet, {name: esc(who.name)}) : COPY.encHeadStranger;
-    const recog = mate ? fill(COPY.meetMate, {name: esc(who.name)})
-      : who.met ? fill(COPY.meetRivalMet, {name: esc(who.name), tell: who.tell}) : fill(COPY.meetRival, {tell: who.tell});
+    const mate = who.kind === "mate", odds = encOdds(G, cow), brief = onPhone();
+    const type = mate ? "" : rivalType(who.cls);
+    const name = esc(who.name), pct = p=> Math.round(p * 100);
+    const head = mate ? fill(COPY.encHeadMate, {name}) : who.met ? fill(COPY.encHeadMet, {name}) : fill(COPY.encHeadStranger, {type});
+    const recog = mate ? fill(COPY.meetMate, {name})
+      : who.met ? fill(COPY.meetRivalMet, {name, type, tell: who.tell}) : fill(COPY.meetRival, {tell: who.tell, type});
     const chips = mate ? `<div class="wyd-ptags"><span class="wyd-ptag good">bond ${who.trust.toFixed(2)}</span>${rankChips(G.partners[who.pid])}</div>`
-      : who.met ? `<div class="wyd-ptags">${rivalChip(who.key)}</div>` : "";
-    const bond = mate ? `<div class="wyd-bondbar"><b style="width:${(who.trust*100).toFixed(0)}%"></b></div>` : "";
+      : who.met ? `<div class="wyd-ptags"><span class="wyd-ptag">${type}</span>${rivalChip(who.key)}</div>` : "";
+    const bond = mate && !brief ? `<div class="wyd-bondbar"><b style="width:${(who.trust*100).toFixed(0)}%"></b></div>` : "";
     const still = R.enc.last && R.enc.last.verb === "wait" ? encOutcome(G) : "";
-    const pJoin = BAT.joinBase + BAT.joinSlope * who.trust;
-    /* P28: on a phone each verb is its label plus a small "N% success" (or "odds unknown"), which
-       is the only part of those sentences a decision turns on. The desktop keeps the prose. */
-    const brief = onPhone();
-    const pctJoin = Math.round(pJoin*100);
-    const joinSub = brief ? fill(COPY.verbOdds, {p: pctJoin})
-      : mate ? fill(COPY.joinSub, {p: pctJoin, subj: who.subj}) : fill(COPY.joinSubStranger, {p: pctJoin});
-    const dispSub = mate ? (brief ? fill(COPY.verbOddsCost, {p: Math.round(BAT.displaceWin.mate*100)}) : fill(COPY.displaceSubMate, {p: Math.round(BAT.displaceWin.mate*100)}))
-      : who.met ? (brief ? fill(COPY.verbOdds, {p: Math.round(BAT.displaceWin[who.cls]*100)}) : fill(COPY.displaceSub, {p: Math.round(BAT.displaceWin[who.cls]*100), subj: who.subj}))
-      : COPY.displaceSubUnknown;
-    const waitSub = brief ? fill(COPY.verbOdds, {p: Math.round(BAT.waitLeaveP*100)})
-      : fill(COPY.waitSub, {p: Math.round(BAT.waitLeaveP*100), subj: who.subj});
-    const leaveSub = G.ticks > 0 ? COPY.leaveSub : COPY.leaveSubNoHours;
+    /* a verb card: label, then the real chance (prose on a desktop, a number on a phone), then the
+       green bar of the chance of SUCCESS. Phones get a 2x2 grid of short labels. */
+    const card = (cls, label, short, long, p, cost, win)=> `<button class="btnx wyd-verb ${cls}"${p === null ? "" : ` data-p="${p.toFixed(4)}"`}><span class="lbl">${brief ? short : label}</span> <span class="sub">${p === null ? long : brief ? fill(cost ? COPY.verbOddsCost : COPY.verbOdds, {p: pct(p)}) : long}</span>${brief || p === null ? "" : winBar(p, win)}</button>`;
+    const cards = [];
+    if(mate) cards.push(card("join", COPY.joinLabel, COPY.joinShort, fill(COPY.joinSub, {p: pct(odds.join), subj: who.subj}), odds.join, false, COPY.winJoin));
+    cards.push(card("displace", COPY.displaceLabel, COPY.displaceShort,
+      mate ? fill(COPY.displaceSubMate, {p: pct(odds.displace)}) : fill(COPY.displaceSub, {p: pct(odds.displace), subj: who.subj}), odds.displace, mate, COPY.winShove));
+    if(G.ticks > 0) cards.push(card("wait", fill(COPY.waitLabel, {obj: who.obj}), COPY.waitShort, fill(COPY.waitSub, {p: pct(odds.wait), subj: who.subj}), odds.wait, false, COPY.winWait));
+    cards.push(card("leave", G.ticks > 0 ? COPY.leaveLabel : COPY.leaveLabelHome, G.ticks > 0 ? COPY.leaveShort : COPY.leaveShortHome,
+      brief ? (G.ticks > 0 ? COPY.leaveSubBrief : COPY.leaveSubBriefHome) : G.ticks > 0 ? COPY.leaveSub : COPY.leaveSubNoHours, null));
+    const h = wingoffHalf(odds.displace), rm = reduceMotion();
+    const wingoff = `<div class="wyd-wingoff${rm ? " wo-still" : ""}" id="wyd-wingoff" hidden>
+        <p class="wyd-wohead">${rm ? COPY.woHeadStill : COPY.woHead}</p>
+        <div class="wyd-wobar" id="wyd-wobar" role="button" tabindex="0" aria-label="${esc(COPY.woBarAria)}" aria-describedby="wyd-woout">
+          <div class="wyd-wozone" style="left:${((0.5 - h)*100).toFixed(1)}%;width:${(h*200).toFixed(1)}%"></div>
+          <div class="wyd-womark" id="wyd-womark" style="left:50%"></div>
+        </div>
+        <p class="wyd-woout" id="wyd-woout" aria-live="polite">${fill(rm ? COPY.woNoteStill : COPY.woBase, {p: pct(odds.displace)})}</p>
+      </div>`;
     return `<div class="wyd-round">${roundLabel(G, "the encounter")} <span class="wyd-ticksleft">${fill(COPY.ticksTag, {n:G.ticks})}</span></div>
-      <h3>${head}</h3>
-      <p class="wyd-story">${onPhone() ? COPY.encAsk : recog + ` <span class="wyd-ticksleft">${fill(COPY.ticksLeft, {n:G.ticks})}.</span>`}</p>
-      ${chips}${bond}${still}
-      <div class="wyd-verbs" id="wyd-verbs" ${reduceMotion() ? "" : "hidden"}>
-        <button class="btnx wyd-verb join">${COPY.joinLabel} <span class="sub">${joinSub}</span>${brief ? "" : riskBar(1 - clamp(pJoin, 0, 1), COPY.riskRefused)}</button>
-        <button class="btnx wyd-verb displace">${fill(COPY.displaceLabel, {obj: who.obj})} <span class="sub">${dispSub}</span>${brief || !(mate || who.met) ? "" : riskBar(1 - BAT.displaceWin[mate ? "mate" : who.cls], COPY.riskHolds)}</button>
-        ${G.ticks > 0 ? `<button class="btnx wyd-verb wait">${COPY.waitLabel} <span class="sub">${waitSub}</span>${brief ? "" : riskBar(1 - BAT.waitLeaveP, COPY.riskStill)}</button>` : ""}
-        <button class="btnx wyd-verb leave">${COPY.leaveLabel} <span class="sub">${leaveSub}</span></button>
-      </div>
-      <p class="wyd-story wyd-beathint" id="wyd-beathint" ${reduceMotion() ? "hidden" : ""}>${COPY.encSkipHint}</p>`;
+      <div class="wyd-enchead"><h3>${head}</h3>${brief ? chips : ""}</div>
+      ${brief ? "" : `<p class="wyd-story">${recog} <span class="wyd-ticksleft">${fill(COPY.ticksLeft, {n:G.ticks})}.</span></p>`}
+      ${brief ? "" : chips}${bond}${still}
+      <div class="wyd-verbs wyd-verbs--n${cards.length}" id="wyd-verbs">${cards.join("")}</div>
+      ${wingoff}`;
   },
-  choices: G=> G.ticks > 0 ? VERBS : VERBS.filter(v=> v.id !== "wait"),
+  choices: G=> encVerbs(G),
   wire(G){
     const R = G.run, cow = R.board[R.enc.cowIdx], id = cow.id;
     const st = ensureStage(G, {look:"herd", phase:"night"});
-    const verbs = $("#wyd-verbs"), hint = $("#wyd-beathint");
     const host = $("#wyd-stagehost"), sc = $("#wyd-scene");
-    let shown = false;
-    const b = beatToken();   // this wire's beat; a skip from an older wire bails on the mismatch
-    /* ── P25 (2026-09-04): THE ENCOUNTER MUST NEVER BE UNREACHABLE. ───────────────────────────
-       A cold-read playtest ended two games on the same frozen screen: the standoff prompt with
-       no JOIN / PUSH / WAIT / LEAVE buttons and an inert "tap anywhere to skip" line. Cause: the
-       buttons start hidden and are revealed only by showCards() at the END of the animation
-       chain below, every await of which bails on !live(b) WITHOUT revealing them; and the tap-to-
-       skip listeners are armed by at(80, ...), a timer cancelTimers() clears. So a single BEAT
-       bump or stage swap in that window killed both ways out at once and the run was over.
-       Two guards, and neither trusts BEAT:
-         rescue()  reveals the buttons whenever this wire's own markup is still on screen, and is
-                   called from every bail-out instead of returning silently.
-         failsafe  a RAW setTimeout, deliberately NOT in TIMERS so cancelTimers() cannot clear it,
-                   that reveals them anyway if something we did not think of goes wrong. It is set
-                   well past the longest animation, so on a healthy run it never fires. ── */
-    const stillMine = ()=> !!verbs && document.contains(verbs);
-    const rescue = ()=>{
-      if(!stillMine() || !verbs.hidden) return;
-      verbs.hidden = false;
-      if(hint) hint.hidden = true;
-      beat("cards");
-    };
-    let failsafe = setTimeout(rescue, ENC_FAILSAFE_MS);
-    const showCards = ()=>{
-      if(failsafe){ clearTimeout(failsafe); failsafe = null; }
-      if(shown) return; shown = true;
-      if(verbs) verbs.hidden = false;
-      if(hint) hint.hidden = true;
-      detachEncSkip();
-      beat("cards");
-    };
-    const skip = ()=>{
-      if(shown || b !== BEAT) return;
-      cancelTimers();
-      if(st){ st.cut(); st.commit(id); st.rival(id, "flare"); if(R.enc.last && R.enc.last.verb === "wait") st.slowDrips(id); }
-      STAGE_AT = id;
-      showCards();
-    };
     const key = G.night + ":" + id;
-    if(!st){ showCards(); return; }
+    let settled = false;
+    const b = beatToken();   // this wire's beat; a skip from an older wire bails on the mismatch
+    /* P37: the verbs are on screen and usable from the first frame (P25's stranding guards are gone
+       with the hidden buttons they guarded). The confrontation beat plays alongside them; a tap on
+       the stage, or any verb, ends it where it stands: the resident flared, your bat beside her. */
+    const settle = ()=>{
+      if(settled) return; settled = true;
+      detachEncSkip();
+      if(b === BEAT) cancelTimers();
+      if(st && !st.dead){
+        st.cut(); st.commit(id);
+        const c = st.cows[id];
+        if(c && STAGE_AT !== id) st.batTo(c.neck.x + WydStage.HOVER.dx, c.perch.y + WydStage.HOVER.dy, reduceMotion() ? 0 : 250);
+        st.pose("flap"); st.rival(id, "flare");
+        if(R.enc.last && R.enc.last.verb === "wait") st.slowDrips(id);
+      }
+      STAGE_AT = id; ENC_SEEN = key;
+      beat("cards");
+    };
+    const verbs = $("#wyd-verbs");
+    if(verbs) verbs.addEventListener("click", settle, true);   // capture: before the verb's own pick()
+    const shove = $(".wyd-verb.displace");
+    if(shove) shove.onclick = e=>{ if(e) e.stopPropagation(); settle(); startWingoff(G, st, id); };
+    if(!st){ settled = true; return; }
     st.choice(false);
     st.commit(id);
     st.you(youPanelHtml(G)); R.board.forEach(c=> st.info(c.id, ""));
     if(reduceMotion() || ENC_SEEN === key){
-      // the static frame, or the self-edge after a wait: the resident is up, cards at once
+      // the static frame, or the self-edge after a wait: the resident is up
       if(STAGE_AT !== id){ const hx = st.cows[id].neck.x + WydStage.HOVER.dx, hy = st.cows[id].perch.y + WydStage.HOVER.dy; st.batTo(hx, hy, 0); STAGE_AT = id; }
       st.pose("flap");
       st.rival(id, "flare");
       if(R.enc.last && R.enc.last.verb === "wait") st.slowDrips(id);
       st.caption(COPY.capStandoff, "A bat is already at the wound and faces you down");
-      showCards();
-      ENC_SEEN = key;
+      settled = true; ENC_SEEN = key; beat("cards");
       return;
     }
-    // armed a beat later: the tap that approached is still bubbling through #wyd-scene / the
-    // stage host when this wire runs, and it must not count as the skip
+    // tap-to-skip, armed a beat later: the tap that approached is still bubbling through
+    // #wyd-scene / the stage host when this wire runs, and it must not count as the skip
     at(80, ()=>{
-      if(shown || b !== BEAT) return;
+      if(settled || b !== BEAT) return;
       detachEncSkip();
-      if(host) host.addEventListener("click", skip);
-      if(sc) sc.addEventListener("click", skip);
-      ENC_SKIP = {host, sc, fn: skip};
+      if(host) host.addEventListener("click", settle);
+      if(sc) sc.addEventListener("click", settle);
+      ENC_SKIP = {host, sc, fn: settle};
     });
     (async ()=>{
       beat("approach");
       st.caption(COPY.capApproach, "Your bat drops toward the cow's back");
-      if(STAGE_AT !== id){ await st.approach(id); if(!live(b)){ rescue(); return; } STAGE_AT = id; }
+      if(STAGE_AT !== id){ await st.approach(id); if(!live(b)) return; STAGE_AT = id; }
       beat("meet");
       st.caption(COPY.capStandoff, "A bat is already at the wound and rears at you");
       await st.confront(id);
-      if(!live(b)){ rescue(); return; }
+      if(!live(b)) return;
       beat("rear");
       ENC_SEEN = key;
-      at(250, showCards);
-      /* at() is a cancellable timer, so back it with a raw one: this is the last step before the
-         buttons appear and it must not be the thing that strands the player */
-      setTimeout(rescue, 900);
+      at(250, ()=>{ if(!settled){ settled = true; detachEncSkip(); beat("cards"); } });
     })();
   },
 };
@@ -1860,7 +2367,7 @@ function rollBite(G, o){
   R.pFailUsed = pf; R.rollValue = r;
   R.fedTonight = r > pf;
   R.meal = R.fedTonight
-    ? (Math.max(BAT.waitFloor, COW_TABLE[cow.tier].yield - BAT.waitDrain * (o.waited ? 1 : 0)) + (G.cond.rich ? BAT.richBonus : 0)) * mods(G).yieldMult * pastureYield(G)
+    ? mealOf(G, cow, o.waited)   // P37 A3: the same formula every meal on screen uses
     : 0;
 }
 /* ── scene: the bite (timed; Skip; pass-through under reduced motion) ── */
@@ -1941,8 +2448,11 @@ const SCENE_FLIGHTHOME = {
   render(G){
     const R = G.run;
     const txt = "";   // P28: the animation and the sound say whether it went well
+    /* P37: a lost shove (or a refused share) on the last dark hour comes straight here: say how it went */
+    const e = R.enc && R.enc.last;
+    const lost = e && !e.ok && (e.verb === "displace" || e.verb === "join") && !R.rolled ? encOutcome(G) : "";
     return `<div class="wyd-round">${roundLabel(G, "flight home")}</div>
-      <p class="wyd-story" id="wyd-flightstory">${txt}</p>
+      ${lost}<p class="wyd-story" id="wyd-flightstory">${txt}</p>
       <div class="wyd-choices"><button class="btnx" id="wyd-skip">${COPY.skip}</button></div>`;
   },
   wire(G){
@@ -1954,6 +2464,14 @@ const SCENE_FLIGHTHOME = {
     st.choice(false); st.select(null);
     (async ()=>{
       const b = beatToken();
+      /* P37: knocked back off the animal first, the way the pasture plays it, then home */
+      const R = G.run, e = R.enc && R.enc.last, cid = R.enc && R.board[R.enc.cowIdx] ? R.board[R.enc.cowIdx].id : null;
+      if(e && !e.ok && (e.verb === "displace" || e.verb === "join") && !e.rebuffShown && cid && STAGE_AT === cid){
+        e.rebuffShown = true; STAGE_AT = "grass";
+        beat("rebuff"); st.caption(COPY.capChased, "The resident screams and you are knocked back into the grass");
+        await st.rebuff(cid);
+        if(!live(b)) return;
+      }
       beat("home");
       st.setPhase("dawn");
       st.caption(COPY.capHome, G.run.fedTonight ? "Fed and heavy, your bat flies home to the roost" : "Empty, your bat flies home to the roost");
@@ -1978,6 +2496,7 @@ function finishNight(){
     G.successes++;
     const learned = G.pFail > BAT.learnFloor + 0.001;
     G.pFail = Math.max(BAT.learnFloor, G.pFail * BAT.learnRate);
+    R.gain = mealFits(G, R.meal);   // P37 A3: what the crop actually took (the chip shows this, not the whole meal)
     G.energy = Math.min(BAT.energyCap, G.energy + R.meal);
     G.score += BAT.pts.fed; R.pts = BAT.pts.fed;
     if(R.tier === "prime" && !R.cofed){ G.score += BAT.pts.primeSolo; R.primeSolo = true; R.pts += BAT.pts.primeSolo; }
@@ -2032,8 +2551,7 @@ function rollRoostHazards(G){
   const K = BAT.roosts, R = G.run, r = G.roosts[G.myRoost], first = !r.known;
   const hz = {first, sick:false, hurt:false, cues:[], sickOver:false, hurtOver:false};
   // sickness: crowding and the roost's hidden disease score; newcomers meet new pathogens
-  let ps = K.sickBase + K.sickCrowd*(r.size/K.sizeMax) + K.sickRisk*r.disease;
-  if(first) ps *= K.sickFirst;
+  let ps = roostSickP(G, r, first, r.disease);   // P37: x the roost's sickMult
   if(G.myRoost === 0 && G.night > 1) ps *= K.sickHome;
   if(!G.sick && roll() < ps){ G.sick = K.sickNights; r.sick = true; hz.sick = true; G.ledger.sickDawns++;
     log(`Night ${G.night}: you fell ill at ${roostName(G.myRoost)}.`, "bad"); }
@@ -2043,7 +2561,7 @@ function rollRoostHazards(G){
   G.pendingSick = null;
   // aggression: a resident you trust at your side deters it; a stranger is fair game
   const ally = G.partners.some(p=> p.alive && p.present && !p.visitor && p.trust >= K.allyTrust);
-  const pa = ally ? 0 : (K.aggroBase + K.aggroRisk*Math.max(r.aggro, mods(G).aggroFloor)) * (first ? K.aggroFirst : 1);
+  const pa = ally ? 0 : roostHurtP(G, r, first, r.aggro);   // P37: the roost's aggroFloor and aggroMult
   if(!G.hurt && roll() < pa){
     G.hurt = K.injuryNights; r.hurt = true; hz.hurt = true; G.ledger.hurtDawns++;
     G.energy = Math.max(Math.min(G.energy, K.injuryFloor), G.energy - K.injuryBlood);   // P32: a bite never GIVES blood
@@ -2062,13 +2580,38 @@ function rollRoostHazards(G){
   }
   r.visits++;
   hz.sickOver = G.sickOver; hz.hurtOver = G.hurtOver; G.sickOver = false; G.hurtOver = false;
+  /* P37 trade, after the hazard roll and before the dawn's stamina (as batsim9): the culvert clears a
+     fever and a wound */
+  const TR = tradeOf(G, G.myRoost);
+  if(TR.heal && G.myRoost !== 0 && (G.sick || G.hurt || G.pendingSick)){
+    hz.healed = true; hz.sick = false; hz.hurt = false; hz.from = null; hz.sickOver = false; hz.hurtOver = false;
+    G.sick = 0; G.hurt = 0; G.pendingSick = null;
+    log(`Night ${G.night}: the cool of ${roostName(G.myRoost)} cleared your fever and wounds.`, "good");
+  }
   R.hazard = hz;
+}
+/* P37: the dawn hazards' two chances at a roost, shared by the roll and the roost card. disease and
+   aggro are the roost's hidden scores when rolling; the card passes the mean or the trade's floor. */
+function roostSickP(G, r, first, disease){
+  const K = BAT.roosts;
+  return (K.sickBase + K.sickCrowd*(r.size/K.sizeMax) + K.sickRisk*disease) * (first ? K.sickFirst : 1) * tradeVal(G, r.id, "sickMult", 1);
+}
+function roostHurtP(G, r, first, aggro){
+  const K = BAT.roosts;
+  return (K.aggroBase + K.aggroRisk*Math.max(aggro, mods(G).aggroFloor, tradeVal(G, r.id, "aggroFloor", 0))) * (first ? K.aggroFirst : 1) * tradeVal(G, r.id, "aggroMult", 1);
 }
 function flyHome(G){
   rollRoostHazards(G);
   const K = BAT.roosts;
   G.stamina = Math.max(1, BAT.staminaPerNight - (G.energy <= BAT.staminaLowAt ? 1 : 0)
                           - (G.sick ? K.sickStamina : 0) - (G.hurt ? K.injuryStamina : 0));
+  /* P37 trade: the outpost's exposed ridge costs a little blood by dawn, after the stamina is set (as batsim9) */
+  const cold = tradeVal(G, G.myRoost, "coldBurn", 0);
+  if(cold && G.myRoost !== 0){
+    const before = G.energy; G.energy = Math.max(0, G.energy - cold);
+    if(G.run && G.run.hazard) G.run.hazard.cold = before - G.energy;
+    if(before > G.energy) log(`Night ${G.night}: a cold night at ${roostName(G.myRoost)}: -${bp(before - G.energy)} blood.`, "bad");
+  }
   G.selected = null; G.fx = null; G.lastAct = "";
   rollDawnEvent();
 }
@@ -2089,12 +2632,15 @@ function biteRollLine(R){
    through under reduced motion, so this is the only place some players read it) */
 function encChip(G){
   const R = G.run, e = R.enc && R.enc.last;
-  if(!e || !e.ok || e.verb === "leave") return "";
+  if(!e || e.verb === "leave" || (!e.ok && e.verb !== "displace")) return "";
   const who = whoAt(G, R.board[R.enc.cowIdx]);
+  if(!e.ok) return e.verb === "displace" && !R.rolled ? chipEl(fill(COPY.chipShoveLost, {name: esc(who.name)}), "hot", stripTags(woLine(e.wo) + " " + fill(COPY.rollLine, {r: e.r.toFixed(2), p: fmtP(e.p), result: fill(COPY.rollHolds, {subj: who.subj})}))) : "";
   if(e.verb === "join") return chipEl(fill(R.cofedKind === "rival" ? COPY.chipCofedRival : COPY.chipCofedMate, {name: esc(who.name)}));
   if(e.verb === "displace") return chipEl(fill(COPY.chipDisplaced, {name: esc(who.name)}));
   return chipEl(COPY.chipWaitFree);
 }
+/* the nights with no sleep choice: night 1 (born in the hollow) and the storms (everyone shelters at home) */
+const sleepLocked = G=> G.night === 1 || G.cond.key === "storm";
 const SCENE_NIGHT = {
   label: G=> roundLabel(G, "foraging"),
   mode: "night",
@@ -2104,7 +2650,8 @@ const SCENE_NIGHT = {
     let head;
     if(R.fed){
       head = COPY.nightFedHead;
-      C.push(chipEl(fill(COPY.chipMeal, {cow: esc(cap(R.cowName)), meal: bp(R.meal)}), "good"));
+      const gain = R.gain != null ? R.gain : R.meal;   // P37 A3: an older save has no R.gain
+      C.push(chipEl(fill(bp(R.meal) - bp(gain) >= 1 ? COPY.chipMealFull : COPY.chipMeal, {cow: esc(cap(R.cowName)), meal: bp(gain)}), "good"));
       C.push(chipEl(fill(COPY.chipPts, {pts: R.pts - (R.primeSolo ? BAT.pts.primeSolo : 0) - (R.farFed ? BAT.pts.farFed : 0)}), "good"));
       if(R.primeSolo) C.push(chipEl(fill(COPY.chipPrimeSolo, {pts: BAT.pts.primeSolo}), "good"));
       if(R.farFed) C.push(chipEl(fill(COPY.chipFarFed, {pts: BAT.pts.farFed}), "good"));
@@ -2114,6 +2661,7 @@ const SCENE_NIGHT = {
     } else {
       head = R.reason === "miss" ? COPY.missHead : COPY.emptyHead;
       C.push(chipEl(fill(R.far ? COPY.chipUnfedFar : COPY.chipUnfed, {burn: bp(R.burn)}), "hot"));
+      C.push(encChip(G));   // P37: a lost shove that took the last hour (reduced motion never sees the flight home)
       if(R.consolation) C.push(chipEl(fill(COPY.chipConsolation, {pts: R.consolation}), "good"));
     }
     // the night's own points, which the tester never saw named; only when you will live to bank them
@@ -2125,19 +2673,26 @@ const SCENE_NIGHT = {
     }
     if(R.mitesNew) C.push(chipEl(fill(COPY.chipMitesIn, {drain: bp(BAT.parasiteDrain)}), "hot"));
     else if(R.mitesCost) C.push(chipEl(fill(COPY.chipMitesCost, {drain: bp(BAT.parasiteDrain)}), "hot"));
-    if(!R.fed && G.energy <= BAT.desperateAt && G.energy > 0) C.push(chipEl(COPY.chipHungry, "hot"));
+    if(!R.fed && G.energy <= BAT.desperateAt && G.energy > 0 && G.night < BAT.nights) C.push(chipEl(COPY.chipHungry, "hot"));   // P37 A8: there is no next night after the last
     if(damperOn(G)) C.push(chipEl(COPY.chipDamper, "", fill(COPY.damperNote, {n: G.missStreak, mod: fmtTerm(BAT.damperMod)})));
+    /* P37: night 1 with tips on, what blood is for; a storm night says where you sleep (its pick screen is gone) */
+    const fuel = Math.ceil(G.energy / BAT.unfedBurn - 1e-9);
+    const coach = G.night === 1 ? coachLine(G, "fuel", fuel > 0 ? fill(G.energy >= BAT.energyCap - 1e-9 ? COPY.coachNightFull : COPY.coachNight, {n: wordN(fuel), s: fuel === 1 ? "" : "s"}) : COPY.coachNightEmpty) : "";
+    const stormHome = sleepLocked(G) && G.night > 1 ? `<p class="wyd-story wyd-stormhome">${COPY.stormDusk}</p>` : "";
     return `<div class="wyd-round">${roundLabel(G, "foraging")}</div>
       <h3>${head}</h3>
       ${chipRow(C)}
+      ${stormHome}${coach}
       <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-next">${COPY.nextDawn}</button></div>`;
   },
   /* P22 (Bryson: "the user should not be asked where to sleep the first night because there isn't a
      choice anyway"): night 1 is locked to the hollow, so skip the roostPick scene and settle at home
      on the way past. Storm nights keep theirs, because the storm itself is the thing worth reading. */
+  /* P37 (D1): the storm nights are locked to the hollow as well, so their one-button pick screen is skipped
+     the same way (the line above says why) */
   choices: ()=> [{id:"wyd-next",
-    apply: G=>{ if(G.night === 1){ commitRoost(G, G.myRoost); resolveArrival(G); } },
-    goto: G=> G.night === 1 ? G.run.arrival : "roostPick"}],
+    apply: G=>{ if(sleepLocked(G)){ commitRoost(G, G.myRoost); resolveArrival(G); } },
+    goto: G=> sleepLocked(G) ? G.run.arrival : "roostPick"}],
 };
 
 /* ── scene: roostPick (P10 addendum B, Bryson: "you should choose where to roost each night when
@@ -2153,15 +2708,18 @@ const SCENE_ROOSTPICK = {
     const locked = G.cond.key === "storm", picked = locked || (G.run && G.run.roostPicked);   // P22: night 1 never reaches this scene
     // P18 (Bryson): on a pick night the scene is the stage + one card per roost + the button; the explanation
     // is a one-time popup (pops below). Locked nights keep their one-line reason.
+    /* P37: on the night-2 pick with tips on, the coach line answers the question in the question's place */
+    const coach = locked ? "" : coachLine(G, "roost", COPY.coachRoost);
     return `<div class="wyd-round">${roundLabel(G, "flying home")}</div>
-      <h3>${COPY.roostPickHead}</h3>
+      ${coach || `<h3>${COPY.roostPickHead}</h3>`}
       ${locked ? `<div class="wyd-cols"><div>${roostIntro(G)}</div><div>${roostCards(G)}
           <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-sleepat">${COPY.roostPickBtn}</button></div></div></div>`
-        : `${roostCards(G)}
+        : `${roostCards(G)}<div class="wyd-roostdetail" id="wyd-roostdetail" aria-hidden="true"></div>
           <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-sleepat"${picked ? "" : " disabled"}>${picked ? COPY.roostPickBtn : (onPhone() ? COPY.roostPickWaitShort : COPY.roostPickWait)}</button></div>`}`;
   },
   pops(G){
     const locked = G.cond.key === "storm";
+    if(!locked && coachOn(G)){ markHelp("roost"); return; }   // P37: the coach line teaches it; the popup would cover the stage
     if(!locked && !helpSeen("roost")){ markHelp("roost"); popup({kind:"help", kicker: COPY.helpKicker, title: COPY.helpRoostHead, body: `<p class="wyd-story">${COPY.helpRoostText}</p>`}); }
   },
   choices: ()=> [{id:"wyd-sleepat", apply: G=>{
@@ -2242,6 +2800,22 @@ const SCENE_ROOSTPICK = {
       (async ()=>{ if(!live(b)) return; st.caption("flying home · " + roostName(id), "Your bat flies to " + roostName(id)); await st.goRoost(id, 900); })();
     };
     st.onRoost(pickRoost);
+    /* P37 phones: the picture is the picker. The cards shrink to a row of names (still buttons, for
+       the keyboard and screen readers) and the picked roost's card is shown once, in full, under
+       them; before a pick that space says how to pick, and a guarded roost says why it is greyed.
+       Cloned from the card itself, so its wording lives in one place (roostCards). */
+    const det = $("#wyd-roostdetail");
+    if(det){
+      const selCard = G.run.roostPicked ? document.getElementById("wyd-roost-" + G.roostSel) : null;
+      const gNames = G.roosts.filter(r=> r && !r.gone && guarded.has(r.id)).map(r=> esc(cap(ROOST_TYPES[r.type].name)));
+      const guardLine = gNames.length ? `<p class="rc-guard wyd-detguard"><strong>${gNames.join(", ")}:</strong> ${COPY.roostGuard}</p>` : "";
+      det.innerHTML = selCard ? `<div class="wyd-detcard">${selCard.innerHTML}</div>` : `<p class="wyd-story wyd-dethint">${COPY.roostTapHint}</p>${guardLine}`;
+      det.querySelectorAll("[id]").forEach(el=> el.removeAttribute("id"));
+      /* the detail box is where the phone reads: the long trade line, not the card's short one, and on a
+         roost you have not seen yet the trade line stands in for the scenery sentence (as on the cards) */
+      det.querySelectorAll(".rc-trade-s, .rc-short").forEach(el=> el.remove());
+      if(selCard && selCard.classList.contains("unknown") && det.querySelector(".rc-trade")) det.querySelectorAll(".rc-sub").forEach(el=> el.remove());
+    }
     $$("#wyd-scene .wyd-roostcard.pickable[data-roost]").forEach(c=>{
       c.onclick = ()=> pickRoost(c.dataset.roost);
       c.onkeydown = e=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); pickRoost(c.dataset.roost); } };
@@ -2299,7 +2873,7 @@ const SCENE_BEGWAIT = {
         if(el){ el.classList.remove("begasking"); el.classList.add(h.ok ? "begyes" : "begno"); }
         line.textContent = fill(h.ok ? COPY.begYes : COPY.begRefused, {name: h.name});
         if(h.ok){
-          emitStream(h.pid, {color:"var(--g-accent)", r:4, count:8, interval:110, travel:900, reverse:true});
+          emitStream(h.pid, {color:"var(--g-accent)", kind:"share", r:3, count:8, interval:110, travel:900, reverse:true});
           sfx("great");
         } else sfx("bad");
         await waitMs(BEG_STEP_MS * 0.45);
@@ -2313,6 +2887,11 @@ const SCENE_BEGWAIT = {
   },
 };
 
+/* P37: the "in real life" note on the rescue and death cards. Open on a desktop; on a phone it is
+   folded to its one-line heading (a tap opens it), so the outcome, its chips and the button share
+   one screen. A <details>, so it needs no script and keeps its keyboard and screen-reader behaviour. */
+const realLifeHtml = (body, cite)=> `<details class="wyd-reallife wyd-rlfold"${onPhone() ? "" : " open"}><summary class="rl-k">${COPY.realLife}<span class="rl-tap" aria-hidden="true">${COPY.realLifeTap}</span></summary><div>${body}</div>
+      <span class="cite">${cite}</span></details>`;
 const SCENE_RESCUE = {
   label: G=> roundLabel(G, COPY.roundNoBlood),
   mode: "night",
@@ -2325,11 +2904,10 @@ const SCENE_RESCUE = {
                  chipEl(fill(COPY.chipSavedBy, {name: esc(R.savior)}), "good"),
                  chipEl(fill(COPY.chipReserve, {n: bp(Math.max(0, G.energy)), cap: BLOOD_MAX}))])}
       <p class="wyd-story">${R.young ? fill(COPY.rescueYoung, {name: esc(R.savior), n: BAT.youngNights + 1}) : fill(COPY.rescueStory, {name: esc(R.savior)})}</p>
-      <div class="wyd-reallife"><span class="rl-k">${COPY.realLife}</span><div>${COPY.rescueReal}</div>
-      <span class="cite">${CITES.wilkinson1984} · ${CITES.carter2013}</span></div>
-      <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-next">${COPY.nextDawn}</button></div>`;
+      ${realLifeHtml(COPY.rescueReal, `${CITES.wilkinson1984} · ${CITES.carter2013}`)}
+      <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-next">${COPY.rescueBtn}</button></div>`;
   },
-  choices: ()=> [{id:"wyd-next", apply: flyHome, goto:"dawn"}],
+  choices: ()=> [{id:"wyd-next", apply: flyHome, goto:"dawn"}],   // P37 A11: the button no longer says "Fly home at dawn" (you begged at the roost)
 };
 
 /* ── scene: death (no blood left, no one came) ── */
@@ -2344,8 +2922,7 @@ const SCENE_DEATH = {
       <h3>${COPY.deathHead}</h3>
       ${chipRow([`<span class="wyd-ptag wyd-roll hot">${fill(COPY.chipRescueOdds, {p: fmtP(R.pAny)})}</span>`])}
       <p class="wyd-story">${fill(COPY.starveLine, {tried: esc(tried)})}</p>
-      <div class="wyd-reallife"><span class="rl-k">${COPY.realLife}</span><div>${COPY.deathReal}</div>
-      <span class="cite">${CITES.wilkinson1984}</span></div>
+      ${realLifeHtml(COPY.deathReal, CITES.wilkinson1984)}
       <div class="wyd-choices"><button class="btnx btnx--solid" id="wyd-next">${COPY.deathBtn}</button></div>`;
   },
   choices: ()=> [{id:"wyd-next", goto:"end"}],
@@ -2456,41 +3033,107 @@ function netRingSplit(G, L){
   return {inner, outer};
 }
 const netRingKey = (G, L)=> `${G.night}:${G.myRoost}:` + L.map(p=> p.id + (p.alive ? "" : "x")).join(",");
+/* P37 (Bryson: "In the past the networks themselves would change once you clicked groom and stuff.
+   Make sure the nodes are fixed where they should be, not moving around randomly"). P34 froze WHO
+   sits on which ring per dawn; P37 also freezes WHERE. Every bat keeps a seat, an angle on the web,
+   per roost, in G.netSeat (saved with the run), so from one dawn to the next the bats who stay keep
+   their places and only arrivals and departures change the picture: a newcomer takes the middle of
+   the widest gap on her ring, and a ring is re-spaced evenly (order kept) only when departures have
+   left it lopsided. The angles are decided once per dawn, with the ring split, in G.netRing.ang,
+   so nothing a player does during that dawn can move a node. A resize only re-scales the ellipse;
+   the angles, and so every bat's place relative to the others, stay. Deterministic: no dice, no
+   Math.random, so a reload of the same dawn draws the same web. */
+const TAU = 2 * Math.PI;
+const normA = a=> ((a % TAU) + TAU) % TAU;
+function netSeats(G, members, off, ring){
+  const n = members.length; if(!n) return {};
+  G.netSeat = G.netSeat || {};
+  const book = G.netSeat[G.myRoost] = G.netSeat[G.myRoost] || {};
+  /* MIN: how close a bat changing rings (or a newcomer) may sit to a seated bat. Two bats who were
+     already on this ring sat clear of each other last time, and a departure never crowds a ring, so they
+     keep their seats unless they would sit on top of each other (KEEP) */
+  const even = TAU / n, MIN = 0.45 * even, KEEP = 0.05;
+  const out = {};
+  const seat = p=> book[p.id] && typeof book[p.id].a === "number" ? book[p.id] : null;
+  const gapOK = (a, lim)=> Object.values(out).every(b=>{ const d = Math.abs(normA(a - b)); return Math.min(d, TAU - d) >= lim; });
+  /* the bats who sat on this ring last time keep their seats first, then a bat changing rings keeps
+     hers if it is clear; anyone else (or a clash) is seated like a newcomer */
+  const known = members.filter(seat).sort((x, y)=> ((seat(y).r === ring) - (seat(x).r === ring)) || (seat(x).a - seat(y).a));
+  if(!known.length){
+    members.forEach((p, i)=> out[p.id] = normA(-Math.PI/2 + off + i * even));
+  } else {
+    known.forEach(p=>{ if(gapOK(seat(p).a, seat(p).r === ring ? KEEP : MIN)) out[p.id] = normA(seat(p).a); });
+    members.filter(p=> !(p.id in out)).forEach(p=>{
+      const as = Object.values(out).sort((a, b)=> a - b);
+      if(!as.length){ out[p.id] = normA(-Math.PI/2 + off); return; }
+      let best = -1, at = as[0] + Math.PI;
+      as.forEach((a, i)=>{ const b = i + 1 < as.length ? as[i + 1] : as[0] + TAU, g = b - a; if(g > best + 1e-9){ best = g; at = a + g / 2; } });
+      out[p.id] = normA(at);
+    });
+    /* cramped, or lopsided (a gap over three even steps on the named ring, three and a half on the
+       outer ring of small unnamed dots): re-space this ring evenly, keeping its order and its first
+       bat's place */
+    const as = members.map(p=> ({id: p.id, a: out[p.id]})).sort((x, y)=> x.a - y.a);
+    let minG = TAU, maxG = 0;
+    as.forEach((x, i)=>{ const b = i + 1 < as.length ? as[i + 1].a : as[0].a + TAU, g = b - x.a; minG = Math.min(minG, g); maxG = Math.max(maxG, g); });
+    const why = n > 1 && (minG < KEEP - 1e-6 ? "cramped" : maxG > (ring === "in" ? 3 : 3.5) * even ? "lopsided" : "");
+    if(why) as.forEach((x, i)=> out[x.id] = normA(as[0].a + i * even));
+    if(DEBUG_SCENES && why) console.log("[net] re-spaced the " + ring + " ring (" + why + ")");
+  }
+  Object.keys(out).forEach(id=>{ out[id] = Math.round(out[id] * 1e4) / 1e4; book[id] = {a: out[id], r: ring}; });
+  return out;
+}
 function netLayout(G){
   const L = netList(G), key = netRingKey(G, L);
   const alive = L.filter(p=> p.alive).length, crowded = alive > NET.crowdAt;
   let inner, outer;
   const byId = {}; L.forEach(p=> byId[p.id] = p);
-  if(G.netRing && G.netRing.key === key && G.netRing.inner.every(id=> byId[id]) && G.netRing.outer.every(id=> byId[id])){
+  if(G.netRing && G.netRing.key === key && G.netRing.ang && G.netRing.inner.every(id=> byId[id]) && G.netRing.outer.every(id=> byId[id])){
     inner = G.netRing.inner.map(id=> byId[id]); outer = G.netRing.outer.map(id=> byId[id]);
   } else {
     ({inner, outer} = netRingSplit(G, L));
-    G.netRing = {key, inner: inner.map(p=> p.id), outer: outer.map(p=> p.id)};
+    const prior = Object.assign({}, (G.netSeat && G.netSeat[G.myRoost]) || {});
+    const ang = Object.assign({}, netSeats(G, inner, 0, "in"), netSeats(G, outer, Math.PI/Math.max(1, outer.length), "out"));
+    /* the outer clash walk below runs in this order: bats who kept their outer seat first, so a
+       newcomer or a bat dropping from the inner ring walks around them, never the other way round */
+    const kept = p=> prior[p.id] && prior[p.id].r === "out" && Math.abs(prior[p.id].a - ang[p.id]) < 1e-3;
+    const walk = outer.filter(kept).concat(outer.filter(p=> !kept(p))).map(p=> p.id);
+    G.netRing = {key, inner: inner.map(p=> p.id), outer: outer.map(p=> p.id), ang, walk, lab:{}};
   }
+  const ANG = G.netRing.ang;
   const B = netBox();
-  const ring = (i, n, rx, ry, off)=>{ const a = -Math.PI/2 + off + i*(2*Math.PI/Math.max(1, n)); return {x: B.cx + rx*Math.cos(a), y: B.cy + ry*Math.sin(a), a}; };
+  const at = (a, rx, ry)=> ({x: B.cx + rx*Math.cos(a), y: B.cy + ry*Math.sin(a), a});
   const pos = {};
   const sx = crowded ? 1 : B.wide, sy = crowded ? 1 : B.tall;   // fill the box when there is room
-  inner.forEach((p, i)=> pos[p.id] = Object.assign(ring(i, inner.length, B.rx*sx, B.ry*sy, 0), {r: crowded ? 15 : 17, ring:"in"}));
-  outer.forEach((p, i)=> pos[p.id] = Object.assign(ring(i, outer.length, B.ox, B.oy, Math.PI/Math.max(1, outer.length)), {r:12, ring:"out"}));   // P12 (Bryson): not tiny, or they read as pups
+  inner.forEach(p=> pos[p.id] = Object.assign(at(ANG[p.id], B.rx*sx, B.ry*sy), {r: crowded ? 15 : 17, ring:"in"}));
+  outer.forEach(p=> pos[p.id] = Object.assign(at(ANG[p.id], B.ox, B.oy), {r:12, ring:"out"}));   // P12 (Bryson): not tiny, or they read as pups
   /* P23 (Bryson: "something seems wrong with the bat in red, it has a second circle at it"). The two
-     rings are spaced evenly but INDEPENDENTLY, so a node on one can land on top of a node on the
-     other. It bit on an uncrowded dawn, where every living bat is on the inner ring and the outer
-     ring holds only the roost's dead: 8 present put a bat at the bottom of the inner ring (200,249)
-     and the single dead bat's half-turn offset put its ghost at (200,268), 18.7 apart with radii
-     summing to 29, so the ghost drew as a second circle around a living bat. Walk any outer node
-     around its ellipse until it clears everything already placed. */
+     rings are spaced INDEPENDENTLY, so a node on one can land on top of a node on the other. Walk
+     any outer node around its ellipse until it clears everything already placed. This reads only
+     the frozen angles, so it lands in the same place on every redraw of the dawn. */
   const clashes = (q, o)=> Math.hypot(q.x - o.x, q.y - o.y) < q.r + o.r + 6;
-  const placed = inner.map(p=> pos[p.id]);
-  outer.forEach(p=>{
-    const q = pos[p.id];
-    for(let t = 0; t < 36 && placed.some(o=> clashes(q, o)); t++){
-      q.a += Math.PI / 18;
-      q.x = B.cx + B.ox * Math.cos(q.a);
-      q.y = B.cy + B.oy * Math.sin(q.a);
-    }
-    placed.push(q);
-  });
+  /* P37: the walk runs once per dawn per box (phone or desktop) and its result is kept in
+     G.netRing.walked, so every later redraw of the dawn draws the same places without walking again;
+     the walked angle also becomes that dot's seat, so the next dawn starts her where she was drawn */
+  const kind = netPhone() ? "ph" : "dt";
+  G.netRing.walked = G.netRing.walked || {};
+  const W = G.netRing.walked[kind];
+  const putOut = (q, a)=>{ q.a = a; q.x = B.cx + B.ox * Math.cos(a); q.y = B.cy + B.oy * Math.sin(a); };
+  if(W){
+    outer.forEach(p=>{ if(typeof W[p.id] === "number") putOut(pos[p.id], W[p.id]); });
+  } else {
+    /* only the first box drawn this dawn writes seats, so a resize cannot move tomorrow's seats */
+    const W2 = {}, book = Object.keys(G.netRing.walked).length ? null : (G.netSeat && G.netSeat[G.myRoost]);
+    const placed = inner.map(p=> pos[p.id]);
+    (G.netRing.walk ? G.netRing.walk.map(id=> byId[id]).filter(Boolean) : outer).forEach(p=>{
+      const q = pos[p.id];
+      for(let t = 0; t < 36 && placed.some(o=> clashes(q, o)); t++) putOut(q, q.a + Math.PI / 18);
+      placed.push(q);
+      W2[p.id] = Math.round(normA(q.a) * 1e4) / 1e4;
+      if(book && W2[p.id] !== ANG[p.id]) book[p.id] = {a: W2[p.id], r: "out"};
+    });
+    G.netRing.walked[kind] = W2;
+  }
   return {list:L, inner, outer, pos, crowded};
 }
 const nodePos = pid=>{ const q = netLayout(G).pos[pid], B = netBox(); return q ? {x:q.x, y:q.y} : {x:B.cx, y:B.cy}; };
@@ -2499,23 +3142,37 @@ const nodePos = pid=>{ const q = netLayout(G).pos[pid], B = netBox(); return q ?
    dropped (its bat keeps her aria-label, her <title> and her chip in the who-needs-you strip).
    Highest priority first: starving, then begging, then the deepest bonds, and always the bat you
    have selected. */
+/* P37: the names are placed ONCE per dawn (per box: phone or desktop) and kept in G.netRing.lab, so a
+   pick, a groom or a gift never flips a name above or below its node or drops another one. The bat you
+   pick, when she has no name on the web, gets hers for as long as she is picked, placed around the
+   frozen ones. Only the text can change (a heart once she has fed you). */
+const netLabelTxt = p=> p.name + (p.fedYou ? " ♥" : "") + (p.youSaved ? " ✚" : "");
 function netLabels(G, lay){
-  const K = BAT.roosts, cands = [], B = netBox();
-  lay.inner.forEach(p=> cands.push({p, prio:(p.starving ? 40 : p.hungry ? 30 : 0) + (p.trust >= K.knownTrust ? 10 : 0) + p.trust}));
-  // P13 (Bryson): in a crowded roost the outer ring is unnamed by default (hover / tap shows the name); a small roost has no outer ring
-  if(G.selected !== null){
-    const sp = lay.list.find(x=> x.id === G.selected && x.alive);
-    if(sp && !cands.some(c=> c.p.id === sp.id)) cands.push({p:sp, prio:100});
-    cands.forEach(c=>{ if(c.p.id === G.selected) c.prio = 100; });
+  const kind = netPhone() ? "ph" : "dt";
+  const R = G.netRing || {}; R.lab = R.lab || {};
+  if(!R.lab[kind]) R.lab[kind] = netLabelPass(G, lay, null, null);
+  const fixed = R.lab[kind], out = {};
+  lay.list.forEach(p=>{ const f = fixed[p.id]; if(f) out[p.id] = Object.assign({}, f, {txt: netLabelTxt(p)}); });
+  if(G.selected !== null && !out[G.selected]){
+    const extra = netLabelPass(G, lay, G.selected, fixed);
+    if(extra[G.selected]) out[G.selected] = extra[G.selected];
   }
+  return out;
+}
+function netLabelPass(G, lay, only, fixed){
+  const K = BAT.roosts, cands = [], B = netBox();
+  // P13 (Bryson): in a crowded roost the outer ring is unnamed by default (picking a bat shows her name)
+  if(only === null) lay.inner.forEach(p=> cands.push({p, prio:(p.starving ? 40 : p.hungry ? 30 : 0) + (p.trust >= K.knownTrust ? 10 : 0) + p.trust}));
+  else { const sp = lay.list.find(x=> x.id === only && x.alive); if(sp) cands.push({p:sp, prio:100}); }
   cands.sort((a, b)=> b.prio - a.prio);
   const boxes = [{x0:B.cx-26, x1:B.cx+26, y0:B.cy-22, y1:B.cy+12}];   // YOU, at the middle
   lay.list.forEach(p=>{ const q = lay.pos[p.id]; boxes.push({x0:q.x-q.r, x1:q.x+q.r, y0:q.y-q.r-8, y1:q.y+q.r}); });
+  if(fixed) Object.keys(fixed).forEach(id=>{ if(fixed[id].box) boxes.push(fixed[id].box); });
   const hit = b=> boxes.some(o=> !(b.x1 < o.x0 || b.x0 > o.x1 || b.y1 < o.y0 || b.y0 > o.y1));
   const out = {};
   cands.forEach(({p, small})=>{
     const q = lay.pos[p.id];
-    const txt = p.name + (p.fedYou ? " ♥" : "") + (p.youSaved ? " ✚" : "");
+    const txt = netLabelTxt(p);
     const w = (small ? 4.9 : 6.1)*B.font*txt.length + 6, h = (small ? 11 : 13)*B.font;
     const lo = q.y + q.r + (small ? 13 : 16)*B.font, hi = q.y - q.r - (small ? 10 : 12)*B.font;
     const x0 = clamp(q.x, B.pad + w/2, B.w - B.pad - w/2);
@@ -2528,7 +3185,7 @@ function netLabels(G, lay){
       if(y - h < 2 || y + 4 > B.h - 2) continue;
       const box = {x0:x - w/2, x1:x + w/2, y0:y - h, y1:y + 4};
       if(hit(box)) continue;
-      boxes.push(box); out[p.id] = {x, y, txt, small: !!small};
+      boxes.push(box); out[p.id] = {x, y, txt, small: !!small, box};
       return;
     }
   });
@@ -2569,6 +3226,8 @@ function netSvg(){
       <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${small ? B.hit : B.hit + 2}" style="fill:transparent; stroke:none; animation:none; cursor:pointer"/>
       ${G.selected === p.id ? `<circle class="selring" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r + 7}"/>` : ""}
       ${EARS(x, y, small ? 0.85 : 1)}
+      ${p.cough ? `<circle class="coughring" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${(r + 3.5).toFixed(1)}" aria-hidden="true"/>` : ""}
+      <circle class="nshadow" cx="${(x + 1.5).toFixed(1)}" cy="${(y + 2.5).toFixed(1)}" r="${r}" aria-hidden="true"/>
       <circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r}" style="stroke-width:${(1.3 + p.trust*3.2).toFixed(1)}"/>
       ${lab ? `<text class="${lab.small ? "small" : ""}" x="${lab.x.toFixed(0)}" y="${lab.y.toFixed(0)}">${esc(lab.txt)}</text>` : ""}
       ${p.visitor ? `<g class="nf-visitor-badge" aria-hidden="true" transform="translate(${(x+r*.8).toFixed(1)} ${(y-r*.8).toFixed(1)})"><rect x="-6" y="-6" width="12" height="12" rx="3"/><text x="0" y="3.5">V</text></g>` : ""}
@@ -2576,9 +3235,9 @@ function netSvg(){
   });
   const many = lay.crowded;
   return `<svg class="wyd-net${many ? " wyd-net-many" : ""}${netPhone() ? " wyd-net-flat" : ""}" viewBox="0 0 ${B.w} ${B.h}" role="img"${many ? ' style="font-size:.82em"' : ""}
-    aria-label="The roost's social network tonight: you at the center, the bats you know on the inner ring and the bats you barely know around them, every one named; ring colour shows who is hungry and line thickness shows your bond. Starving bats will die without blood.">
+    aria-label="The roost's social network tonight: you at the center, the bats you know on the inner ring and the bats you barely know around them, every one named; ring colour shows who is hungry and line thickness shows your bond. A starving bat may die if nobody feeds her.">
     ${pp}${edges}
-    <g class="node you">${EARS(cx, cy, 1.15)}<circle cx="${cx}" cy="${cy}" r="17"/><text x="${cx}" y="${cy+4}">YOU</text></g>
+    <g class="node you">${EARS(cx, cy, 1.15)}<circle class="nshadow" cx="${cx + 1.5}" cy="${cy + 2.5}" r="17"/><circle cx="${cx}" cy="${cy}" r="17"/><text x="${cx}" y="${cy+4}">YOU</text></g>
     ${nodes}</svg>
     <p class="wyd-netlegend">${COPY.netLegend}</p>`;
 }
@@ -2607,10 +3266,11 @@ function reciprocate(p, pr){
   if(BAT.roosts.warmRecip) pr *= warmMult(G);
   if(G.sick) pr *= BAT.roosts.sickGroomBack;
   if(p.cough) pr *= BAT.season.coughGroomBack;   // P6a: a coughing bat grooms back less
-  if(G.run && G.run.newRoost && !mods(G).strangerEase) pr *= BAT.roosts.strangerRecip;   // P9: unless the year makes strangers welcome
+  if(G.run && G.run.newRoost && !mods(G).strangerEase && !tradeVal(G, G.myRoost, "welcome", false)) pr *= BAT.roosts.strangerRecip;   // P37: the mango hollow welcomes newcomers   // P9: unless the year makes strangers welcome
   if(roll() < Math.min(BAT.recipCap, pr)){
     G.hygiene = Math.min(1, G.hygiene + BAT.groomBackHyg);
-    emitStream(p.id, {color:"var(--g-warm)", r:3, count:6, interval:240, travel:1400,
+    // P36 visual-only change in a logic function: the groom-back stream is green and round like every groom
+    emitStream(p.id, {color:"var(--g-good)", kind:"groom", r:3, count:6, interval:240, travel:1400,
       reverse:true, delay:1200});
     if(!p.seen && (p.trait==="generous")){ p.seen = true; }
     let cured = "";
@@ -2630,9 +3290,12 @@ function reciprocate(p, pr){
 /* P25 finding 5: "You caught it from Hazel" arrived out of nowhere. A sickly year says every bat
    you touch is a risk; this is that risk, per bat, as a number, priced where you decide. 0 when you
    are already ill (you cannot catch it twice) or the season carries nothing to catch. */
+/* P37 (B2): on the young nights only a coughing bat can pass it on; the dawn's numbers and sleepApply share this rule */
+const youngCoughOnly = G=> !!BAT.season.youngContactCoughOnly && G.night <= BAT.youngNights;
 function catchP(G, p){
   if(!G.season || G.sick || G.night < BAT.season.contagionFrom) return 0;   // P32: nothing to catch on the ramp nights
-  return Math.min(0.95, BAT.season.contactSick * G.season.contagion * (p.cough ? BAT.season.sickBatMult : 1));
+  if(youngCoughOnly(G) && !p.cough) return 0;
+  return Math.min(0.95, BAT.season.contactSick * G.season.contagion * (p.cough ? BAT.season.sickBatMult : 1) * tradeVal(G, G.myRoost, "contactMult", 1));   // P37: the culvert
 }
 /* ── P26 the continuous give/groom bars ──
    Every curve here is BAT.slider, solved in bat-data.js from the quick groom, the long groom and
@@ -2653,6 +3316,14 @@ function groomRecipAt(f, trust){
   return S.recipBase * f + trust * slope * Math.min(1, f / S.quickAt);   // a token brush earns a token chance
 }
 const satAt = (c, b)=> c.max * (1 - Math.exp(-b / c.lam));
+/* P37 C1: a gift's bond gain stops growing at the full-crop tier (BAT.slider.giftBondCap); points
+   and the lift she gets still follow the whole gift */
+const giftGainAt = b=> satAt(SL().gain, Math.min(b, SL().gainCapBlood));
+const giftCapped = b=> b > SL().gainCapBlood + 1e-9;
+const giftMarkPct = ()=> Math.round(SL().gainCapBlood / BAT.energyCap * 100);   // where the bond stops growing, on the 0 to 100 bar
+/* the bond a gift of this much blood adds to her, exactly as doGive applies it (bond tops out at 1) */
+const giftBond = (G, p, blood)=> Math.min(1 - p.trust,
+  giftGainAt(blood) * eventMult(p, true) * warmMult(G) * (p.starving ? 1 : (1 - BAT.dimReturns * p.trust)));
 const staminaFrac = G=> Math.max(0, G.stamina) / BAT.staminaPerNight;
 /* how far each bar may travel: what you hold, rounded DOWN to a 5% stop so it can never overdraw */
 const groomCapPct = G=> snapPct(staminaFrac(G) / groomCostMult(G));
@@ -2678,59 +3349,92 @@ const catchTag = (G, p)=>{
 };
 /* P10 lever 3: one donation a dawn. A second is allowed only if your crop is still nearly full. */
 const canDonate = G=> (G.run.dons || 0) < BAT.sharesPerDawn || G.energy >= BAT.energyCap - BAT.fullCropMargin;
+/* P37 A1: could you still have fed a begging bat at this moment? A night of blood in hand (and no
+   fever), AND your one donation unspent or a crop full enough for a second. Only then does leaving
+   her hungry count as a refusal: sleepApply charges it and the dawn footer warns about it, from
+   this one function, so the warning and the cost can never disagree (simmed as REFUSE=fix).
+   P37 follow-up (coordinator, for Bryson's question 2): also stamina enough for the smallest gift, the
+   same test that opens the give bar, so the bar, the footer and the sleep penalty all agree. */
+const canStillGive = G=> canGiveTonight(G) && canDonate(G) && G.stamina > 0 && giveCapPct(G) >= SL().giveFloor;
 function nfNetworkKey(){return `<div class="nf-key">${[
- ["friend",COPY.nfKeyFriend],["hungry",COPY.nfKeyHungry],["cough",COPY.nfKeyCough],
+ ["friend",COPY.nfKeyFriend],["hungry",COPY.nfKeyHungry],["starving",COPY.nfKeyStarving],["cough",COPY.nfKeyCough],
  ["visitor",COPY.nfKeyVisitor],["unknown",COPY.nfKeyUnknown],["links",COPY.nfKeyLinks]
 ].map(([style,text])=>`<div class="nf-key-row"><span aria-hidden="true" class="nf-key-symbol ${style}"></span><span>${text}</span></div>`).join("")}</div>`;}
 const DAWN_VIEW = {pid:null,kind:"groom"};
+/* P37: who needs you this dawn, in the panel's room when no bat is picked (P33 had dropped the strip): one
+   chip per starving, begging or coughing bat here, most urgent first, at most NEEDS_MAX; a tap picks her.
+   The web above never changes for it (fitNet reserves the picked panel, which is taller). */
+const NEEDS_MAX = 6;
+function needsStrip(G){
+  const pr = presentBats(G);
+  const rank = p=> (p.starving && !p.shared) ? 0 : (p.hungry && !p.shared) ? 1 : p.cough ? 2 : 9;
+  const list = pr.filter(p=> rank(p) < 9).sort((a, b)=> (rank(a) - rank(b)) || (b.trust - a.trust));
+  if(!list.length) return "";
+  const word = p=> rank(p) === 0 ? COPY.chipStarvingShort : rank(p) === 1 ? COPY.chipBeggingShort : COPY.chipCough;
+  const chips = list.slice(0, NEEDS_MAX).map(p=> `<button type="button" class="wyd-ptag wyd-needchip${rank(p) === 0 ? " hot" : rank(p) === 2 ? " cough" : " beg"}" data-need="${p.id}">${esc(p.name)} · ${word(p)}${p.cough && rank(p) < 2 ? " · " + COPY.chipCough : ""}</button>`).join("");
+  const more = list.length > NEEDS_MAX ? `<span class="wyd-needmore">${fill(COPY.needsMore, {n: list.length - NEEDS_MAX})}</span>` : "";
+  return `<div class="wyd-needs wyd-needs--panel"><span class="gl">${COPY.dawnNeeds}</span>${chips}${more}</div>`;
+}
 function partnerPanel(){
   if(G.selected===null){
     const starv = presentBats(G).filter(p=> p.starving && !p.shared);
     const warm = warmMult(G);
     const nReal = realBondsOf(G).length, extra = breadthExtra(G);
     const spread = extra > 0 ? `<p class="wyd-feedback wyd-spread"><strong>${fill(COPY.panelSpread, {n: nReal, free: G.season.freeBonds, extra: "-" + fmtN(extra)})}</strong></p>` : "";
-    return `<div class="wyd-partner"><h4>${COPY.panelPickHead}</h4>${spread}
-      <p class="wyd-story" style="font-size:.9rem">${COPY.panelPickShort}${G.roosts[G.myRoost].known && G.roosts[G.myRoost].visits > 1 && Math.abs(warm - 1) > 0.15 ? (warm > 1 ? COPY.panelWarmFast : COPY.panelWarmSlow) : ""}${starv.length ? COPY.panelStarvWarn : ""}</p>
-      ${G.lastAct ? `<p class="wyd-feedback">${G.lastAct}</p>`:""}</div>`;
+    /* P37: on a tips-on dawn the coach line takes the place of the "tap a bat" sentence (same height budget) */
+    const coach = dawnCoach(G);
+    const extras = `${G.roosts[G.myRoost].known && G.roosts[G.myRoost].visits > 1 && Math.abs(warm - 1) > 0.15 ? (warm > 1 ? COPY.panelWarmFast : COPY.panelWarmSlow) : ""}${starv.length ? COPY.panelStarvWarn : ""}`;
+    return `<div class="wyd-partner"><h4>${COPY.panelPickHead}</h4>${spread}${coach}
+      ${coach && !extras ? "" : `<p class="wyd-story" style="font-size:.9rem">${coach ? "" : COPY.panelPickShort}${extras}</p>`}
+      ${G.lastAct ? `<p class="wyd-feedback">${G.lastAct}</p>`:""}${needsStrip(G)}</div>`;
   }
   const p = G.partners[G.selected];
   const longCost = longGroomCost(G);
   const canQ = G.stamina>=BAT.groomQuick.cost && !p.groomed;
   const canL = G.stamina>=longCost && !p.groomed;
-  const canShareBase = G.stamina > 0 && p.hungry && !p.shared && canGiveTonight(G) && canDonate(G);   // P32: no fed-night gate, a night of blood in hand instead
+  const canShareBase = p.hungry && !p.shared && canStillGive(G);   // P37: the same test sleepApply's refusal uses   // P32: no fed-night gate, a night of blood in hand instead
   const shareWhy = (G.sick && BAT.roosts.sickNoShare) ? COPY.shareWhyFever
     : !p.hungry || p.shared ? COPY.shareWhyNotHungry
-    : G.stamina <= 0 ? COPY.shareWhyNoStamina
+    : staminaFrac(G) < SL().giveFloor ? COPY.shareWhyNoStamina   // P37: too little for the smallest gift
     : !canDonate(G) ? COPY.shareWhyOne : COPY.shareWhyLow;
   const wm = warmMult(G);   // P5: the roost's warm-up rate scales every gain shown and applied
   const em = eventMult(p, true) * wm, gm = eventMult(p, false) * wm * mods(G).groomMult;   // P9: a stingy year grooms faster
   const pos = slPos(G, p);
   const gCap = groomCapPct(G), vCap = giveCapPct(G);
   const canGroom = !p.groomed && gCap >= SL().step;
-  const canShare = canShareBase && vCap >= SL().giveFloor;
+  const canShare = canShareBase;   // canStillGive already holds vCap >= giveFloor
   // P6a: what this bond is worth tonight under the season's rescue curve, and the contact risk
-  const begMin = (G.run && G.run.newRoost && !mods(G).strangerEase) ? BAT.roosts.strangerShareTrust : BAT.roosts.rescueMinTrust;   // P32: the same floor begAtRoost uses
-  const rescueLine = !p.fed ? COPY.panelRescueUnfed
-    : p.trust < begMin ? fill(COPY.panelRescueFar, {t: begMin.toFixed(2)})
-    : G.night <= BAT.youngNights ? fill(COPY.panelRescueYoung, {n: BAT.youngNights})
-    : fill(COPY.panelRescue, {p: Math.round(rescueP(G, p.trust)*100)});
+  /* P37 A6: the line is a FORECAST for the next time you come home empty (the beg after the next hunt),
+     so it is conditional on her eating that night, it uses the floor for a roost you have now slept in
+     (rescueMinTrust: the stranger floor only ever applies to a first night), and the youngster rule
+     only while the NEXT night is still a young one (the dawn after night youngNights must not promise it). */
+  const begMin = BAT.roosts.rescueMinTrust;
+  const nextYoung = G.night + 1 <= BAT.youngNights;
+  const rescuePr = p.trust < begMin ? 0 : nextYoung ? 1 : rescueP(G, p.trust);
+  const rescueLine = p.trust < begMin ? fill(COPY.panelRescueFar, {t: begMin.toFixed(2)})
+    : nextYoung ? fill(COPY.panelRescueYoung, {n: BAT.youngNights})
+    : fill(COPY.panelRescue, {p: Math.round(rescuePr*100)});
   const gainQ = (BAT.groomQuick.gain*gm*(1-BAT.dimReturns*p.trust)).toFixed(2);
   const gainL = (BAT.groomLong.gain*gm*(1-BAT.dimReturns*p.trust)).toFixed(2);
   if(DAWN_VIEW.pid !== p.id){ DAWN_VIEW.pid = p.id; DAWN_VIEW.kind = "groom"; }
   const risk = Math.round(catchP(G,p)*100);
-  const facts = `<p>${rescueLine}</p>${''}${traitHintLine(p)}`;
-  return `<div class="wyd-partner nf-partner">
+  const facts = `<p data-rescue="1" data-p="${rescuePr.toFixed(4)}">${rescueLine}</p>${''}${traitHintLine(p)}`;   // P37 A12: data-p is the test hook (the line lives in a template since P33)
+  /* P37: on a tips-on dawn the coach line stands where her status line was (the coach names it, and the web
+     and "Her story" still show it); a bat with an illness risk keeps the line and the coach sits above it */
+  const coach = dawnCoach(G);
+  const status = `<div class="nf-risk"><span>${p.shared ? COPY.chipShared : p.starving ? COPY.chipStarving : p.hungry ? COPY.chipBegging : COPY.chipFed}</span>
+      ${risk ? `<span class="nf-caution">${fill(COPY.nfRisk,{p:risk})}</span>` : ""}</div>`;
+  return `<div class="wyd-partner nf-partner${G.lastAct ? " nf-acted" : ""}">
     <div class="nf-person"><div><h4>${esc(p.name)}</h4><span class="nf-bond">${fill(COPY.bondLabel,{trust:p.trust.toFixed(2)})}</span></div>
       <button type="button" class="nf-about" id="nf-about" aria-label="${esc(fill(COPY.nfAboutName,{name:p.name}))}">${COPY.nfAbout}</button></div>
-    <div class="nf-risk"><span>${p.shared ? COPY.chipShared : p.starving ? COPY.chipStarving : p.hungry ? COPY.chipBegging : COPY.chipFed}</span>
-      ${risk ? `<span class="nf-caution">${fill(COPY.nfRisk,{p:risk})}</span>` : ""}</div>
+    ${coach && !risk ? coach : coach + status}
     <div class="nf-tabs" role="tablist" aria-label="${esc(COPY.nfChoose)}">
       <button type="button" id="nf-tab-groom" role="tab" aria-controls="nf-panel-groom" data-nf-kind="groom">${COPY.slGroomLab}<small>${COPY.nfGroomPurpose}</small></button>
       <button type="button" id="nf-tab-give" role="tab" aria-controls="nf-panel-give" data-nf-kind="give" ${canShare ? "" : "disabled"}>${COPY.slGiveGo}<small>${!canShare ? (p.shared ? COPY.chipShared : shareWhy) : p.starving ? COPY.slGiveGoSave : COPY.nfGivePurpose}</small></button>
     </div>
     <div id="nf-panel-groom" role="tabpanel" aria-labelledby="nf-tab-groom">${sliderRow(G,p,"groom",pos.groom,gCap,canGroom,p.groomed ? COPY.chipGroomed : COPY.slNone)}</div>
     <div id="nf-panel-give" role="tabpanel" aria-labelledby="nf-tab-give">${sliderRow(G,p,"give",pos.give,vCap,canShare,p.shared ? COPY.chipShared : shareWhy)}
-      <p class="nf-rule">${fill(COPY.nfDonation,{n:Math.max(0,BAT.sharesPerDawn-(G.run.dons||0))})}</p></div>
+      ${coach ? "" : `<p class="nf-rule">${fill(COPY.nfDonation,{n:Math.max(0,BAT.sharesPerDawn-(G.run.dons||0))})}</p>`}</div>
     ${G.lastAct ? `<p class="nf-feedback" role="status" tabindex="-1">${G.lastAct}</p>` : ""}
     <template id="nf-facts">${facts}    <div class="wyd-ptags">
       ${p.shared ? "" : p.starving ? `<span class="wyd-ptag hot"><span class="c-l">${COPY.chipStarving}</span><span class="c-s">${COPY.chipStarvingShort}</span></span>`
@@ -2767,11 +3471,11 @@ function recipMods(G, p, pr){
   if(BAT.roosts.warmRecip) pr *= warmMult(G);
   if(G.sick) pr *= BAT.roosts.sickGroomBack;
   if(p.cough) pr *= BAT.season.coughGroomBack;
-  if(G.run && G.run.newRoost && !mods(G).strangerEase) pr *= BAT.roosts.strangerRecip;
+  if(G.run && G.run.newRoost && !mods(G).strangerEase && !tradeVal(G, G.myRoost, "welcome", false)) pr *= BAT.roosts.strangerRecip;   // P37: the mango hollow welcomes newcomers
   return pr;
 }
 /* what a groom of this size buys, in the words the player reads under the bar */
-const nfMetric = (label,value,sign)=> `<span class="nf-metric"><strong>${sign}${value}</strong><span>${label}</span></span>`;
+const nfMetric = (label,value,sign)=> `<span class="nf-metric"><strong>${+value === 0 ? "" : sign}${value}</strong><span>${label}</span></span>`;   // P37 A12: never "-0"
 function groomReadout(G, p, f){
   const wm = warmMult(G), gm = eventMult(p, false) * wm * mods(G).groomMult;
   const gain = groomGainAt(f) * gm * (1 - BAT.dimReturns * p.trust);
@@ -2788,7 +3492,11 @@ function giveReadout(G, p, f){
   /* Bryson, on the phone: "it should not bother saying that some blood will spill because you
      dont have enough space, the user will realize that". The spill note and the catch chance are
      desktop only; the phone keeps the two numbers a decision actually turns on. */
-  return nfMetric(COPY.nfStamina,pctI(f),"−") + nfMetric(COPY.nfBloodLeft,bp(left),"") + nfMetric(COPY.nfPoints,Math.round(pts),"+")
+  /* P37 C1: the bond this gift adds, and past the full-crop mark the line that says why it stops
+     rising (on a phone the label alone says so, so the readout keeps its height) */
+  const capped = giftCapped(blood), bond = giftBond(G, p, blood);
+  return nfMetric(COPY.nfStamina,pctI(f),"−") + nfMetric(COPY.nfBloodLeft,bp(left),"") + nfMetric(capped ? COPY.nfBondMax : COPY.nfBond, bond.toFixed(2), "+") + nfMetric(COPY.nfPoints,Math.round(pts),"+")
+    + (!onPhone() && capped ? `<span class="nf-spill nf-bondcap">${fill(COPY.slGiveBondCap, {mark: giftMarkPct()})}</span>` : "")
     + (!onPhone() && lift > room + 0.05 ? `<span class="nf-spill">${COPY.slGiveSpill}</span>` : "");
 }
 /* one bar: label, live percentage, the range itself, what it buys, and the button that spends it.
@@ -2802,10 +3510,10 @@ function sliderRow(G, p, kind, val, cap, enabled, why){
                       : fill(COPY.slGiveCap, {blood: bp(G.energy), pct: pctI(cap)});
   const sub = !enabled ? why : (isG ? groomReadout(G, p, val) : giveReadout(G, p, val));
   const blood = Math.min(val * BAT.energyCap, G.energy);
-  return `<div class="wyd-bar ${enabled ? "" : "off"}" data-kind="${kind}" data-pct="${pctI(val)}" data-cap="${pctI(cap)}"${isG ? "" : ` data-blood="${bp(blood)}" data-left="${bp(Math.max(0, G.energy - blood))}"`}>
+  return `<div class="wyd-bar ${enabled ? "" : "off"}" data-kind="${kind}" data-pct="${pctI(val)}" data-cap="${pctI(cap)}"${isG ? "" : ` data-blood="${bp(blood)}" data-left="${bp(Math.max(0, G.energy - blood))}" data-bond="${giftBond(G, p, blood).toFixed(4)}" data-mark="${giftMarkPct()}"`}>
     <div class="bar-top"><span class="bar-lab">${isG ? COPY.nfSpendStamina : COPY.nfSpendBlood}</span><span class="bar-lab-s">${shortLab}</span><output class="bar-val" id="wyd-${kind}val" for="wyd-${kind}range">${fill(COPY.slPct, {pct: pctI(val)})}</output></div>
     <input type="range" class="bar-range" id="wyd-${kind}range" min="0" max="100" step="${pctI(S.step)}" value="${pctI(val)}"
-      style="--cap:${pctI(cap)}%" data-cap="${pctI(cap)}" aria-valuemax="${pctI(cap)}"
+      style="--cap:${pctI(cap)}%${isG ? "" : `;--markf:${(SL().gainCapBlood / BAT.energyCap).toFixed(4)}`}" data-cap="${pctI(cap)}" aria-valuemax="${pctI(cap)}"
       ${enabled ? "" : "disabled"} aria-label="${esc(lab)}" aria-describedby="wyd-${kind}sub">
     <p class="bar-cap">${enabled ? fill(COPY.nfLimit,{n:pctI(cap)}) : ""}</p>
     <p class="bar-sub" id="wyd-${kind}sub">${sub}</p>
@@ -2859,17 +3567,74 @@ function keepDawnInView(){
     if(top < -8 || top > 120) el.scrollIntoView({block: "start", behavior: reduceMotion() ? "auto" : "smooth"});
   }catch(e){}
 }
+/* P37 phones: the dawn web takes the room the screen has, decided ONCE per dawn. The panel under it
+   changes height as you pick a bat, open the give bar or read what came of a groom, so the web's
+   height is set against the TALLEST that panel can get (measured from partnerPanel() itself, for a
+   begging bat with the give bar open and a two-line result) and the panel keeps that height as a
+   floor: the web never resizes during a dawn, its nodes never move, and the page never scrolls.
+   It was 106px on every phone; at 393x660 it is now about 180px (the box's own width limit). */
+let NETFIT = {key:"", h:0, minH:0};
+function worstPanelH(act){
+  const present = presentBats(G);
+  let h = act.offsetHeight;
+  if(!present.length) return h;
+  const keep = {sel: G.selected, last: G.lastAct, pid: DAWN_VIEW.pid, kind: DAWN_VIEW.kind, slpos: Object.assign({}, SLPOS)};
+  const cand = present.find(p=> p.hungry && !p.shared) || present[0];
+  /* the longest panel a bat can draw: starving, coughing, begging, with a result line under it */
+  const flags = {hungry: cand.hungry, starving: cand.starving, shared: cand.shared, cough: cand.cough, groomed: cand.groomed};
+  try{
+    Object.assign(cand, {hungry: true, starving: true, shared: false, cough: true, groomed: false});
+    G.selected = cand.id; DAWN_VIEW.pid = cand.id;
+    G.lastAct = fill(COPY.actSave, {name: esc(cand.name), label: fill(COPY.slAmount, {pct: 100}), blood: BLOOD_MAX});
+    const act0 = G.lastAct;
+    [["give", act0], ["groom", act0], ["give", ""], ["groom", ""]].forEach(([kind, last])=>{
+      DAWN_VIEW.kind = kind; G.lastAct = last;
+      const probe = document.createElement("div");
+      probe.className = act.className;
+      probe.setAttribute("aria-hidden", "true");
+      probe.style.cssText = `position:absolute; visibility:hidden; pointer-events:none; left:0; top:0; width:${act.clientWidth}px; min-height:0;`;
+      probe.innerHTML = partnerPanel();
+      probe.querySelectorAll("[id]").forEach(el=>{ if(el.id === "nf-panel-" + (kind === "give" ? "groom" : "give")) el.hidden = true; el.removeAttribute("id"); });
+      act.parentNode.appendChild(probe);
+      h = Math.max(h, probe.offsetHeight + 4);
+      probe.remove();
+    });
+  } catch(e){}
+  finally{ Object.assign(cand, flags); G.selected = keep.sel; G.lastAct = keep.last; DAWN_VIEW.pid = keep.pid; DAWN_VIEW.kind = keep.kind; SLPOS = keep.slpos; }
+  return h;
+}
+function fitNet(){
+  const svg = document.querySelector("#wyd-scene .nf-colony .wyd-net");
+  const act = document.querySelector("#wyd-scene .nf-action");
+  if(!svg || !act) return;
+  if(!netPhone()){ svg.style.height = ""; act.style.minHeight = ""; NETFIT.key = ""; return; }
+  const key = (G.netRing ? G.netRing.key : G.night) + "|" + window.innerWidth + "x" + window.innerHeight;
+  if(NETFIT.key === key){ svg.style.height = NETFIT.h + "px"; act.style.minHeight = NETFIT.minH + "px"; return; }
+  svg.style.height = ""; act.style.minHeight = "";
+  const base = svg.getBoundingClientRect().height;
+  const minH = Math.ceil(worstPanelH(act));
+  act.style.minHeight = minH + "px";
+  const B = netBox(), useful = Math.floor(svg.clientWidth * B.h / B.w);   // taller than this only adds empty space
+  const card = svg.closest(".gpage") || svg;
+  const spare = window.innerHeight - card.getBoundingClientRect().bottom - 6;
+  let h = Math.round(Math.min(useful, Math.max(80, base + spare)));
+  svg.style.height = h + "px";
+  const over = document.documentElement.scrollHeight - window.innerHeight;
+  if(over > 0){ h = Math.max(72, h - over); svg.style.height = h + "px"; }
+  NETFIT = {key, h, minH};
+}
 const SCENE_DAWN = {
   label: G=> `🌅 Dawn after night ${G.night} of ${BAT.nights} · the roost`,
   mode: "day",
   next: ["dusk", "end"],
   render(G){
+    coachPreselect(G);   // P37 (B3): dawn 1 with tips on, once: the beggar is picked with the Give tab open
     const present = presentBats(G);
     const owed = present.filter(p=> p.hungry && !p.shared);
     const starving = owed.filter(p=>p.starving);
     const warn = starving.length
-      ? fill(COPY.warnStarving, {names: starving.map(p=>esc(p.name)).join(" and "), isare: starving.length>1?"are":"is"}) + (canGiveTonight(G) ? COPY.warnYouCould : COPY.warnOthersMight)
-      : canGiveTonight(G) && owed.length
+      ? fill(COPY.warnStarving, {names: starving.map(p=>esc(p.name)).join(" and "), isare: starving.length>1?"are":"is"}) + (canStillGive(G) ? COPY.warnYouCould : COPY.warnOthersMight)
+      : canStillGive(G) && owed.length   // P37 A1: the same bats sleepApply will charge
       ? fill(onPhone() ? COPY.warnRefuseShort : COPY.warnRefuse, {n: owed.length, s: owed.length>1?"s":"", cost: BAT.refuseCost.toFixed(2), owe: owed.some(p=>p.fedYou) ? fill(COPY.warnOwe, {cost: BAT.refuseOweCost.toFixed(2)}) : ""})
       : "";
     const hyg = G.parasites ? COPY.mitesWarn
@@ -2888,7 +3653,7 @@ const SCENE_DAWN = {
     const away = roostResidents(G, G.myRoost).filter(p=> !p.present && p.trust >= K.knownTrust);
     const visitors = present.filter(p=> p.visitor);
     const roostLine = `<p class="wyd-story wyd-roostline"><strong>${fill(COPY.dawnAt, {roost: esc(roostName(G.myRoost))})}</strong>${
-        hz.first && G.myRoost !== 0 ? " " + COPY.dawnNew : ""}${
+        hz.first && G.myRoost !== 0 ? " " + (mods(G).strangerEase ? COPY.dawnNewEase : COPY.dawnNew) : ""}${
         hz.first && hz.cues && hz.cues.length ? " " + fill(COPY.dawnCues, {cues: esc(hz.cues.join("; "))}) : ""}${
         away.length ? " " + fill(COPY.dawnAway, {names: away.map(p=> esc(p.name)).join(", "), isare: away.length > 1 ? "They are" : "She is", they: away.length > 1 ? "they" : "she"}) : ""}${
         visitors.length ? " " + fill(COPY.dawnVisitors, {names: visitors.map(p=> esc(p.name)).join(", ")}) : ""}${
@@ -2918,7 +3683,8 @@ const SCENE_DAWN = {
      that landed this dawn, the roost event of the day */
   pops(G){
     G.pops = G.pops || {};
-    if(!helpSeen("dawn")){ markHelp("dawn"); helpPopup("dawn"); }
+    if(coachOn(G)) markHelp("dawn");   // P37: with tips on the coach line teaches the dawn; the ❔ keeps the primer
+    else if(!helpSeen("dawn")){ markHelp("dawn"); helpPopup("dawn"); }
     const hz = G.run && G.run.hazard, hk = "hz:" + G.night;
     if(hz && (hz.sick || hz.hurt) && !G.pops[hk]){ G.pops[hk] = true; hazardPopup(G, hz); }
     const dk = "de:" + G.night;
@@ -2933,7 +3699,7 @@ const SCENE_DAWN = {
       n.addEventListener("click", sel);
       n.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); sel(); } });
     });
-    $$("#wyd-scene .wyd-needchip[data-need]").forEach(b=>{ b.onclick = ()=>{ G.selected = +b.dataset.need; G.lastAct = ""; redrawDawn(); keepDawnInView(); }; });
+    $$("#wyd-scene .wyd-needchip[data-need]").forEach(b=>{ b.onclick = ()=>{ sfx("pick"); G.selected = +b.dataset.need; G.lastAct = ""; redrawDawn(); keepDawnInView(); }; });
     let p = G.selected!==null ? G.partners[G.selected] : null;
     const wm = warmMult(G);   // P5: the roost's warm-up rate
     const contact = p=>{ G.contacts = G.contacts || []; if(!G.contacts.some(c=> c.id === p.id)) G.contacts.push({id:p.id, name:p.name, cough:!!p.cough}); };
@@ -2948,12 +3714,13 @@ const SCENE_DAWN = {
       contact(p);
       G.stamina = Math.max(0, G.stamina - f * BAT.staminaPerNight * groomCostMult(G));
       p.groomed = true;
+      const t0 = p.trust;   // P37 A5: the groom-back is rolled on the bond the readout showed, before this groom raised it
       const gain = groomGainAt(f) * eventMult(p, false) * wm * mods(G).groomMult * (1 - BAT.dimReturns*p.trust);
       p.trust = Math.min(1, p.trust + gain); G.score += BAT.pts.groomQ; G.ledger.grooms++;
       if(!p.seen && p.trait === "plain") p.seen = true;
       log(`Night ${G.night}: groomed ${p.name} for ${pct}% of the night. Bond ${p.trust.toFixed(2)}.`, "good");
       /* the bar right above already says how much, so the phone shows only what came of it */
-      const back = reciprocate(p, groomRecipAt(f, p.trust));
+      const back = reciprocate(p, groomRecipAt(f, t0));
       G.lastAct = (onPhone() ? (back.trim() || fill(COPY.slGroomActShort, {name: esc(p.name)}))
                              : fill(COPY.slGroomAct, {pct: pct, name: esc(p.name)}) + back) + G.deafNote;
       const beads = Math.max(8, Math.round(BAT.staminaPerNight * f * 14));   // the stream runs as long as the groom does
@@ -2961,6 +3728,7 @@ const SCENE_DAWN = {
       if(/grooms you back/.test(G.lastAct)) setTimeout(()=> sfx("good"), 1300);
       G.fx = {pid: p.id, kind:"groom", n: Math.max(1, Math.min(3, Math.round(f / SL().quickAt)))};
       SLPOS = {pid:null, groom:null, give:null};
+      wydSaveRun(G);   // P37 A11: a reload at dawn keeps this groom (the dice are already spent)
       redrawDawn();
     };
     const doGive = (f)=>{
@@ -2974,7 +3742,7 @@ const SCENE_DAWN = {
       p.shared = true; p.hungry = false;
       G.run.dons = (G.run.dons || 0) + 1;   // P10 lever 3, unchanged: one donation a dawn
       G.energy = Math.max(0, G.energy - blood);
-      const gain = satAt(SL().gain, blood) * eventMult(p, true) * wm * (wasStarving ? 1 : (1 - BAT.dimReturns * p.trust));
+      const gain = giftBond(G, p, blood);   // P37 C1: the same function the readout shows
       p.trust = Math.min(1, p.trust + gain);
       G.ledger.don++;
       unlock("firstShare");
@@ -2999,6 +3767,7 @@ const SCENE_DAWN = {
       }
       G.fx = {pid: p.id, kind:"share", n: Math.max(1, Math.min(3, Math.round(blood / BAT.shares[0].blood)))};
       SLPOS = {pid:null, groom:null, give:null};
+      wydSaveRun(G);   // P37 A11: a reload at dawn keeps this gift
       redrawDawn();
     };
     ["groom", "give"].forEach(kind=>{
@@ -3006,6 +3775,7 @@ const SCENE_DAWN = {
       const out = $("#wyd-" + kind + "val"), sub = $("#wyd-" + kind + "sub"), go = $("#wyd-" + kind + "go");
       const host = r.parentNode;
       const paint = ()=>{
+        if(r.disabled) return;   // P37 A12: a closed bar keeps its reason; it is not a zero readout
         /* P28: the track runs the whole 0 to 100 so the scale is constant, so the cap is enforced
            here instead of by the element's own max. */
         const capPct = +(r.dataset.cap || 100);
@@ -3020,6 +3790,7 @@ const SCENE_DAWN = {
             const b = Math.min(f * BAT.energyCap, G.energy);
             host.dataset.blood = bp(b);
             host.dataset.left = bp(Math.max(0, G.energy - b));
+            host.dataset.bond = giftBond(G, p, b).toFixed(4);
           }
         }
         if(go) go.disabled = !(+r.value > 0);
@@ -3053,6 +3824,7 @@ const SCENE_DAWN = {
       tab.onkeydown=e=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){e.preventDefault();choose(e.key==="Home"?"groom":e.key==="End"?"give":DAWN_VIEW.kind==="groom"?"give":"groom",true);}};
     });
     choose(DAWN_VIEW.kind,!!G.lastAct,!!G.lastAct);
+    fitNet();   // P37: before the streams start, so they fly over the web at its final size
     if(G.fx){ runFx(G.fx); G.fx = null; }
   },
 };
@@ -3075,7 +3847,7 @@ function emitStream(pid, o){
       const svg = svgOf(); if(!svg) return;
       const l = document.createElementNS(SVG_NS, "line");
       l.setAttribute("x1", ax); l.setAttribute("y1", ay); l.setAttribute("x2", bx); l.setAttribute("y2", by);
-      l.setAttribute("stroke", o.color); l.setAttribute("stroke-width", "3"); l.setAttribute("stroke-dasharray", "2 9");
+      l.setAttribute("stroke", o.color); l.setAttribute("stroke-width", o.kind === "share" ? "5" : "3"); l.setAttribute("stroke-dasharray", o.kind === "share" ? "1 12" : "2 9");
       l.setAttribute("stroke-linecap", "round"); l.classList.add("wyd-fxline");
       svg.appendChild(l);
       at(travel + 500, ()=> l.remove());
@@ -3090,11 +3862,17 @@ function emitStream(pid, o){
       const svg = svgOf();
       if(!svg || emitted >= o.count){ stopEvery(iv); iv = null; return; }
       emitted++;
-      const c = document.createElementNS(SVG_NS, "circle");
-      c.setAttribute("r", (o.r * (0.7 + 0.6*Math.random())).toFixed(1));
+      /* P36: a groom bead is a small round bead that wobbles across the edge; a shared-blood bead
+         is a drop, point first, that swells as it travels and barely wobbles. The two read apart by
+         shape and motion as well as by hue (colour-blind players). */
+      const drop = o.kind === "share", sz = o.r * (0.7 + 0.6*Math.random());
+      const c = document.createElementNS(SVG_NS, drop ? "path" : "circle");
+      if(drop) c.setAttribute("d", `M0,${-sz*1.9} C${sz*1.1},${-sz*.5} ${sz*1.25},${sz*.6} ${sz*.7},${sz*1.2} C${sz*.3},${sz*1.6} ${-sz*.3},${sz*1.6} ${-sz*.7},${sz*1.2} C${-sz*1.25},${sz*.6} ${-sz*1.1},${-sz*.5} 0,${-sz*1.9} Z`);
+      else c.setAttribute("r", sz.toFixed(1));
       c.setAttribute("fill", o.color); c.setAttribute("opacity", "0"); c.classList.add("wyd-fxbead");
+      if(o.kind) c.classList.add(o.kind);
       svg.appendChild(c);
-      parts.push({el:c, t0:performance.now(), dur: travel * (0.8 + 0.4*Math.random()), ph: Math.random()*6.28, amp: 3 + Math.random()*6});
+      parts.push({el:c, drop, t0:performance.now(), dur: travel * (0.8 + 0.4*Math.random()), ph: Math.random()*6.28, amp: drop ? 1 + Math.random()*1.5 : 3 + Math.random()*6});
     });
     const tick = ()=>{
       const now = performance.now();   // the raf registry calls back without a timestamp
@@ -3102,8 +3880,13 @@ function emitStream(pid, o){
         const p = parts[i], t = (now - p.t0)/p.dur;
         if(t >= 1 || !p.el.isConnected){ p.el.remove(); parts.splice(i, 1); continue; }
         const off = Math.sin(t*9 + p.ph) * p.amp;
-        p.el.setAttribute("cx", (ax + dx*t + nx*off).toFixed(1));
-        p.el.setAttribute("cy", (ay + dy*t + ny*off).toFixed(1));
+        if(p.drop){
+          const sw = 0.85 + 0.5*Math.sin(Math.PI*t) + 0.08*Math.sin(t*20 + p.ph);
+          p.el.setAttribute("transform", `translate(${(ax + dx*t + nx*off).toFixed(1)},${(ay + dy*t + ny*off).toFixed(1)}) rotate(${(Math.atan2(dy, dx)*57.2958 + 90).toFixed(0)}) scale(${sw.toFixed(2)})`);
+        } else {
+          p.el.setAttribute("cx", (ax + dx*t + nx*off).toFixed(1));
+          p.el.setAttribute("cy", (ay + dy*t + ny*off).toFixed(1));
+        }
         const fade = t < 0.15 ? t/0.15 : Math.min(1, (1 - t)*1.15);
         p.el.setAttribute("opacity", (fade * (0.55 + 0.45*Math.sin(Math.PI*t))).toFixed(2));
       }
@@ -3115,10 +3898,10 @@ function emitStream(pid, o){
 }
 function runFx(fx){
   if(fx.kind === "groom"){
-    emitStream(fx.pid, {color:"var(--g-warm)", r:3.2,
+    emitStream(fx.pid, {color:"var(--g-good)", kind:"groom", r:3.2,
       count: fx.n===1 ? 14 : 28, interval:90, travel:1100});
   } else {
-    emitStream(fx.pid, {color:"var(--g-accent)", r:3.2 + fx.n,
+    emitStream(fx.pid, {color:"var(--g-accent)", kind:"share", r:2.2 + fx.n * .6,
       count: 6 + 4*fx.n, interval:110, travel:950});
   }
 }
@@ -3127,7 +3910,7 @@ function runFx(fx){
    then either the season ends (G.cause = "season" → end) or a new night begins. */
 function sleepApply(G){
   if(window.WydLog) WydLog.sleep(G);
-  if(canGiveTonight(G)){   // P32: a refusal costs bond whenever you could have given (a night of blood in hand)
+  if(canStillGive(G)){   // P32: a refusal costs bond whenever you could have given; P37 A1: and only while you still could (not after your one gift)
     // P5: only the bats begging beside you tonight can be refused
     G.partners.filter(p=>p.alive && p.present && p.hungry && !p.shared).forEach(p=>{
       p.trust = Math.max(BAT.trustFloor, p.trust - (p.fedYou ? BAT.refuseOweCost : BAT.refuseCost));
@@ -3135,7 +3918,7 @@ function sleepApply(G){
     });
   }
   // starving bats you didn't feed: their own friends may save them, or not (colony-wide, via pp)
-  const lost = [];
+  const lost = [], saved = [];   // P37 A10: who was saved beside you, and by whom, for the next screen
   G.partners.forEach(p=>{
     if(!p.alive || !p.starving || p.shared) return;
     let rescued = false;
@@ -3143,7 +3926,7 @@ function sleepApply(G){
       if(q.id===p.id || !q.alive || !q.fed) continue;
       if(roll() < Math.min(BAT.rescueCap, BAT.rescueBase + BAT.rescueSlope*G.pp[p.id][q.id])){
         rescued = true;
-        if(p.present) log(`Night ${G.night}: ${q.name} fed ${p.name}, a near thing.`, "good");
+        if(p.present){ log(`Night ${G.night}: ${q.name} fed ${p.name}, a near thing.`, "good"); saved.push({by: q.name, name: p.name}); }
         break;
       }
     }
@@ -3157,11 +3940,14 @@ function sleepApply(G){
     }
   });
   G.deathsFresh = lost.length ? lost.join(" and ") : "";
+  G.savesFresh = saved;   // P37 A10: the rule is unchanged (any fed bat in the colony may save her); now the game says so
   // P6a: contagion through the dawn's contacts (each bat groomed or shared with; coughing ones worse)
   if(G.season && !G.sick && G.contacts && G.contacts.length && G.night >= BAT.season.contagionFrom){   // P32
     const S = BAT.season;
     let pNone = 1;
-    G.contacts.forEach(c=>{ pNone *= 1 - Math.min(0.95, S.contactSick * G.season.contagion * (c.cough ? S.sickBatMult : 1)); });
+    const cm = tradeVal(G, G.myRoost, "contactMult", 1);   // P37: coughs barely spread in the culvert
+    G.contacts.forEach(c=>{ if(youngCoughOnly(G) && !c.cough) return;   // P37 (B2)
+      pNone *= 1 - Math.min(0.95, S.contactSick * G.season.contagion * (c.cough ? S.sickBatMult : 1) * cm); });
     if(roll() < 1 - pNone){
       const worst = G.contacts.slice().sort((a,b)=> (b.cough?1:0) - (a.cough?1:0))[0];
       G.pendingSick = worst.name;
@@ -3203,6 +3989,7 @@ function badgesFor(G){
 }
 function batEnd(){
   let score = Math.round(G.score), verdict;
+  if(G.night > BAT.rampNights) tipsGraduate();   // P37: past the teaching nights, the next run starts without tips
   const alive = realBonds(G);
   const bonds = alive.reduce((a,p)=>a+p.trust,0);
   const saved = G.partners.filter(p=>p.youSaved).map(p=>p.name);
@@ -3314,6 +4101,10 @@ function batEnd(){
       row.insertAdjacentElement("afterend", led);
     }
   }
+  /* P37: wydEnd centres the card, which on a short screen puts its top (the score and the verdict)
+     above the fold. Its first screen is the score, the verdict and Play again, so it starts at the top. */
+  const endEl = document.getElementById("wyd-end");
+  if(endEl){ const top = ()=>{ try{ endEl.scrollIntoView({block:"start", behavior:"auto"}); }catch(e){} }; top(); requestAnimationFrame(top); }
 }
 
 /* ── the registry ── */
@@ -3372,7 +4163,7 @@ if(DEBUG_CITES){
     else if(Array.isArray(v)) v.forEach((x, i)=> walk(x, p + "[" + i + "]"));
     else if(v && typeof v === "object") Object.keys(v).forEach(k=> walk(v[k], p + "." + k));
   };
-  walk(BAT, "BAT"); walk(COW_TABLE, "COW_TABLE"); walk(PASTURES, "PASTURES"); walk(RIVALS, "RIVALS"); walk(EVENTS, "EVENTS"); walk(YEARS, "YEARS"); walk(YEAR_SLOTS, "YEAR_SLOTS");
+  walk(BAT, "BAT"); walk(COW_TABLE, "COW_TABLE"); walk(PASTURES, "PASTURES"); walk(ROOST_TYPES, "ROOST_TYPES");   // P37: the roost trades walk(RIVALS, "RIVALS"); walk(EVENTS, "EVENTS"); walk(YEARS, "YEARS"); walk(YEAR_SLOTS, "YEAR_SLOTS");
   window.WYD_CITES_REPORT = {noProv, missing, badCite};
   console.log("[cites] noProv", JSON.stringify(noProv), "missing", JSON.stringify(missing), "badCite", JSON.stringify(badCite));
 }
