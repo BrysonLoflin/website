@@ -8,24 +8,29 @@
 <meta name="referrer" content="no-referrer">
 <title>Bat Clip Scorer</title>
 <!--
-  Bat Clip Scorer, web version (brysonloflin.com/score/?k=<key>). Built 2026-11-04 from
+  Bat Clip Scorer, web version (brysonloflin.com/score/, optional ?k=<key>). Built 2026-11-04 from
   Projects/Carter Lab/BatReID/laura_batches/clip_scorer.html (the Dropbox version, which keeps working). Same
   questions, layout, video controls, zoom, letters layer and keys. Contract shared with the lab Mac uploader:
   Projects/Carter Lab/BatReID/laura_batches/web/CONTRACT.md.
 
-  How it works: the link carries the scorer's secret 24-character key (?k=) and, for tests, an optional &base= that
-  replaces R2_BASE. The page reads <base>/s/<key>/manifest.json (only open parts are listed), streams each clip from
+  How it works (v2, 11/4): the start screen asks "Who are you?" (Laura, Dante, Bryson, Tobias); each name maps to its
+  24-character key in WHO below (Bryson accepted that the keys are visible in the page source). A link's ?k= still
+  works: it highlights the matching name; a valid key that matches no name is a test link, and any name then starts
+  on that key. The last name picked is remembered in localStorage. For tests, an optional &base= replaces R2_BASE. The page reads <base>/s/<key>/manifest.json (only open parts are listed), streams each clip from
   <base>/clips/<code>.mp4 and draws the letters from <base>/clips/<code>.tags.json. The next unscored clips download
   in the background into Cache Storage ("batclips-v1"), one at a time, up to the Download ahead budget in Help
   (1 / 3 / 6 GB, default 3); scored clips and clips no longer listed are cleared from that cache. Every answer change
-  is written to Firestore scoring/<key>/answers/<code> (v=1, whole document), with localStorage as a backup and
+  is written to Firestore scoring/<key>/answers/<code> (v=2, whole document), with localStorage as a backup and
   retry queue; on Start the page reads that scorer's saved answers for the listed parts and keeps the newest of each.
 
   Questions (Bryson's own protocol, 11/4): 1 do the letters stay on the same two bats (tags_right), 2 what
-  happened (type), how hard (fight_level 0-3, fights only), 3 who won (winner, fights only). A row is done when
-  tags_right and type are filled, plus fight_level and winner when type = fight (lb_share.py uses the same rule).
-  Values written: tags_right = yes, no, unsure; type = fight, cofeed, near (= Nothing), untagged (A or B with an
-  untagged bat), other, cant_tell; fight_level = 0-3 (0 = no contact); winner = A, B, unclear. No band reading here.
+  happened (type), how hard (fight_level 0-3, opens right under the Fight button, fights only), 3 who won (winner,
+  fights only). A row is done when tags_right and type are filled, plus fight_level and winner when type = fight
+  (lb_share.py uses the same rule). Values written: tags_right = yes, no, unsure; type = fight, cofeed, near
+  (= Nothing), cant_tell (= Other / can't tell); fight_level = 0-3 (0 = no contact); winner = A, B, unclear. Answers
+  saved before v2 may hold type untagged or other: they still load, count as answered and are kept on re-save.
+  Optional band codes (v2, never required): a_left, a_right, b_left, b_right (free text, <= 16 chars) and
+  a_left_unsure ... b_right_unsure ("yes" or ""), in a collapsed "Band codes (optional)" section below Notes.
 -->
 <style>
 :root{
@@ -173,6 +178,22 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
 .ahead{font-size:14px;color:var(--muted);max-width:240px;line-height:1.2}
 .all-done{background:var(--green-soft);color:var(--green);border-radius:10px;padding:10px 12px;font-size:16px;margin-bottom:10px;font-weight:700}
 .gb-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* ---------- v2: who are you, fight levels under Fight, band codes ---------- */
+.who-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.who-btn{min-height:96px;font-size:28px;border-radius:16px}
+.who-btn.on{border-width:3px}
+.test-note{margin-top:16px;color:var(--amber);font-weight:700;font-size:18px}
+.sub-choices{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px 28px;padding-left:12px;border-left:4px solid var(--blue-soft)}
+.sub-choices .sub-h{flex-basis:100%;font-weight:700;font-size:16px;color:var(--muted);margin:2px 0 -2px}
+.old-type{flex-basis:100%;color:var(--muted);font-size:15px}
+.band-bat{border-top:1px solid #eef0f3;padding-top:8px}
+.band-bat:first-child{border-top:none;padding-top:0}
+.band-who{font-weight:700;font-size:17px;margin-bottom:6px}
+.band-row{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:6px}
+.band-row .lab{font-size:16px;color:var(--muted);font-weight:600}
+.band-row .text-in{padding:8px 10px}
+.band-row .unsure{display:flex;align-items:center;gap:6px;font-size:16px;cursor:pointer;user-select:none}
+.band-row .unsure input{width:22px;height:22px;margin:0;cursor:pointer}
 </style>
 </head>
 <body>
@@ -180,15 +201,14 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
 <!-- ============ Start screen ============ -->
 <div id="start" class="screen">
   <div class="card">
-    <h1>Bat clip scorer</h1>
-    <p class="lead">Score bats <span class="letter a">A</span> and <span class="letter b">B</span> in each clip.</p>
-    <label class="field-label" for="nameIn">Your first name</label>
-    <input id="nameIn" class="name-input" autocomplete="given-name" placeholder="For example: Laura">
-    <button id="startBtn" class="btn primary big-open">Start</button>
-    <ol class="steps">
-      <li>Your answers save by themselves as you go.</li>
-      <li>You can stop any time and come back with the same link, on any computer.</li>
-    </ol>
+    <h1>Who are you?</h1>
+    <div class="who-grid" id="whoGrid">
+      <button class="btn who-btn" data-who="Laura">Laura</button>
+      <button class="btn who-btn" data-who="Dante">Dante</button>
+      <button class="btn who-btn" data-who="Bryson">Bryson</button>
+      <button class="btn who-btn" data-who="Tobias">Tobias</button>
+    </div>
+    <div id="testNote" class="test-note hidden">Test link</div>
     <div id="startMsg" class="hidden"></div>
   </div>
 </div>
@@ -275,22 +295,18 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
       <div class="q" data-q="type">
         <h3>2. What happened between <span class="letter a">A</span> and <span class="letter b">B</span>?</h3>
         <div class="choices">
-          <button class="btn choice wide c-blue" data-f="type" data-v="fight">Fight or displacement</button>
+          <button class="btn choice wide c-blue" data-f="type" data-v="fight">Fight</button>
+          <div class="sub-choices hidden" data-q="fight_level" id="qFight">
+            <div class="sub-h">How hard?</div>
+            <button class="btn choice wide c-blue" data-f="fight_level" data-v="0">0 no contact (scaring, avoidance)</button>
+            <button class="btn choice wide c-blue" data-f="fight_level" data-v="1">1 hands or feet touching</button>
+            <button class="btn choice wide c-blue" data-f="fight_level" data-v="2">2 side or butt pushing</button>
+            <button class="btn choice wide c-blue" data-f="fight_level" data-v="3">3 wing swatting, over under</button>
+          </div>
           <button class="btn choice wide c-blue" data-f="type" data-v="cofeed">Cofeeding (both feeding ≥ 5 s)</button>
           <button class="btn choice wide c-blue" data-f="type" data-v="near">Nothing</button>
-          <button class="btn choice wide c-blue" data-f="type" data-v="untagged">A or B with an UNTAGGED bat</button>
-          <button class="btn choice wide c-blue" data-f="type" data-v="other">Other (grooming, ...)</button>
-          <button class="btn choice wide c-neutral" data-f="type" data-v="cant_tell">Can't tell</button>
-        </div>
-      </div>
-
-      <div class="q hidden" data-q="fight_level" id="qFight">
-        <h3>How hard?</h3>
-        <div class="choices">
-          <button class="btn choice wide c-blue" data-f="fight_level" data-v="0">0 no contact (scaring, avoidance)</button>
-          <button class="btn choice wide c-blue" data-f="fight_level" data-v="1">1 hands or feet touching</button>
-          <button class="btn choice wide c-blue" data-f="fight_level" data-v="2">2 side or butt pushing</button>
-          <button class="btn choice wide c-blue" data-f="fight_level" data-v="3">3 wing swatting, over under</button>
+          <button class="btn choice wide c-neutral" data-f="type" data-v="cant_tell">Other / can't tell</button>
+          <div class="old-type hidden" id="oldType"></div>
         </div>
       </div>
 
@@ -307,8 +323,24 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
       <div class="q">
         <h3>Notes</h3>
         <button class="btn small" id="addTime" style="margin-bottom:8px">Add video time</button>
-        <textarea id="notes" data-text="notes" maxlength="2000" placeholder="Optional. A change (cofeed to fight)? Stamp the time and say so."></textarea>
+        <textarea id="notes" data-text="notes" maxlength="2000" placeholder="Optional"></textarea>
       </div>
+
+      <details class="band" id="bandBox">
+        <summary>Band codes (optional)</summary>
+        <div class="band-grid">
+          <div class="band-bat">
+            <div class="band-who">Bat <span class="letter a">A</span></div>
+            <div class="band-row"><span class="lab">Left band</span><input class="text-in" data-text="a_left" maxlength="16" autocomplete="off" aria-label="Bat A left band"><label class="unsure"><input type="checkbox" data-tick="a_left_unsure"> Unsure</label></div>
+            <div class="band-row"><span class="lab">Right band</span><input class="text-in" data-text="a_right" maxlength="16" autocomplete="off" aria-label="Bat A right band"><label class="unsure"><input type="checkbox" data-tick="a_right_unsure"> Unsure</label></div>
+          </div>
+          <div class="band-bat">
+            <div class="band-who">Bat <span class="letter b">B</span></div>
+            <div class="band-row"><span class="lab">Left band</span><input class="text-in" data-text="b_left" maxlength="16" autocomplete="off" aria-label="Bat B left band"><label class="unsure"><input type="checkbox" data-tick="b_left_unsure"> Unsure</label></div>
+            <div class="band-row"><span class="lab">Right band</span><input class="text-in" data-text="b_right" maxlength="16" autocomplete="off" aria-label="Bat B right band"><label class="unsure"><input type="checkbox" data-tick="b_right_unsure"> Unsure</label></div>
+          </div>
+        </div>
+      </details>
 
       <div class="missing hidden" id="missing"></div>
       <button class="btn primary next-big" id="doneNext">Next clip</button>
@@ -375,7 +407,17 @@ const FB_CONFIG = {
 };
 const FB_VER = "10.13.2";
 const CACHE_NAME = "batclips-v1";
-const EDIT = ["tags_right","type","fight_level","winner","notes"];
+const BAND_TEXT = ["a_left","a_right","b_left","b_right"];                       // v2, optional, <= 16 chars
+const BAND_TICK = BAND_TEXT.map(f => f + "_unsure");                               // v2, optional, "yes" or ""
+const EDIT = ["tags_right","type","fight_level","winner","notes"].concat(BAND_TEXT, BAND_TICK);
+/* Who are you? Each name scores on its own key (CONTRACT.md v2; also laura_batches/web/scorers.csv). */
+const WHO = {
+  Laura: "hf65vyb7cd45nfxm87d8nddy",
+  Dante: "aazm3zcrsmtmjsnkxcdvg5xm",
+  Bryson: "3f4ke72hhgc43nh7ka6pwzxk",
+  Tobias: "fpt2j5gzw9zhps9923hrs9qw"
+};
+const OLD_TYPES = { untagged: "A or B with an untagged bat", other: "Other" };   // before v2; still valid
 const EXTRA = ["scorer","scored_at"];
 const ENUMS = {
   tags_right: ["yes","no","unsure"],
@@ -388,9 +430,13 @@ const video = $("video"), stage = $("stage");
 
 /* ---------- link: ?k=<key>&base=<url> ---------- */
 const QS = new URLSearchParams(location.search);
-const KEY = (QS.get("k") || "").trim();
+const KEY_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{24}$/;
+const LINK_KEY = (QS.get("k") || "").trim();                       // optional; "" = pick a name
+const LINK_WHO = Object.keys(WHO).find(n => WHO[n] === LINK_KEY) || "";
+const TEST_LINK = KEY_RE.test(LINK_KEY) && !LINK_WHO;                 // a valid key that is no one's: any name starts on it
+let KEY = "";                                                       // set when a name is picked
 const BASE = (QS.get("base") || R2_BASE).trim().replace(/\/+$/, "");
-const LINK_OK = /^[abcdefghjkmnpqrstuvwxyz23456789]{24}$/.test(KEY) && /^https?:\/\/[^/]/.test(BASE);
+const LINK_OK = (!LINK_KEY || KEY_RE.test(LINK_KEY)) && /^https?:\/\/[^/]/.test(BASE);
 const abs = p => BASE + "/" + String(p || "").replace(/^\/+/, "");
 
 /* ---------- storage that never breaks the page ---------- */
@@ -399,8 +445,8 @@ const store = {
   get(k){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e){ return null; } },
   set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
 };
-const LS_KEY = "clipscorer-web|v1|" + KEY;          // answers backup + retry queue + position
-const LS_MANIFEST = "clipscorer-web|manifest|" + KEY; // last clip list, so cached clips still open offline
+let LS_KEY = "", LS_MANIFEST = "";                   // set with KEY: answers backup + retry queue + position; last clip list
+const LS_WHO = "clipscorer-web|who";                // last name picked on this browser
 const LS_GB = "clipscorer-web|aheadGB";
 
 /* ---------- helpers ---------- */
@@ -452,7 +498,7 @@ function initDb(){
 function docData(code, a){
   const pick = (v, ok) => ok.includes(String(v == null ? "" : v)) ? String(v) : "";
   return {
-    v: 1, code,
+    v: 2, code,
     part: String(a.part || "").slice(0, 40),
     scorer: String(a.scorer || S.scorer || "").slice(0, 40),
     tags_right: pick(a.tags_right, ENUMS.tags_right),
@@ -460,7 +506,11 @@ function docData(code, a){
     fight_level: pick(a.fight_level, ENUMS.fight_level),
     winner: pick(a.winner, ENUMS.winner),
     notes: String(a.notes || "").slice(0, 2000),
-    scored_at: String(a.scored_at || new Date().toISOString()).slice(0, 40)
+    scored_at: String(a.scored_at || new Date().toISOString()).slice(0, 40),
+    a_left: String(a.a_left || "").slice(0, 16), a_left_unsure: pick(a.a_left_unsure, ["yes"]),
+    a_right: String(a.a_right || "").slice(0, 16), a_right_unsure: pick(a.a_right_unsure, ["yes"]),
+    b_left: String(a.b_left || "").slice(0, 16), b_left_unsure: pick(a.b_left_unsure, ["yes"]),
+    b_right: String(a.b_right || "").slice(0, 16), b_right_unsure: pick(a.b_right_unsure, ["yes"])
   };
 }
 
@@ -472,7 +522,7 @@ function persist(){
 }
 function persistNow(){
   clearTimeout(persistT);
-  if (!LINK_OK || !S.rows.length) return;                   // nothing loaded yet: keep any earlier backup as it is
+  if (!KEY || !S.rows.length) return;                       // nothing loaded yet: keep any earlier backup as it is
   const r = S.rows[S.i];
   store.set(LS_KEY, { answers: S.ans, pending: [...S.pending], pos: r ? r.code : null, at: new Date().toISOString() });
 }
@@ -625,37 +675,42 @@ function scheduleRefresh(){
 }
 
 /* ---------- start screen ---------- */
-const nameIn = $("nameIn");
+const whoBtns = [...document.querySelectorAll(".who-btn")];
 function startMsg(text, cls){ const m = $("startMsg"); m.textContent = text; m.className = text ? cls : "hidden"; }
+function markWho(name){ whoBtns.forEach(b => b.classList.toggle("on", b.dataset.who === name)); }
 if (!LINK_OK) show("bad");
-nameIn.value = store.get("clipscorer-web|name|" + KEY) || store.get("clipscorer|lastName") || "";
+if (TEST_LINK) $("testNote").classList.remove("hidden");
+{ const last = store.get(LS_WHO); markWho(LINK_WHO || (WHO[last] ? last : "")); }
 if (!store.ok) startMsg("Note: this browser won't keep a backup copy of your answers. They still save online.", "warn");
 
-$("startBtn").addEventListener("click", async () => {
-  const name = nameIn.value.trim();
-  if (!name){ startMsg("Please type your first name first, so your answers are saved under your name.", "err"); nameIn.focus(); return; }
-  S.scorer = name.slice(0, 40);
-  store.set("clipscorer-web|name|" + KEY, S.scorer); store.set("clipscorer|lastName", S.scorer);
-  const btn = $("startBtn"); btn.disabled = true;
+async function startAs(name){
+  if (!WHO[name]) return;
+  KEY = TEST_LINK ? LINK_KEY : WHO[name];                    // a test link keeps its own key whatever name is picked
+  LS_KEY = "clipscorer-web|v1|" + KEY;
+  LS_MANIFEST = "clipscorer-web|manifest|" + KEY;
+  S.scorer = name;
+  store.set(LS_WHO, name); markWho(name);
+  whoBtns.forEach(b => b.disabled = true);
+  const again = () => whoBtns.forEach(b => b.disabled = false);
   startMsg("Loading your clips…", "warn");
   initDb();                                                  // start loading the saving service now
   cacheInit();
   let m = null;
   try { m = await fetchManifest(); }
   catch (e){
-    if (e && e.missing){ btn.disabled = false; startMsg("No clips are ready for this link yet. Try again in about an hour, or ask Bryson.", "err"); return; }
+    if (e && e.missing){ again(); startMsg("No clips are ready for " + name + " yet. Try again in about an hour, or ask Bryson.", "err"); return; }
     m = store.get(LS_MANIFEST);
-    if (!m){ btn.disabled = false; startMsg("Couldn't load your clips. Check the internet connection and click Start again.", "err"); return; }
+    if (!m){ again(); startMsg("Couldn't load your clips. Check the internet connection and click your name again.", "err"); return; }
     toast("Offline. Showing your last clip list.", "bad", 5000);
   }
   const saved = loadLocal();
   S.rows = buildRows(m);
-  if (!S.rows.length){ btn.disabled = false; startMsg("All done for now. New clips will appear here within a few minutes. This page checks by itself.", "warn"); setTimeout(() => location.reload(), 120000); return; }
+  if (!S.rows.length){ again(); startMsg("All done for now. New clips will appear here within a few minutes. This page checks by itself.", "warn"); setTimeout(() => location.reload(), 120000); return; }
   await Promise.race([syncFromServer(), sleep(6000)]);      // answers from another computer, before the first clip shows
   const pos = saved && saved.pos ? S.rows.findIndex(r => r.code === saved.pos) : -1;
   let start = pos >= 0 ? pos : S.rows.findIndex(r => rowStatus(r) !== "done");
   if (start < 0) start = 0;
-  startMsg("", ""); btn.disabled = false;
+  startMsg("", ""); again();
   show("app");
   if (counts()) toast(`Welcome back, ${S.scorer}. Your earlier answers are loaded.`, "ok");
   updateSaveState(); renderGb();
@@ -663,8 +718,8 @@ $("startBtn").addEventListener("click", async () => {
   retryPending();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   scheduleRefresh();
-});
-nameIn.addEventListener("keydown", e => { if (e.key === "Enter") $("startBtn").click(); });
+}
+whoBtns.forEach(b => b.addEventListener("click", () => startAs(b.dataset.who)));
 
 function required(r){
   const need = ["tags_right","type"];
@@ -691,6 +746,7 @@ async function go(i){
   $("clipMeta").textContent = meta;
   const note = $("clipNote");
   if (r.clip_note){ note.textContent = "Note: " + r.clip_note; note.classList.remove("hidden"); } else note.classList.add("hidden");
+  $("bandBox").open = S.bandsOpen || BAND_TEXT.concat(BAND_TICK).some(f => (r[f] || "") !== "");
   renderAnswers(); renderProgress();
   prefetchKick();
   await loadVideo(r);
@@ -905,7 +961,10 @@ function renderAnswers(){
   const r = S.rows[S.i]; if (!r) return;
   document.querySelectorAll(".choice").forEach(b => b.classList.toggle("sel", (r[b.dataset.f] || "") === b.dataset.v));
   document.querySelectorAll("[data-text]").forEach(el => { if (document.activeElement !== el) el.value = r[el.dataset.text] || ""; });
+  document.querySelectorAll("[data-tick]").forEach(el => { el.checked = r[el.dataset.tick] === "yes"; });
   $("qFight").classList.toggle("hidden", r.type !== "fight"); $("qWinner").classList.toggle("hidden", r.type !== "fight");
+  const old = OLD_TYPES[r.type], ot = $("oldType");
+  ot.textContent = old ? "Earlier answer: " + old + ". Pick one above to change it." : ""; ot.classList.toggle("hidden", !old);
   const st = rowStatus(r), pill = $("statusPill");
   pill.textContent = st === "done" ? "Done" : st === "started" ? "Started" : "Not started";
   pill.className = "status-pill " + (st === "done" ? "status-done" : st === "started" ? "status-started" : "status-none");
@@ -923,7 +982,7 @@ function setField(f, v){
   r.scorer = S.scorer; r.scored_at = new Date().toISOString();
   const a = {}; for (const c of EDIT.concat(EXTRA)) a[c] = r[c] || ""; a.part = r.part;
   S.ans[r.code] = a;
-  queueSave(r.code, f === "notes" ? 800 : 0);                // typing: one write after a short pause
+  queueSave(r.code, f === "notes" || BAND_TEXT.includes(f) ? 800 : 0);   // typing: one write after a short pause
   renderAnswers(); renderProgress();
   if (rowStatus(r) === "done") prefetchKick();
 }
@@ -932,6 +991,10 @@ document.querySelectorAll(".choice").forEach(b => b.addEventListener("click", ()
   setField(b.dataset.f, r[b.dataset.f] === b.dataset.v ? "" : b.dataset.v);   // click again to clear
 }));
 document.querySelectorAll("[data-text]").forEach(el => el.addEventListener("input", () => setField(el.dataset.text, el.value)));
+document.querySelectorAll("[data-tick]").forEach(el => el.addEventListener("change", () => setField(el.dataset.tick, el.checked ? "yes" : "")));
+S.bandsOpen = store.get("clipscorer-web|bandsOpen") === true;
+// Only the scorer's own open / close is remembered (a clip with band codes opens the box without changing it).
+$("bandBox").querySelector("summary").addEventListener("click", () => setTimeout(() => { S.bandsOpen = $("bandBox").open; store.set("clipscorer-web|bandsOpen", S.bandsOpen); }, 0));
 $("addTime").onclick = () => {
   const ta = $("notes"), stamp = fmt(video.currentTime || 0) + " ";
   const pos = ta.selectionStart != null && document.activeElement === ta ? ta.selectionStart : ta.value.length;
