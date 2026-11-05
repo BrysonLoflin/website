@@ -6,42 +6,44 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Scoring Stats</title>
 <!--
-  Live scoring stats (2026-11-05). Reads the same public data as the scorer page (../index.html):
-  R2 <base>/s/<key>/manifest.json = the clips online for each scorer (open parts only), and Firestore
-  scoring/<key>/answers = their answers. "Left" = manifest rows not done; "Scored" = answer docs that are done
-  (tags_right + type, plus fight_level + winner for fights; same rule as the scorer and lb_share.done_row).
-  "Clips online" counts each code once (calibration codes are shared). Refreshes every 60 s.
+  Live scoring stats (2026-11-05, v2: one fights bar + scored per person, fits a desktop screen).
+  Fights bar: R2 stats.json {fights, fights_scored} written every 10 min on the lab Mac by
+  BatReID/laura_batches/lb_stats.py (which codes are fights is pipeline data, so only totals reach this page).
+  Per person: Firestore scoring/<key>/answers that are done (tags_right + type, plus fight_level + winner for
+  fights; same rule as the scorer and lb_share.done_row). Refreshes every 60 s.
 -->
 <style>
 :root{--bg:#f3f4f6;--panel:#fff;--ink:#111827;--muted:#4b5563;--line:#e5e7eb;--blue:#1d4ed8;--green:#15803d}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:20px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
-main{max-width:1000px;margin:0 auto;padding:20px 16px 32px}
+main{max-width:1500px;margin:0 auto;padding:18px 28px;min-height:100vh;display:flex;flex-direction:column;gap:18px}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .back{font-weight:600;font-size:18px;color:var(--blue);text-decoration:none;border:2px solid #d1d5db;border-radius:12px;padding:8px 14px;background:#fff}
-.big{background:var(--panel);border-radius:20px;padding:22px 26px;margin:16px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.big .n{font-size:96px;font-weight:800;line-height:1}
-.big .lab{font-size:30px;font-weight:700;color:var(--muted)}
-.chart{background:var(--panel);border-radius:20px;padding:20px 26px 24px;margin:16px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.chart h2{margin:0 0 14px;font-size:38px}
-.row{display:grid;grid-template-columns:7.5em 1fr;align-items:center;gap:14px;margin:12px 0}
+.card{background:var(--panel);border-radius:20px;padding:20px 28px 24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.card h2{margin:0 0 12px;font-size:40px}
+.fbar{position:relative;height:110px;background:#e5e7eb;border-radius:16px;overflow:hidden}
+.fbar .fill{height:100%;background:var(--green);transition:width .6s ease;min-width:8px}
+.fnums{display:flex;justify-content:space-between;margin-top:10px;font-size:34px;font-weight:800}
+.fnums .s{color:var(--green)} .fnums .t{color:var(--muted)}
+.rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 40px}
+.row{display:grid;grid-template-columns:5.2em 1fr;align-items:center;gap:14px}
 .name{font-size:30px;font-weight:700}
-.track{position:relative;height:64px;background:#f3f4f6;border-radius:12px}
-.bar{height:100%;border-radius:12px;min-width:6px;transition:width .6s ease}
-.left .bar{background:var(--blue)}
-.scored .bar{background:var(--green)}
-.val{position:absolute;top:50%;transform:translateY(-50%);font-size:34px;font-weight:800;padding:0 14px}
+.track{position:relative;height:60px;background:#f3f4f6;border-radius:12px}
+.bar{height:100%;border-radius:12px;min-width:6px;background:var(--blue);transition:width .6s ease}
+.val{position:absolute;top:50%;transform:translateY(-50%);font-size:32px;font-weight:800;padding:0 14px}
 .val.in{color:#fff}
-.stamp{color:var(--muted);font-size:17px;margin-top:6px}
+.stamp{color:var(--muted);font-size:17px}
 .err{color:#b91c1c;font-weight:600}
-@media (max-width:640px){
-  .big .n{font-size:72px}
-  .chart h2{font-size:30px}
-  .row{grid-template-columns:5.2em 1fr;gap:10px}
+@media (max-width:900px){
+  main{padding:14px 16px}
+  .rows{grid-template-columns:1fr}
+  .card h2{font-size:30px}
+  .fbar{height:76px}
+  .fnums{font-size:26px}
   .name{font-size:24px}
-  .track{height:52px}
-  .val{font-size:28px}
+  .track{height:50px}
+  .val{font-size:26px}
 }
 </style>
 </head>
@@ -52,10 +54,11 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   <span class="stamp" id="stamp">Loading</span>
 </header>
 
-<div class="big"><div class="n" id="online">&ndash;</div><div class="lab">Clips online</div></div>
-
-<section class="chart left"><h2>Clips left</h2><div id="leftRows"></div></section>
-<section class="chart scored"><h2>Clips scored</h2><div id="scoredRows"></div></section>
+<section class="card"><h2>Fights scored</h2>
+  <div class="fbar"><div class="fill" id="ffill" style="width:0"></div></div>
+  <div class="fnums"><span class="s" id="fscored">&ndash; scored</span><span class="t" id="ftotal">&ndash; total</span></div>
+</section>
+<section class="card"><h2>Clips scored</h2><div class="rows" id="scoredRows"></div></section>
 </main>
 
 <script>
@@ -78,10 +81,9 @@ function done(a) {
   if (a.type === "fight") return !!a.fight_level && !!a.winner;
   return true;
 }
-async function manifest(key) {
-  const r = await fetch(`${R2_BASE}/s/${key}/manifest.json`, { cache: "no-store" });
-  if (r.status === 404) return { parts: [] };
-  if (!r.ok) throw new Error("manifest " + r.status);
+async function totals() {
+  const r = await fetch(`${R2_BASE}/stats.json`, { cache: "no-store" });
+  if (!r.ok) throw new Error("stats " + r.status);
   return r.json();
 }
 async function answers(key) {
@@ -114,15 +116,15 @@ function bars(el, cls, data) {
 async function refresh() {
   try {
     const names = Object.keys(WHO);
-    const res = await Promise.all(names.map(async n => {
-      const [m, a] = await Promise.all([manifest(WHO[n]), answers(WHO[n])]);
-      const codes = (m.parts || []).flatMap(p => (p.rows || []).map(r => r.code));
-      return { name: n, codes, left: codes.filter(c => !(a[c] && done(a[c]))).length,
-               scored: Object.values(a).filter(done).length };
-    }));
-    $("online").textContent = new Set(res.flatMap(r => r.codes)).size;
-    bars($("leftRows"), "left", res.map(r => ({ name: r.name, n: r.left })));
-    bars($("scoredRows"), "scored", res.map(r => ({ name: r.name, n: r.scored })));
+    const [t, res] = await Promise.all([totals(), Promise.all(names.map(async n => {
+      const a = await answers(WHO[n]);
+      return { name: n, n: Object.values(a).filter(done).length };
+    }))]);
+    const f = Number(t.fights) || 0, fs = Number(t.fights_scored) || 0;
+    $("ffill").style.width = (f ? 100 * fs / f : 0) + "%";
+    $("fscored").textContent = fs.toLocaleString() + " scored";
+    $("ftotal").textContent = f.toLocaleString() + " total";
+    bars($("scoredRows"), "", res);
     $("stamp").className = "stamp";
     $("stamp").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   } catch (e) {
