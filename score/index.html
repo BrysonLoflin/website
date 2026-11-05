@@ -182,6 +182,8 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
 .who-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
 .who-btn{min-height:96px;font-size:28px;border-radius:16px}
 .who-btn.on{border-width:3px}
+.other-box{margin-top:18px}
+.other-box .big-open{margin-top:14px;min-height:64px;font-size:22px}
 .test-note{margin-top:16px;color:var(--amber);font-weight:700;font-size:18px}
 a.btn{text-decoration:none}
 .guide-link{margin:12px 0 2px;font-size:16px}
@@ -209,7 +211,12 @@ a.btn{text-decoration:none}
       <button class="btn who-btn" data-who="Laura">Laura</button>
       <button class="btn who-btn" data-who="Dante">Dante</button>
       <button class="btn who-btn" data-who="Bryson">Bryson</button>
-      <button class="btn who-btn" data-who="Tobias">Tobias</button>
+      <button class="btn who-btn" data-who="Other">Other</button>
+    </div>
+    <div id="otherBox" class="other-box hidden">
+      <label class="field-label" for="otherName">Your name</label>
+      <input id="otherName" class="name-input" maxlength="40" autocomplete="name">
+      <button class="btn primary big-open" id="otherGo">Start scoring</button>
     </div>
     <p class="guide-link"><a href="bands/" target="_blank" rel="noopener">Band guide</a> &nbsp;&middot;&nbsp; <a href="stats/" target="_blank" rel="noopener">Stats</a></p>
     <div id="testNote" class="test-note hidden">Test link</div>
@@ -422,7 +429,7 @@ const WHO = {
   Laura: "hf65vyb7cd45nfxm87d8nddy",
   Dante: "aazm3zcrsmtmjsnkxcdvg5xm",
   Bryson: "3f4ke72hhgc43nh7ka6pwzxk",
-  Tobias: "fpt2j5gzw9zhps9923hrs9qw"
+  Other: "fpt2j5gzw9zhps9923hrs9qw"          // 11/5: was Tobias; anyone else types a name (one shared pool)
 };
 const OLD_TYPES = { untagged: "A or B with an untagged bat", other: "Other" };   // before v2; still valid
 const EXTRA = ["scorer","scored_at"];
@@ -454,6 +461,7 @@ const store = {
 };
 let LS_KEY = "", LS_MANIFEST = "";                   // set with KEY: answers backup + retry queue + position; last clip list
 const LS_WHO = "clipscorer-web|who";                // last name picked on this browser
+const LS_OTHER = "clipscorer-web|otherName";        // the name typed after Other
 const LS_GB = "clipscorer-web|aheadGB";
 
 /* ---------- helpers ---------- */
@@ -690,12 +698,13 @@ if (TEST_LINK) $("testNote").classList.remove("hidden");
 { const last = store.get(LS_WHO); markWho(LINK_WHO || (WHO[last] ? last : "")); }
 if (!store.ok) startMsg("Note: this browser won't keep a backup copy of your answers. They still save online.", "warn");
 
-async function startAs(name){
+async function startAs(name, typed){
   if (!WHO[name]) return;
+  if (name === "Other" && !typed){ openOther(); return; }
   KEY = TEST_LINK ? LINK_KEY : WHO[name];                    // a test link keeps its own key whatever name is picked
   LS_KEY = "clipscorer-web|v1|" + KEY;
   LS_MANIFEST = "clipscorer-web|manifest|" + KEY;
-  S.scorer = name;
+  S.scorer = name === "Other" ? typed : name;               // an Other answer carries the typed name (Firestore scorer <= 40)
   store.set(LS_WHO, name); markWho(name);
   whoBtns.forEach(b => b.disabled = true);
   const again = () => whoBtns.forEach(b => b.disabled = false);
@@ -727,6 +736,18 @@ async function startAs(name){
   scheduleRefresh();
 }
 whoBtns.forEach(b => b.addEventListener("click", () => startAs(b.dataset.who)));
+function openOther(){
+  markWho("Other"); $("otherBox").classList.remove("hidden");
+  const n = $("otherName"); n.value = n.value || store.get(LS_OTHER) || ""; n.focus();
+}
+function goOther(){
+  const t = $("otherName").value.replace(/\s+/g, " ").trim().slice(0, 40);
+  if (!t){ startMsg("Type your name first.", "err"); $("otherName").focus(); return; }
+  store.set(LS_OTHER, t); $("otherGo").disabled = true;
+  startAs("Other", t).finally(() => { $("otherGo").disabled = false; });
+}
+$("otherGo").addEventListener("click", goOther);
+$("otherName").addEventListener("keydown", e => { if (e.key === "Enter") goOther(); });
 
 function required(r){
   const need = ["tags_right","type"];
