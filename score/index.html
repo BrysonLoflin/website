@@ -183,6 +183,9 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
 .who-btn{min-height:96px;font-size:28px;border-radius:16px}
 .who-btn.on{border-width:3px}
 .test-note{margin-top:16px;color:var(--amber);font-weight:700;font-size:18px}
+a.btn{text-decoration:none}
+.guide-link{margin:12px 0 2px;font-size:16px}
+.guide-link a{color:var(--blue);font-weight:600}
 .sub-choices{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px 28px;padding-left:12px;border-left:4px solid var(--blue-soft)}
 .sub-choices .sub-h{flex-basis:100%;font-weight:700;font-size:16px;color:var(--muted);margin:2px 0 -2px}
 .old-type{flex-basis:100%;color:var(--muted);font-size:15px}
@@ -208,6 +211,7 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
       <button class="btn who-btn" data-who="Bryson">Bryson</button>
       <button class="btn who-btn" data-who="Tobias">Tobias</button>
     </div>
+    <p class="guide-link"><a href="bands/" target="_blank" rel="noopener">Band guide</a></p>
     <div id="testNote" class="test-note hidden">Test link</div>
     <div id="startMsg" class="hidden"></div>
   </div>
@@ -232,6 +236,7 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
     <button class="btn small" id="listBtn">All clips</button>
     <span class="spacer"></span>
     <span class="ahead" id="aheadLine"></span>
+    <a class="btn small" id="guideBtn" href="bands/" target="_blank" rel="noopener">Band guide</a>
     <button class="btn small" id="helpBtn">Help</button>
     <span class="save-state" id="saveState"></span>
   </div>
@@ -340,6 +345,7 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
             <div class="band-row"><span class="lab">Right band</span><input class="text-in" data-text="b_right" maxlength="16" autocomplete="off" aria-label="Bat B right band"><label class="unsure"><input type="checkbox" data-tick="b_right_unsure"> Unsure</label></div>
           </div>
         </div>
+              <p class="guide-link"><a href="bands/" target="_blank" rel="noopener">Band guide</a></p>
       </details>
 
       <div class="missing hidden" id="missing"></div>
@@ -378,6 +384,7 @@ kbd{display:inline-block;border:2px solid #9ca3af;border-bottom-width:3px;border
       <tr><td><b>Zoom</b></td><td>Scroll on the video, or Zoom in / Zoom out. Drag to move.</td></tr>
       <tr><td><b>Play</b></td><td>Space bar, or click the video.</td></tr>
       <tr><td><b>Letters</b></td><td>Letters on / off (or <kbd>L</kbd>) hides A and B to see the bands.</td></tr>
+      <tr><td><b>Bands</b></td><td><a href="bands/" target="_blank" rel="noopener">Band guide</a>: every band type and every bat's bands.</td></tr>
       <tr><td><b>Keys</b></td><td><kbd>Left</kbd> <kbd>Right</kbd> 5 s, <kbd>,</kbd> <kbd>.</kbd> 1 frame, <kbd>N</kbd> <kbd>P</kbd> next / previous clip.</td></tr>
       <tr><td><b>Saving</b></td><td>Every answer saves by itself. Offline? Keep going; your answers are kept here and saved when you are back online.</td></tr>
       <tr><td><b>Download ahead</b></td><td>
