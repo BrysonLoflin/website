@@ -6,11 +6,11 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Scoring Stats</title>
 <!--
-  Live scoring stats (2026-11-05, v2: one fights bar + scored per person, fits a desktop screen).
-  Fights bar: R2 stats.json {fights, fights_scored} written every 10 min on the lab Mac by
-  BatReID/laura_batches/lb_stats.py (which codes are fights is pipeline data, so only totals reach this page).
-  Per person: Firestore scoring/<key>/answers that are done (tags_right + type, plus fight_level + winner for
-  fights; same rule as the scorer and lb_share.done_row). Refreshes every 60 s.
+  Live scoring stats (2026-11-05, v3: counts INTERACTIONS, not clips; Bryson's earlier hand scoring folded in).
+  All numbers come from R2 stats.json, written every 5 min on the lab Mac by BatReID/laura_batches/lb_stats.py:
+  interactions = every event in the interaction table (permanent codes) minus person-in-the-room clips; scored = any
+  interaction with an answer from anyone (a finished clip counts all its interactions; his assisted-day answers via
+  lb_past.py); by_person = the same per scorer (Bryson includes his earlier scoring). Page re-reads every 60 s.
 -->
 <style>
 :root{--bg:#f3f4f6;--panel:#fff;--ink:#111827;--muted:#4b5563;--line:#e5e7eb;--blue:#1d4ed8;--green:#15803d}
@@ -54,11 +54,11 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;fl
   <span class="stamp" id="stamp">Loading</span>
 </header>
 
-<section class="card"><h2>Fights scored</h2>
+<section class="card"><h2>Interactions scored</h2>
   <div class="fbar"><div class="fill" id="ffill" style="width:0"></div></div>
   <div class="fnums"><span class="s" id="fscored">&ndash; scored</span><span class="t" id="ftotal">&ndash; total</span></div>
 </section>
-<section class="card"><h2>Clips scored</h2><div class="rows" id="scoredRows"></div></section>
+<section class="card"><h2>Scored by</h2><div class="rows" id="scoredRows"></div></section>
 </main>
 
 <script>
@@ -110,23 +110,20 @@ function bars(el, cls, data) {
     const pct = 100 * d.n / max, inside = pct > 18;
     return `<div class="row"><span class="name">${d.name}</span><div class="track">`
       + `<div class="bar" style="width:${pct}%"></div>`
-      + `<span class="val ${inside ? "in" : ""}" style="${inside ? "left:0" : `left:${pct}%`}">${d.n}</span></div></div>`;
+      + `<span class="val ${inside ? "in" : ""}" style="${inside ? "left:0" : `left:${pct}%`}">${d.n.toLocaleString()}</span></div></div>`;
   }).join("");
 }
 async function refresh() {
   try {
-    const names = Object.keys(WHO);
-    const [t, res] = await Promise.all([totals(), Promise.all(names.map(async n => {
-      const a = await answers(WHO[n]);
-      return { name: n, n: Object.values(a).filter(done).length };
-    }))]);
-    const f = Number(t.fights) || 0, fs = Number(t.fights_scored) || 0;
+    const t = await totals();
+    const f = Number(t.interactions) || 0, fs = Number(t.scored) || 0;
     $("ffill").style.width = (f ? 100 * fs / f : 0) + "%";
     $("fscored").textContent = fs.toLocaleString() + " scored";
     $("ftotal").textContent = f.toLocaleString() + " total";
-    bars($("scoredRows"), "", res);
+    const by = t.by_person || {};
+    bars($("scoredRows"), "", Object.keys(WHO).map(n => ({ name: n, n: Number(by[n]) || 0 })));
     $("stamp").className = "stamp";
-    $("stamp").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    $("stamp").textContent = "Updated " + new Date(t.updated_at || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   } catch (e) {
     $("stamp").className = "stamp err";
     $("stamp").textContent = "Offline, retrying";
